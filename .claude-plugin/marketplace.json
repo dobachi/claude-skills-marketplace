@@ -1,0 +1,14 @@
+{
+  "name": "dobachi-skills",
+  "description": "Personal skills marketplace for Claude Code",
+  "owner": {
+    "name": "dobachi"
+  },
+  "plugins": [
+    {
+      "name": "fact-checker",
+      "source": "./plugins/fact-checker",
+      "description": "Automated fact-checking for AI-generated documents. Extracts claims, verifies via web search and headless browser (Puppeteer), and generates a Markdown report."
+    }
+  ]
+}

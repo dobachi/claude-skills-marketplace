@@ -1,0 +1,8 @@
+{
+  "name": "fact-checker",
+  "description": "Automated fact-checking skill. Extracts verifiable claims and citations from documents (Markdown, PDF, DOCX), verifies them via web search and Puppeteer headless browser, and generates a comprehensive Markdown fact-check report.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}
