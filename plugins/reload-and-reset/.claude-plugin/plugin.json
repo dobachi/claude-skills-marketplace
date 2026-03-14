@@ -1,0 +1,6 @@
+{
+  "name": "reload-and-reset",
+  "description": "AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセットするスキル。",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

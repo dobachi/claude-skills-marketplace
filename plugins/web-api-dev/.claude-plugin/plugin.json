@@ -1,0 +1,6 @@
+{
+  "name": "web-api-dev",
+  "description": "本番環境向けの高品質なRESTful Web APIの設計・実装を支援する開発エキスパート",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

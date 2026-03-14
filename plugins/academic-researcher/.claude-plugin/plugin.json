@@ -1,0 +1,6 @@
+{
+  "name": "academic-researcher",
+  "description": "学術論文執筆、文献レビュー、引用管理、研究方法論を含む包括的な学術研究支援エキスパート",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

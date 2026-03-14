@@ -1,0 +1,6 @@
+{
+  "name": "github-issues",
+  "description": "GitHub Issueの一覧取得、ラベル別集計、優先度分析を行い、タスクを整理・提案するスキル。",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "project-manager",
+  "description": "プロジェクトの計画、実行、監視、完了を総合的に管理するプロジェクトマネージャースキル",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

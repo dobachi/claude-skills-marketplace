@@ -1,0 +1,6 @@
+{
+  "name": "checkpoint",
+  "description": "AI指示書システムのチェックポイント管理スキル。タスクの開始・進捗・完了を追跡し、指示書の使用状態を管理。",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

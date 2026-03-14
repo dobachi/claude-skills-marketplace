@@ -9,6 +9,101 @@
       "name": "fact-checker",
       "source": "./plugins/fact-checker",
       "description": "Automated fact-checking for AI-generated documents. Extracts claims, verifies via web search and headless browser (Puppeteer), and generates a Markdown report."
+    },
+    {
+      "name": "verify-content",
+      "source": "./plugins/verify-content",
+      "description": "Integrated content verification skill. Extracts claims, verifies against external sources, and compiles references in a single workflow."
+    },
+    {
+      "name": "build",
+      "source": "./plugins/build",
+      "description": "Detects and executes the appropriate build command for your project. Supports Node.js, Rust, Python, Go, Makefile, and other major project types."
+    },
+    {
+      "name": "checkpoint",
+      "source": "./plugins/checkpoint",
+      "description": "Checkpoint management for the AI instruction system. Tracks task start, progress, and completion, and manages instruction usage state."
+    },
+    {
+      "name": "commit-and-report",
+      "source": "./plugins/commit-and-report",
+      "description": "Commits changes, pushes to remote, and reports progress to a GitHub Issue in a single workflow."
+    },
+    {
+      "name": "github-issues",
+      "source": "./plugins/github-issues",
+      "description": "Fetches GitHub Issues, aggregates by label, analyzes priorities, and organizes tasks with actionable suggestions."
+    },
+    {
+      "name": "reload-instructions",
+      "source": "./plugins/reload-instructions",
+      "description": "Updates the AI instruction submodule to the latest version and reloads ROOT_INSTRUCTION."
+    },
+    {
+      "name": "reload-and-reset",
+      "source": "./plugins/reload-and-reset",
+      "description": "Updates the AI instruction system to the latest version and resets AI behavior to align with the instructions."
+    },
+    {
+      "name": "evidence-check",
+      "source": "./plugins/evidence-check",
+      "description": "Verifies references and citations in reports and papers, performing evidence-based fact-checking."
+    },
+    {
+      "name": "web-api-dev",
+      "source": "./plugins/web-api-dev",
+      "description": "Expert assistant for designing and implementing production-ready RESTful Web APIs."
+    },
+    {
+      "name": "cli-tool-dev",
+      "source": "./plugins/cli-tool-dev",
+      "description": "CLI development expert that helps design and implement user-friendly command-line tools."
+    },
+    {
+      "name": "data-analyst",
+      "source": "./plugins/data-analyst",
+      "description": "Comprehensive data analysis expert covering statistical insights, visualization, and machine learning."
+    },
+    {
+      "name": "technical-writer",
+      "source": "./plugins/technical-writer",
+      "description": "Expert assistant for creating high-quality technical documents including API docs, user guides, and technical blog posts."
+    },
+    {
+      "name": "academic-researcher",
+      "source": "./plugins/academic-researcher",
+      "description": "Comprehensive academic research expert covering paper writing, literature review, citation management, and research methodology."
+    },
+    {
+      "name": "business-consultant",
+      "source": "./plugins/business-consultant",
+      "description": "Comprehensive business consulting using McKinsey/BCG methodologies, from strategy planning to execution support."
+    },
+    {
+      "name": "project-manager",
+      "source": "./plugins/project-manager",
+      "description": "Project manager skill for comprehensive planning, execution, monitoring, and completion of projects."
+    },
+    {
+      "name": "startup-advisor",
+      "source": "./plugins/startup-advisor",
+      "description": "Startup advisor providing practical advice and strategic guidance from launch through growth stages."
+    },
+    {
+      "name": "python-expert",
+      "source": "./plugins/python-expert",
+      "description": "Python development expert supporting clean code practices, performance optimization, and test-driven development."
+    },
+    {
+      "name": "code-reviewer",
+      "source": "./plugins/code-reviewer",
+      "description": "Provides constructive code reviews focusing on quality, security, performance, and maintainability."
+    },
+    {
+      "name": "marp-slides",
+      "source": "./plugins/marp-slides",
+      "description": "Assists in creating effective, professional presentations using the Marp slide framework."
     }
   ]
 }

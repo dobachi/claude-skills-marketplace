@@ -1,0 +1,6 @@
+{
+  "name": "evidence-check",
+  "description": "レポートや論文の参考文献・引用の妥当性を検証し、エビデンスに基づくファクトチェックを実施",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

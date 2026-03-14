@@ -1,0 +1,6 @@
+{
+  "name": "reload-instructions",
+  "description": "AI指示書サブモジュールを最新版に更新し、ROOT_INSTRUCTIONを再読み込みするスキル。",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

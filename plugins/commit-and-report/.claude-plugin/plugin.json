@@ -1,0 +1,6 @@
+{
+  "name": "commit-and-report",
+  "description": "変更のコミット、リモートへのプッシュ、GitHub Issueへの進捗報告を一括実行するスキル。",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

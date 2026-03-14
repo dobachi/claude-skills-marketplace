@@ -1,0 +1,6 @@
+{
+  "name": "build",
+  "description": "プロジェクトに適したビルドコマンドを検出・実行するスキル。Node.js、Rust、Python、Go、Makefileなど主要なプロジェクトタイプに対応。",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
