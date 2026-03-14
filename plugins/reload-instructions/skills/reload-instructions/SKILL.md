@@ -1,32 +1,34 @@
 ---
 name: reload-instructions
-description: AI指示書システムを最新版に更新・リロードするスキル
+description: Updates AI instruction submodules to the latest version and reloads ROOT_INSTRUCTION
 ---
 
-# 指示書システムリロード
+> **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
 
-AI指示書システムを最新版に更新し、ROOT_INSTRUCTIONを再読み込みします。
+# Instruction System Reload
 
-## 実行内容
+Updates the AI instruction system to the latest version and reloads ROOT_INSTRUCTION.
 
-1. **サブモジュール更新**
+## Execution Steps
+
+1. **Update submodule**
    ```bash
    git submodule update --remote instructions/ai_instruction_kits
    ```
 
-2. **更新確認**
+2. **Verify update**
    ```bash
-   echo "AI指示書システムを更新しました"
+   echo "AI instruction system updated"
    git submodule status instructions/ai_instruction_kits
    ```
 
-3. **ROOT_INSTRUCTION読み込み**
-   `instructions/ai_instruction_kits/instructions/ja/system/ROOT_INSTRUCTION.md` を読み込みます。
+3. **Load ROOT_INSTRUCTION**
+   Loads `instructions/ai_instruction_kits/instructions/ja/system/ROOT_INSTRUCTION.md`.
 
-## 使用方法
+## Usage
 
 ```
 /reload-instructions
 ```
 
-引数は不要です。最新のAI指示書システムを取得し、ROOT_INSTRUCTIONの内容を表示します。
+No arguments required. Fetches the latest AI instruction system and displays the ROOT_INSTRUCTION content.

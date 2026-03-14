@@ -1,6 +1,6 @@
 {
   "name": "startup-advisor",
-  "description": "スタートアップの立ち上げから成長まで、実践的なアドバイスと戦略的ガイダンスを提供するアドバイザースキル",
+  "description": "Startup advisor providing practical advice and strategic guidance from launch to growth.",
   "version": "1.0.0",
   "author": {"name": "dobachi"}
 }

@@ -3,6 +3,8 @@ name: fact-checker
 description: Automated fact-checking for AI-generated documents. Extracts verifiable claims and citations from text or files (Markdown, PDF, DOCX), verifies each claim via web search and headless-browser source retrieval (Puppeteer), runs verification tasks in parallel, and generates a comprehensive Markdown fact-check report. Use when a user wants to verify the accuracy of AI-generated content, check cited references, validate statistics or quotes, or audit a research report for factual correctness. Triggers on requests like "fact-check this document", "verify these claims", "check if the references are real", or "audit this report for accuracy".
 ---
 
+> **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
+
 # Fact Checker
 
 Automated, parallel fact-checking for AI-generated documents. Extract claims, verify them against real sources (via web search and headless browser), and produce a structured Markdown report.

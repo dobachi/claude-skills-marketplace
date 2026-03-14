@@ -1,166 +1,168 @@
 ---
 name: verify-content
-description: 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備までを一貫して実行。文書レビュー、記事校正、レポート確認、学術論文チェック時に使用。
+description: Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references. Use for document reviews, article proofreading, report verification, and academic paper checks.
 ---
 
-# コンテンツ検証スキル
+> **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
 
-文章の信頼性を確保するための統合ワークフローを提供します。
+# Content Verification Skill
 
-## ワークフロー概要
+Provides an integrated workflow to ensure the reliability of written content.
+
+## Workflow Overview
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │  Step 1     │    │  Step 2     │    │  Step 3     │
-│  洗い出し   │ → │  検証       │ → │  参照整備   │
+│  Identify   │ →  │  Verify     │ →  │  Reference  │
 │  (scan)     │    │  (verify)   │    │  (reference)│
 └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
-## クイックスタート
+## Quick Start
 
-### 全体フローを実行する場合
-
-```
-ユーザー: このドキュメントの内容を検証して
-```
-
-### 特定ステップのみ実行する場合
+### Run the full flow
 
 ```
-ユーザー: この記事で検証が必要な箇所を洗い出して
-ユーザー: この数値データをファクトチェックして
-ユーザー: 参考文献リストを整備して
+User: Verify the content of this document
 ```
 
-## Step 1: 洗い出し（scan）
+### Run a specific step only
 
-文章全体を分析し、検証が必要な箇所を特定します。
+```
+User: Identify sections that need verification in this article
+User: Fact-check this numerical data
+User: Organize the reference list
+```
 
-### チェック観点
+## Step 1: Identify (scan)
 
-| カテゴリ | 対象例 |
-|----------|--------|
-| 事実の記述 | 歴史的事実、科学的事実、制度・法律 |
-| 定量的な文言 | 数値、統計、日時、順位 |
-| 断定的な表現 | 「必ず」「唯一の」「最大の」 |
-| 引用・参照 | 人物の発言、文献からの引用 |
-| 比較・評価 | 「より優れている」「一般的に」 |
+Analyze the entire text and identify sections that require verification.
 
-### 出力形式
+### Check Perspectives
+
+| Category | Examples |
+|----------|----------|
+| Factual statements | Historical facts, scientific facts, regulations/laws |
+| Quantitative claims | Numbers, statistics, dates, rankings |
+| Definitive expressions | "always", "the only", "the largest" |
+| Citations/references | Quotes from people, citations from literature |
+| Comparisons/evaluations | "better than", "generally" |
+
+### Output Format
 
 ```markdown
-## 検証対象箇所
+## Sections to Verify
 
-### 優先度: 高
-| # | 該当箇所 | 種別 | 確認内容 |
-|---|----------|------|----------|
-| 1 | 「...」 | 数値 | 出典確認 |
+### Priority: High
+| # | Section | Type | Verification Needed |
+|---|---------|------|---------------------|
+| 1 | "..." | Numerical | Confirm source |
 ```
 
-## Step 2: 検証（verify）
+## Step 2: Verify
 
-特定された箇所について、外部ソースで事実確認を行います。
+Fact-check identified sections against external sources.
 
-### 検証プロセス
+### Verification Process
 
-1. **情報源の特定**: ウェブ検索で候補を収集
-2. **実際のコンテンツ取得**: WebFetch または curl で確認
-3. **判定**: 一致性、正確性、文脈、最新性をチェック
+1. **Identify sources**: Collect candidates via web search
+2. **Retrieve actual content**: Verify with WebFetch or curl
+3. **Evaluate**: Check consistency, accuracy, context, and recency
 
-### 重要: AI検索結果を鵜呑みにしない
+### Important: Do not blindly trust AI search results
 
 ```bash
-# WebFetchがブロックされる場合
+# If WebFetch is blocked
 curl -s -L "https://example.com/page" | head -200
 
-# Wayback Machineで過去版を確認
+# Check past versions on Wayback Machine
 curl -s "https://archive.org/wayback/available?url=example.com/page"
 ```
 
-### 判定基準
+### Evaluation Criteria
 
-| 判定 | 条件 |
-|------|------|
-| 正確 | 信頼性の高い情報源で確認、内容一致 |
-| 要修正 | おおむね正確だが細部に修正必要 |
-| 誤り | 事実と異なる、重大な誤解を招く |
-| 確認不可 | 信頼できる情報源が見つからない |
+| Verdict | Condition |
+|---------|-----------|
+| Accurate | Confirmed by reliable source, content matches |
+| Needs Correction | Mostly accurate but details need fixing |
+| Incorrect | Contradicts facts, could cause serious misunderstanding |
+| Unverifiable | No reliable source found |
 
-## Step 3: 参照整備（reference）
+## Step 3: Reference Organization
 
-検証完了後、プロジェクト仕様に従い参考文献を整備します。
+After verification is complete, organize references according to project specifications.
 
-### 作業内容
+### Tasks
 
-1. **プロジェクト仕様の確認**: 引用スタイル、配置場所
-2. **参考文献リストへの登録**: 確認できた情報源を追加
-3. **本文中への相互参照の追加**: 脚注/インライン/番号参照
+1. **Check project specifications**: Citation style, placement location
+2. **Register to reference list**: Add confirmed sources
+3. **Add cross-references in text**: Footnotes/inline/numbered references
 
-### 参照形式の例
+### Reference Format Examples
 
 ```markdown
-<!-- 脚注形式 -->
-日本の人口は約1億2000万人である[^1]。
-[^1]: 総務省統計局「人口推計」2024年
+<!-- Footnote format -->
+The population of Japan is approximately 120 million[^1].
+[^1]: Statistics Bureau of Japan, "Population Estimates", 2024
 
-<!-- インライン形式 -->
-日本の人口は約1億2000万人である（総務省統計局, 2024）。
+<!-- Inline format -->
+The population of Japan is approximately 120 million (Statistics Bureau of Japan, 2024).
 ```
 
-## 既存の参照・引用の検証
+## Verifying Existing References/Citations
 
-文章に既に参考文献がある場合は、以下も確認します：
+If the text already has references, also check the following:
 
-### チェック項目
+### Checklist
 
-- [ ] リンクが生きているか（404エラーなし）
-- [ ] 引用内容が参照先と一致しているか
-- [ ] 引用が文脈に沿って使われているか
-- [ ] 参照先の情報が最新か
+- [ ] Links are live (no 404 errors)
+- [ ] Cited content matches the reference source
+- [ ] Citations are used in appropriate context
+- [ ] Referenced information is up to date
 
-### リンク切れ対応
+### Handling Broken Links
 
 ```bash
-# ステータスコード確認
+# Check status code
 curl -s -o /dev/null -w "%{http_code}" "https://example.com/page"
 
-# Wayback Machineで代替URL取得
+# Get alternative URL from Wayback Machine
 curl -s "https://archive.org/wayback/available?url=example.com/page"
 ```
 
-## 使用例
+## Usage Examples
 
 ```
-ユーザー: README.mdの内容を検証して参考文献を整備して
-```
-
-```
-ユーザー: この論文の引用が正しいか確認して
+User: Verify the content of README.md and organize the references
 ```
 
 ```
-ユーザー: Issue #45 で洗い出された項目を検証して
+User: Check if the citations in this paper are correct
 ```
 
-## 出力レポート形式
+```
+User: Verify the items identified in Issue #45
+```
+
+## Output Report Format
 
 ```markdown
-# コンテンツ検証レポート
+# Content Verification Report
 
-## 対象ファイル
+## Target Files
 - path/to/document.md
 
-## 検証サマリー
-| 項目数 | 正確 | 要修正 | 誤り | 確認不可 |
-|--------|------|--------|------|----------|
-| 10     | 7    | 2      | 0    | 1        |
+## Verification Summary
+| Total | Accurate | Needs Correction | Incorrect | Unverifiable |
+|-------|----------|-------------------|-----------|--------------|
+| 10    | 7        | 2                 | 0         | 1            |
 
-## 詳細結果
-[各項目の検証結果...]
+## Detailed Results
+[Verification results for each item...]
 
-## 参照整備状況
-- [ ] 参考文献リスト更新済み
-- [ ] 本文中相互参照追加済み
-- [ ] リンク動作確認済み
+## Reference Organization Status
+- [ ] Reference list updated
+- [ ] Cross-references added in text
+- [ ] Link verification complete
 ```

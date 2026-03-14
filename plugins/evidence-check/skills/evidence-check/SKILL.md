@@ -1,99 +1,101 @@
 ---
 name: evidence-check
-description: レポートや論文の参考文献・引用の妥当性を検証し、エビデンスに基づくファクトチェックを実施
+description: Verifies the validity of references and citations in reports and papers, conducting evidence-based fact-checking
 ---
 
-# エビデンスチェック
+> **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
 
-レポートや論文の参考文献・引用の妥当性を検証し、問題を修正します。
+# Evidence Check
 
-## チェック対象
+Verifies the validity of references and citations in reports and papers, and fixes issues.
 
-以下のパターンを検出して検証します:
+## Check Targets
 
-- **URLリンク**: `http://...`, `https://...`
-- **文献引用**: `[1]`, `(Smith, 2020)`, `※参考: ...`
-- **脚注参照**: `^[...]`, footnote形式
-- **画像・図表の出典**: `出典: ...`, `Source: ...`
+Detects and verifies the following patterns:
 
-## 検証プロセス
+- **URL Links**: `http://...`, `https://...`
+- **Literature Citations**: `[1]`, `(Smith, 2020)`, `*Reference: ...`
+- **Footnote References**: `^[...]`, footnote format
+- **Image/Figure Sources**: `Source: ...`
 
-### 1. 参考文献の存在確認
+## Verification Process
 
-- リンク先のコンテンツが存在するか確認
-- 複数の方法でアクセスを試行（直接アクセス、代替手段）
-- アクセス不可の場合、ユーザーに確認を依頼
+### 1. Reference Existence Check
 
-### 2. 引用内容の整合性確認
+- Verify that linked content exists
+- Attempt access via multiple methods (direct access, alternatives)
+- Request user confirmation if inaccessible
 
-- コンテンツが引用内容と合致するか検証
-- 数値や客観情報が正確か確認
-- 不一致がある場合、正しい情報を提示
+### 2. Citation Content Consistency Check
 
-### 3. 文脈の適切性確認
+- Verify content matches the citation
+- Confirm numerical and objective data accuracy
+- Present correct information when discrepancies are found
 
-- 引用が文脈に適しているか評価
-- 引用元の意図と合致しているか検証
-- ミスリーディングな引用でないか確認
+### 3. Contextual Appropriateness Check
 
-### 4. 修正と報告
+- Evaluate whether the citation fits the context
+- Verify alignment with the source's intent
+- Check for misleading citations
 
-- 修正可能な問題は自動的に修正案を提示
-- AIでアクセス不可の場合、ユーザーに確認を依頼
-- 修正後、再チェックを実施
+### 4. Correction and Reporting
 
-## 多段階検証アプローチ
+- Automatically suggest fixes for correctable issues
+- Request user confirmation for AI-inaccessible content
+- Re-check after corrections
 
-**ステップ1: アクセス試行**
-1. コンテンツ取得を試行
-2. 失敗時の代替アプローチ:
-   - URLのバリエーション（http/https、www有無）
-   - Archive.orgのスナップショット確認
-   - DOIからのリダイレクト確認
-3. 全て失敗時はユーザーに手動確認を依頼
+## Multi-Stage Verification Approach
 
-**ステップ2: 内容確認**
-1. 引用された数値・情報が原文に存在するか確認
-2. 不一致時は正しい情報を特定し修正案を提示
+**Step 1: Access Attempt**
+1. Attempt content retrieval
+2. Fallback approaches on failure:
+   - URL variations (http/https, with/without www)
+   - Check Archive.org snapshots
+   - Check DOI redirects
+3. Request manual user verification if all fail
 
-**ステップ3: 文脈確認**
-1. 引用の使い方が適切か評価
-2. 条件や限定を省略した過度な一般化がないか確認
+**Step 2: Content Verification**
+1. Confirm cited numbers/information exist in the original text
+2. Identify correct information and suggest fixes on mismatch
 
-## チェック項目の優先度
+**Step 3: Context Verification**
+1. Evaluate whether citation usage is appropriate
+2. Check for over-generalization that omits conditions or qualifications
 
-**高優先度（必須）:**
-- リンク先の存在確認
-- 数値データの一致確認
+## Check Item Priority
 
-**中優先度（推奨）:**
-- 文脈の適切性
-- 引用元の意図との整合性
+**High Priority (Required):**
+- Link existence verification
+- Numerical data consistency
 
-**低優先度（任意）:**
-- 引用形式の統一性
-- 参考文献リストの完全性
+**Medium Priority (Recommended):**
+- Contextual appropriateness
+- Alignment with source intent
 
-## レポート形式
+**Low Priority (Optional):**
+- Citation format consistency
+- Reference list completeness
 
-チェック結果は以下のカテゴリで報告します:
+## Report Format
 
-| ステータス | 説明 |
-|-----------|------|
-| 問題なし | リンク有効、内容一致、文脈適切 |
-| 自動修正可能 | 数値の軽微な不一致、リンク切れ（新URL判明）、プロトコル修正 |
-| 人間確認必要 | 有料コンテンツ、文脈の適切性に疑問 |
-| 重大な問題 | ページ消失、引用内容と原文の大幅な不一致 |
+Check results are reported in the following categories:
 
-## エラーハンドリング
+| Status | Description |
+|--------|-------------|
+| No Issues | Link valid, content matches, context appropriate |
+| Auto-Fixable | Minor numerical discrepancy, broken link (new URL found), protocol fix |
+| Human Review Needed | Paid content, questionable contextual appropriateness |
+| Critical Issue | Page gone, major discrepancy between citation and original |
 
-- **ネットワークエラー**: 一時的な問題の可能性を示唆し再試行
-- **404エラー**: リンク切れとして報告、代替URL検索
-- **アクセス拒否**: 認証必要の可能性を示唆、ユーザーに確認依頼
-- **タイムアウト**: サイト応答遅延の可能性を示唆
+## Error Handling
 
-## ベストプラクティス
+- **Network Error**: Suggest temporary issue, retry
+- **404 Error**: Report as broken link, search for alternative URL
+- **Access Denied**: Suggest authentication may be needed, request user confirmation
+- **Timeout**: Suggest site response delay
 
-1. **段階的チェック**: まず全体チェック→問題修正→再チェック
-2. **人間との協働**: AIがアクセスできない箇所はユーザーに依頼
-3. **定期的な実行**: 文書の大幅更新後、最終提出前の品質確認時に実施
+## Best Practices
+
+1. **Staged Checking**: Full check first > Fix issues > Re-check
+2. **Human Collaboration**: Delegate AI-inaccessible sections to the user
+3. **Regular Execution**: Run after major document updates and before final submission

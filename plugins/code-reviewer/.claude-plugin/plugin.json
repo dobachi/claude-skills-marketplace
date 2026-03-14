@@ -1,6 +1,6 @@
 {
   "name": "code-reviewer",
-  "description": "コード品質、セキュリティ、パフォーマンス、保守性の観点から建設的なレビューを提供するスキル",
+  "description": "Expert code reviewer providing constructive feedback on quality, security, performance, and maintainability.",
   "version": "1.0.0",
   "author": {"name": "dobachi"}
 }

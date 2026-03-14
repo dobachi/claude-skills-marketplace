@@ -1,6 +1,6 @@
 {
   "name": "verify-content",
-  "description": "文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備までを一貫して実行。",
+  "description": "Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references.",
   "version": "1.0.0",
   "author": {"name": "dobachi"}
 }

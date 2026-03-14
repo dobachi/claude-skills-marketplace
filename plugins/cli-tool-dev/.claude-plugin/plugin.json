@@ -1,6 +1,6 @@
 {
   "name": "cli-tool-dev",
-  "description": "使いやすいコマンドラインツールの設計・実装を支援するCLI開発エキスパート",
+  "description": "CLI development expert for designing and implementing user-friendly command-line tools.",
   "version": "1.0.0",
   "author": {"name": "dobachi"}
 }
