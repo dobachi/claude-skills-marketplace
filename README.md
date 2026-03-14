@@ -1,129 +1,131 @@
+[English](README.md) | [日本語](README_ja.md)
+
 # dobachi-skills
 
 Personal skills marketplace for Claude Code.
 
 ## Available Plugins
 
-### 開発ツール (Development Tools)
+### Development Tools
 
 | Plugin | Description |
 |---|---|
-| **build** | プロジェクトに適したビルドコマンドを検出・実行。Node.js、Rust、Python、Go、Makefileなど主要タイプに対応。 |
-| **checkpoint** | AI指示書システムのチェックポイント管理。タスクの開始・進捗・完了を追跡し、指示書の使用状態を管理。 |
-| **commit-and-report** | 変更のコミット、リモートへのプッシュ、GitHub Issueへの進捗報告を一括実行。 |
-| **github-issues** | GitHub Issueの一覧取得、ラベル別集計、優先度分析を行い、タスクを整理・提案。 |
-| **reload-instructions** | AI指示書サブモジュールを最新版に更新し、ROOT_INSTRUCTIONを再読み込み。 |
-| **reload-and-reset** | AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセット。 |
-| **verify-content** | 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備まで一貫実行。 |
+| **build** | Detects and runs the appropriate build command for your project. Supports Node.js, Rust, Python, Go, Makefile, and more. |
+| **checkpoint** | Checkpoint management for AI instruction systems. Tracks task start, progress, and completion, and manages instruction usage state. |
+| **commit-and-report** | Commits changes, pushes to remote, and reports progress to GitHub Issues in one step. |
+| **github-issues** | Lists GitHub Issues, aggregates by label, analyzes priorities, and organizes/suggests tasks. |
+| **reload-instructions** | Updates AI instruction submodules to the latest version and reloads ROOT_INSTRUCTION. |
+| **reload-and-reset** | Updates the AI instruction system to the latest version and resets AI behavior to follow instructions. |
+| **verify-content** | Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references. |
 
-### 役割スキル (Role Skills)
-
-| Plugin | Description |
-|---|---|
-| **web-api-dev** | 本番環境向けの高品質なRESTful Web APIの設計・実装を支援する開発エキスパート。 |
-| **cli-tool-dev** | 使いやすいコマンドラインツールの設計・実装を支援するCLI開発エキスパート。 |
-| **data-analyst** | データ分析、統計的洞察、可視化、機械学習を含む包括的なデータ分析支援エキスパート。 |
-| **technical-writer** | APIドキュメント、ユーザーガイド、技術ブログなど高品質な技術文書の作成を支援。 |
-| **academic-researcher** | 学術論文執筆、文献レビュー、引用管理、研究方法論を含む包括的な学術研究支援。 |
-| **business-consultant** | McKinsey・BCG等の方法論を用いた戦略立案から実行支援まで包括的なビジネスコンサルティング。 |
-| **project-manager** | プロジェクトの計画、実行、監視、完了を総合的に管理。 |
-| **startup-advisor** | スタートアップの立ち上げから成長まで、実践的なアドバイスと戦略的ガイダンスを提供。 |
-| **python-expert** | Python開発の専門家として、クリーンコード、パフォーマンス最適化、テスト駆動開発を支援。 |
-| **code-reviewer** | コード品質、セキュリティ、パフォーマンス、保守性の観点から建設的なレビューを提供。 |
-
-### プレゼンテーション (Presentation)
+### Role Skills
 
 | Plugin | Description |
 |---|---|
-| **marp-slides** | Marpフォーマットを活用した効果的でプロフェッショナルなプレゼンテーション作成を支援。 |
+| **web-api-dev** | Development expert for designing and implementing production-grade RESTful Web APIs. |
+| **cli-tool-dev** | CLI development expert for designing and implementing user-friendly command-line tools. |
+| **data-analyst** | Comprehensive data analysis expert covering data analysis, statistical insights, visualization, and machine learning. |
+| **technical-writer** | Creates high-quality technical documents including API docs, user guides, and technical blogs. |
+| **academic-researcher** | Comprehensive academic research support including paper writing, literature reviews, citation management, and research methodology. |
+| **business-consultant** | Comprehensive business consulting from strategy planning to execution using McKinsey/BCG methodologies. |
+| **project-manager** | Comprehensive project planning, execution, monitoring, and completion management. |
+| **startup-advisor** | Practical advice and strategic guidance from startup launch to growth. |
+| **python-expert** | Python development expert supporting clean code, performance optimization, and test-driven development. |
+| **code-reviewer** | Provides constructive reviews from the perspectives of code quality, security, performance, and maintainability. |
 
-### 品質管理 (Quality)
+### Presentation
 
 | Plugin | Description |
 |---|---|
-| **fact-checker** | AI生成ドキュメントの自動ファクトチェック。主張・引用を抽出し、ウェブ検索とPuppeteerヘッドレスブラウザで並列検証、Markdownレポートを生成。 |
-| **evidence-check** | レポートや論文の参考文献・引用の妥当性を検証し、エビデンスに基づくファクトチェックを実施。 |
+| **marp-slides** | Creates effective and professional presentations using Marp format. |
+
+### Quality
+
+| Plugin | Description |
+|---|---|
+| **fact-checker** | Automated fact-checking for AI-generated documents. Extracts claims and citations, verifies them in parallel via web search and Puppeteer headless browser, and generates a Markdown report. |
+| **evidence-check** | Verifies the validity of references and citations in reports and papers, conducting evidence-based fact-checking. |
 
 ## Installation
 
-### 1. マーケットプレイスを追加（初回のみ）
+### 1. Add the marketplace (first time only)
 
 ```
 /plugin marketplace add dobachi/claude-skills-marketplace
 ```
 
-### 2. プラグインをインストール
+### 2. Install a plugin
 
 ```
 /plugin install fact-checker@dobachi-skills
 ```
 
-### 3. Claude Codeを再起動
+### 3. Restart Claude Code
 
-インストール後、Claude Codeを再起動すると有効になります。
+After installation, restart Claude Code to activate the plugin.
 
 ## Usage
 
-インストール後、Claude Codeで以下のように使えます。
+After installation, you can use it in Claude Code like this:
 
-### ファクトチェック / 品質管理
-
-```
-この報告書をファクトチェックして: /path/to/report.md
-```
+### Fact-checking / Quality
 
 ```
-以下の文章の引用が正しいか検証して:
-[テキストを貼り付け]
-```
-
-### 開発支援
-
-```
-このプロジェクトをビルドして
+Fact-check this report: /path/to/report.md
 ```
 
 ```
-このPRのコードをレビューして
+Verify the citations in the following text:
+[paste your text]
+```
+
+### Development
+
+```
+Build this project
 ```
 
 ```
-REST APIのエンドポイント設計を手伝って: ユーザー管理システム
-```
-
-### ドキュメント / プレゼンテーション
-
-```
-このAPIのリファレンスドキュメントを作成して
+Review the code in this PR
 ```
 
 ```
-プロジェクト進捗報告のMarpスライドを作って
+Help me design REST API endpoints: user management system
 ```
 
-### データ分析 / リサーチ
+### Documentation / Presentation
 
 ```
-このCSVデータを分析して傾向をレポートして: /path/to/data.csv
-```
-
-```
-「大規模言語モデルのファインチューニング」に関する文献レビューを作成して
-```
-
-### プロジェクト管理
-
-```
-GitHub Issueを整理して優先度を分析して
+Create reference documentation for this API
 ```
 
 ```
-変更をコミットしてIssue #42に進捗を報告して
+Create a Marp slide deck for the project progress report
+```
+
+### Data Analysis / Research
+
+```
+Analyze this CSV data and report trends: /path/to/data.csv
+```
+
+```
+Create a literature review on "fine-tuning large language models"
+```
+
+### Project Management
+
+```
+Organize GitHub Issues and analyze priorities
+```
+
+```
+Commit changes and report progress to Issue #42
 ```
 
 ## Update
 
-マーケットプレイスの更新を取得するには：
+To fetch marketplace updates:
 
 ```
 /plugin marketplace update dobachi-skills
@@ -131,18 +133,18 @@ GitHub Issueを整理して優先度を分析して
 
 ## Prerequisites
 
-fact-checker プラグインは以下を必要とします：
+The fact-checker plugin requires:
 
 - **Node.js** (v18+)
-- **Puppeteer** — `npm install puppeteer` でインストール
+- **Puppeteer** — Install with `npm install puppeteer`
 
 ## Adding a New Plugin
 
-1. `plugins/<plugin-name>/` にディレクトリを作成
-2. `.claude-plugin/plugin.json` にメタデータを記述
-3. `skills/<skill-name>/SKILL.md` にスキル本体を配置
-4. `.claude-plugin/marketplace.json` の `plugins` 配列にエントリを追加
-5. コミット & プッシュ
+1. Create a directory at `plugins/<plugin-name>/`
+2. Write metadata in `.claude-plugin/plugin.json`
+3. Place the skill body in `skills/<skill-name>/SKILL.md`
+4. Add an entry to the `plugins` array in `.claude-plugin/marketplace.json`
+5. Commit & push
 
 ```
 plugins/<plugin-name>/
@@ -158,10 +160,10 @@ plugins/<plugin-name>/
 
 ## Private Repository Access
 
-このリポジトリがプライベートの場合、各マシンで GitHub 認証が必要です：
+If this repository is private, GitHub authentication is required on each machine:
 
 ```bash
 gh auth login
 ```
 
-または環境変数 `GITHUB_TOKEN` を設定してください。
+Or set the `GITHUB_TOKEN` environment variable.
