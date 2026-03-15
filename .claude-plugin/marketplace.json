@@ -104,6 +104,16 @@
       "name": "marp-slides",
       "source": "./plugins/marp-slides",
       "description": "Assists in creating effective, professional presentations using the Marp slide framework."
+    },
+    {
+      "name": "tauri-dev",
+      "source": "./plugins/tauri-dev",
+      "description": "Development expert for designing and building Tauri v2 desktop and mobile applications."
+    },
+    {
+      "name": "tauri-research",
+      "source": "./plugins/tauri-research",
+      "description": "Research assistant for investigating Tauri-related questions via web search and official documentation."
     }
   ]
 }

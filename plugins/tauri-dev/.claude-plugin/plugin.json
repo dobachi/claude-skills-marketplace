@@ -1,0 +1,6 @@
+{
+  "name": "tauri-dev",
+  "description": "Development expert for designing and building Tauri v2 desktop and mobile applications.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
