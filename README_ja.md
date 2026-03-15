@@ -32,6 +32,8 @@ Personal skills marketplace for Claude Code.
 | **startup-advisor** | スタートアップの立ち上げから成長まで、実践的なアドバイスと戦略的ガイダンスを提供。 |
 | **python-expert** | Python開発の専門家として、クリーンコード、パフォーマンス最適化、テスト駆動開発を支援。 |
 | **code-reviewer** | コード品質、セキュリティ、パフォーマンス、保守性の観点から建設的なレビューを提供。 |
+| **tauri-dev** | Tauri v2デスクトップ・モバイルアプリケーションの設計・構築を支援する開発エキスパート。 |
+| **tauri-research** | Tauri関連の疑問をWeb検索・公式ドキュメントで調査するリサーチアシスタント。 |
 
 ### プレゼンテーション (Presentation)
 

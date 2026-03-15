@@ -32,6 +32,8 @@ Personal skills marketplace for Claude Code.
 | **startup-advisor** | Practical advice and strategic guidance from startup launch to growth. |
 | **python-expert** | Python development expert supporting clean code, performance optimization, and test-driven development. |
 | **code-reviewer** | Provides constructive reviews from the perspectives of code quality, security, performance, and maintainability. |
+| **tauri-dev** | Development expert for designing and building Tauri v2 desktop and mobile applications. |
+| **tauri-research** | Research assistant for investigating Tauri-related questions via web search and official documentation. |
 
 ### Presentation
 
