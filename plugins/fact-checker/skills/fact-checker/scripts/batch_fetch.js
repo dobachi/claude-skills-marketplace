@@ -81,11 +81,12 @@ async function readManifest(manifestPath) {
 }
 
 async function fetchOne(page, entry, opts) {
-  const result = { id: entry.id, url: entry.url, status: "ok", files: {}, error: null, finalUrl: null };
+  const result = { id: entry.id, url: entry.url, status: "ok", files: {}, error: null, finalUrl: null, httpStatus: null };
   const safeId = entry.id.replace(/[^a-zA-Z0-9_-]/g, "_");
 
   try {
-    await page.goto(entry.url, { waitUntil: "networkidle2", timeout: opts.timeout });
+    const response = await page.goto(entry.url, { waitUntil: "networkidle2", timeout: opts.timeout });
+    result.httpStatus = response ? response.status() : 0;
     if (opts.wait > 0) await new Promise((r) => setTimeout(r, opts.wait));
     result.finalUrl = page.url();
 

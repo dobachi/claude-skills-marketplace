@@ -82,10 +82,12 @@ async function fetchPage(args) {
     await page.setViewport({ width: 1280, height: 900 });
 
     // Navigate
-    await page.goto(args.url, {
+    const response = await page.goto(args.url, {
       waitUntil: "networkidle2",
       timeout: args.timeout,
     });
+    const httpStatus = response ? response.status() : 0;
+    console.error(`HTTP Status: ${httpStatus}`);
 
     // Extra wait for JS-rendered content
     if (args.wait > 0) {
@@ -133,7 +135,16 @@ async function fetchPage(args) {
     }
 
     // Print final URL (useful for redirect detection)
-    console.error(`Final URL: ${page.url()}`);
+    const finalUrl = page.url();
+    console.error(`Final URL: ${finalUrl}`);
+
+    // Write metadata file when outputting to file (for D-LINK verification)
+    if (args.pdf || (args.text && args.text !== "-")) {
+      const outFile = args.pdf || args.text;
+      const metaPath = outFile.replace(/\.[^.]+$/, '.meta.json');
+      fs.writeFileSync(metaPath, JSON.stringify({ httpStatus, finalUrl }, null, 2), "utf-8");
+      console.error(`Metadata saved: ${metaPath}`);
+    }
   } catch (err) {
     console.error(`Error fetching ${args.url}: ${err.message}`);
     process.exit(2);

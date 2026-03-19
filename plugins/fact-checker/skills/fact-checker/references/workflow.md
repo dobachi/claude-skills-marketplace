@@ -7,7 +7,8 @@
 3. [Verification Strategies](#verification-strategies)
 4. [Evidence Evaluation](#evidence-evaluation)
 5. [Verdict Scale](#verdict-scale)
-6. [Report Template](#report-template)
+6. [Verification Dimensions](#verification-dimensions)
+7. [Report Template](#report-template)
 
 ---
 
@@ -112,12 +113,12 @@ For numerical claims and statistics:
 
 ### Source Reliability Tiers
 
-| Tier | Source Type | Examples |
-|---|---|---|
-| 1 (Highest) | Primary/official sources | Government databases, peer-reviewed papers, official reports |
-| 2 | Established institutions | Major news outlets, WHO, World Bank, university research |
-| 3 | Secondary sources | Wikipedia, reputable blogs, industry reports |
-| 4 (Lowest) | Unverified sources | Social media, anonymous blogs, forums |
+| Tier | ABC | Source Type | Examples |
+|---|---|---|---|
+| 1 (Highest) | A | Primary/official sources | Government databases, peer-reviewed papers, official reports, legislation, standards documents |
+| 2 | B | Established institutions | Major news outlets, WHO, World Bank, university research, industry official publications |
+| 3 | C | Secondary sources | Wikipedia, reputable blogs, industry reports, media articles |
+| 4 (Lowest) | — | Unverified sources | Social media, anonymous blogs, forums |
 
 ### Red Flags
 
@@ -141,6 +142,180 @@ Each claim receives one of these verdicts:
 | **Misleading** | :orange_circle: | Claim is technically true but missing important context |
 | **Inaccurate** | :red_circle: | Claim contradicts the available evidence |
 | **Fabricated Source** | :no_entry: | Cited source does not exist or does not contain the claimed information |
+
+---
+
+## Verification Dimensions
+
+These seven dimensions provide a systematic framework for comprehensive fact-checking. They are used in **Structured Checklist Mode** (see SKILL.md) when the user requests thorough verification or provides a specific checklist.
+
+### D-LINK: Link Validity
+
+**Purpose**: Verify that all cited URLs are accessible and return valid content.
+
+**Procedure**:
+1. Collect all URLs referenced in the document
+2. Use `batch_fetch.js` to check all URLs — the `httpStatus` field in `results.json` provides the HTTP status code
+3. For single URLs, `fetch_page.js` outputs `HTTP Status: <code>` to stderr and writes `.meta.json`
+4. Classify results:
+   - 200: OK
+   - 301/302: Redirect (check `finalUrl` for destination)
+   - 403: Forbidden (access restricted)
+   - 404: Not Found (broken link)
+   - 0: Connection failure
+
+**Output format**:
+
+| URL | HTTP Status | Final URL | Assessment |
+|-----|-------------|-----------|------------|
+| ... | 200 | ... | OK |
+
+### D-CONTENT: Source Content Matching
+
+**Purpose**: Verify that each claim accurately reflects the content of its cited source.
+
+**Procedure**:
+1. For each claim with a citation, fetch the source content
+2. Identify the specific fields/items being claimed (e.g., author name, finding, conclusion)
+3. Compare each field against the actual source content
+4. Flag misquotations, misinterpretations, or context omissions
+
+**Output format**:
+
+| Claim ID | Claimed Item | Source Says | Match? |
+|----------|-------------|-------------|--------|
+| C1 | "Author found X" | Author found Y | No — misinterpretation |
+
+### D-GRANULARITY: Citation Granularity
+
+**Purpose**: Check whether citations point to specific, relevant sections rather than generic top-level pages.
+
+**Procedure**:
+1. For each citation URL, check if it points to a specific page/section/anchor
+2. Classify granularity:
+   - **Specific**: URL points to exact section, paragraph, or data point (e.g., `page.html#section-3`)
+   - **Page-level**: URL points to a relevant page but not a specific section
+   - **Top-level**: URL points to a site homepage or generic landing page
+3. Flag top-level citations as needing improvement
+
+**Output format**:
+
+| Claim ID | URL | Granularity | Note |
+|----------|-----|-------------|------|
+| C1 | .../report#findings | Specific | OK |
+| C2 | .../homepage | Top-level | Should cite specific report page |
+
+### D-NUMERIC: Numeric and Date Accuracy
+
+**Purpose**: Verify exact accuracy of all numbers, dates, percentages, and monetary amounts.
+
+**Procedure**:
+1. Extract all numeric data points from claims (amounts, percentages, dates, quantities)
+2. Locate the corresponding values in the cited source
+3. Check for exact match — partial matches or approximations must be flagged
+4. Common errors to check: wrong unit, outdated figure, rounding discrepancy, wrong time period
+
+**Output format**:
+
+| Claim ID | Claimed Value | Source Value | Match? | Note |
+|----------|--------------|-------------|--------|------|
+| C1 | "$4.2 billion" | "$4.2 billion (2023)" | Yes | Year confirmed |
+| C2 | "35%" | "34.7%" | Partial | Rounded up |
+
+### D-FACTSPEC: Fact vs. Speculation Distinction
+
+**Purpose**: Identify whether factual claims contain unstated speculation, opinion, or hedging that should be made explicit.
+
+**Procedure**:
+1. For each claim, analyze the rhetorical structure
+2. Check for speculative language mixed with factual assertions (e.g., "X is likely...", "This suggests...", "probably")
+3. Verify that factual statements are presented as facts and speculative statements are clearly marked as such
+4. Flag cases where speculation is presented as established fact
+
+**Output format**:
+
+| Claim ID | Classification | Indicators | Issue |
+|----------|---------------|------------|-------|
+| C1 | Fact | Direct assertion with citation | None |
+| C2 | Mixed | "likely" + uncited assertion | Speculation presented as fact |
+
+### D-RELIABILITY: Source Reliability Level
+
+**Purpose**: Classify each cited source by reliability tier and ABC level.
+
+**Procedure**:
+1. For each unique source, determine the source type (government, academic, media, blog, etc.)
+2. Assign a Tier (1-4) and ABC classification per the Source Reliability Tiers table
+3. Flag claims that rely solely on Tier 4 / unclassified sources
+
+**Output format**:
+
+| Source | Type | Tier | ABC | Note |
+|--------|------|------|-----|------|
+| WHO report | International organization | 2 | B | Authoritative |
+| Personal blog | Anonymous | 4 | — | Needs corroboration |
+
+### D-CONSISTENCY: Cross-Section Consistency
+
+**Purpose**: Detect contradictions or inconsistencies between different sections of the same document.
+
+**Procedure**:
+1. Map each claim to the section it belongs to
+2. Identify claims that reference the same entities, facts, or data across sections
+3. Compare these cross-references for consistency (same numbers, same conclusions, no contradictions)
+4. Flag any discrepancies
+
+**Output format**:
+
+| Section A | Section B | Topic | Discrepancy |
+|-----------|-----------|-------|-------------|
+| Introduction | Results | Market size | "$4.2B" vs "$4.5B" |
+
+---
+
+### Structured Checklist Mode: Report Extension
+
+When using Structured Checklist Mode, append the following sections to the standard report:
+
+#### Link Validity Summary (D-LINK)
+
+Table of all URLs with HTTP status and assessment.
+
+#### Source Content Matching (D-CONTENT)
+
+Table of field-by-field comparisons between claims and sources.
+
+#### Citation Granularity (D-GRANULARITY)
+
+Table classifying each citation's specificity level.
+
+#### Numeric Accuracy (D-NUMERIC)
+
+Table of all numeric values with source comparison.
+
+#### Fact/Speculation Distinction (D-FACTSPEC)
+
+Table classifying each claim as fact, speculation, or mixed.
+
+#### Source Reliability (D-RELIABILITY)
+
+Table of all sources with Tier and ABC classifications.
+
+#### Cross-Section Consistency (D-CONSISTENCY)
+
+Table of any detected cross-section contradictions.
+
+#### Verification Completeness Checklist
+
+```
+- [ ] D-LINK: All URLs checked for accessibility
+- [ ] D-CONTENT: All cited claims compared against source content
+- [ ] D-GRANULARITY: Citation specificity reviewed
+- [ ] D-NUMERIC: All numeric values verified against sources
+- [ ] D-FACTSPEC: Fact vs. speculation analysis completed
+- [ ] D-RELIABILITY: All sources classified by reliability tier
+- [ ] D-CONSISTENCY: Cross-section consistency verified
+```
 
 ---
 
