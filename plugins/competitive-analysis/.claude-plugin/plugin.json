@@ -1,0 +1,8 @@
+{
+  "name": "competitive-analysis",
+  "description": "Competitive analysis skill that researches competitor products via web search, compares features/pricing/differentiation, and generates comparison matrices.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

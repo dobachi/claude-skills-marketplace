@@ -114,6 +114,26 @@
       "name": "tauri-research",
       "source": "./plugins/tauri-research",
       "description": "Research assistant for investigating Tauri-related questions via web search and official documentation."
+    },
+    {
+      "name": "competitive-analysis",
+      "source": "./plugins/competitive-analysis",
+      "description": "Competitive analysis skill that researches competitor products via web search, compares features/pricing/differentiation, and generates comparison matrices."
+    },
+    {
+      "name": "business-model-canvas",
+      "source": "./plugins/business-model-canvas",
+      "description": "Business model design skill that generates structured documents following Business Model Canvas and Lean Canvas frameworks."
+    },
+    {
+      "name": "market-sizing",
+      "source": "./plugins/market-sizing",
+      "description": "Market sizing skill that estimates TAM/SAM/SOM using top-down and bottom-up approaches with evidence-backed reports."
+    },
+    {
+      "name": "strategy-memo",
+      "source": "./plugins/strategy-memo",
+      "description": "Strategy memo skill that structures business ideas into a 4-layer framework (Market/Value Proposition/Technology/Execution) and checks for logical gaps."
     }
   ]
 }

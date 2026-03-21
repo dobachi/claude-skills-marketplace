@@ -1,0 +1,8 @@
+{
+  "name": "strategy-memo",
+  "description": "Strategy memo skill that structures business ideas into a 4-layer framework (Market/Value Proposition/Technology/Execution) and checks for logical gaps.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

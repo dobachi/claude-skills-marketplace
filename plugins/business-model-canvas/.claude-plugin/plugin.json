@@ -1,0 +1,8 @@
+{
+  "name": "business-model-canvas",
+  "description": "Business model design skill that generates structured documents following Business Model Canvas and Lean Canvas frameworks.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

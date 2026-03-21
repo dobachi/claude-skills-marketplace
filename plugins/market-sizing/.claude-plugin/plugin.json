@@ -1,0 +1,8 @@
+{
+  "name": "market-sizing",
+  "description": "Market sizing skill that estimates TAM/SAM/SOM using top-down and bottom-up approaches with evidence-backed reports.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}
