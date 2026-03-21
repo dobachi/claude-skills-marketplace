@@ -34,6 +34,10 @@ Personal skills marketplace for Claude Code.
 | **code-reviewer** | Provides constructive reviews from the perspectives of code quality, security, performance, and maintainability. |
 | **tauri-dev** | Development expert for designing and building Tauri v2 desktop and mobile applications. |
 | **tauri-research** | Research assistant for investigating Tauri-related questions via web search and official documentation. |
+| **competitive-analysis** | Researches competitor products via web search, compares features/pricing/differentiation, and generates comparison matrices. |
+| **business-model-canvas** | Generates structured business model documents following Business Model Canvas and Lean Canvas frameworks. |
+| **market-sizing** | Estimates TAM/SAM/SOM market size using top-down and bottom-up approaches with evidence-backed reports. |
+| **strategy-memo** | Structures business ideas into a 4-layer framework (Market/Value Proposition/Technology/Execution) and checks for logical gaps. |
 
 ### Presentation
 
@@ -113,6 +117,24 @@ Analyze this CSV data and report trends: /path/to/data.csv
 
 ```
 Create a literature review on "fine-tuning large language models"
+```
+
+### Business Strategy
+
+```
+Conduct a competitive analysis: Palantir vs Databricks vs Snowflake
+```
+
+```
+Create a Business Model Canvas for a data governance SaaS product
+```
+
+```
+Estimate the TAM/SAM/SOM for the data catalog market in North America
+```
+
+```
+Structure this idea memo into a strategy memo: [paste your notes]
 ```
 
 ### Project Management
