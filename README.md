@@ -44,6 +44,7 @@ Personal skills marketplace for Claude Code.
 | Plugin | Description |
 |---|---|
 | **marp-slides** | Creates effective and professional presentations using Marp format. |
+| **pptx-design** | Expert guidance for designing professional PowerPoint (.pptx) decks: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility. |
 
 ### Quality
 

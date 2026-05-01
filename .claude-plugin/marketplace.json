@@ -134,6 +134,11 @@
       "name": "strategy-memo",
       "source": "./plugins/strategy-memo",
       "description": "Strategy memo skill that structures business ideas into a 4-layer framework (Market/Value Proposition/Technology/Execution) and checks for logical gaps."
+    },
+    {
+      "name": "pptx-design",
+      "source": "./plugins/pptx-design",
+      "description": "Expert guidance for designing professional PowerPoint presentations: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility."
     }
   ]
 }

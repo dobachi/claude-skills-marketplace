@@ -44,6 +44,7 @@ Personal skills marketplace for Claude Code.
 | Plugin | Description |
 |---|---|
 | **marp-slides** | Marpフォーマットを活用した効果的でプロフェッショナルなプレゼンテーション作成を支援。 |
+| **pptx-design** | PowerPoint（.pptx）デッキの設計支援エキスパート。タイポグラフィ・配色・レイアウト・データ可視化・構造図／アーキ図・デッキジャンル別作法・アクセシビリティを網羅。装飾的な箱・矢印を排し、構造を符号化する図のみを採用。 |
 
 ### 品質管理 (Quality)
 
