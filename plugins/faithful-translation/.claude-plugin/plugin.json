@@ -1,0 +1,6 @@
+{
+  "name": "faithful-translation",
+  "description": "Faithful translation skill that produces source-faithful translations across any language pair, with a parallel sentence ledger for verification, terminology preservation, and translator's notes.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

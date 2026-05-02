@@ -46,6 +46,13 @@ Personal skills marketplace for Claude Code.
 | **marp-slides** | Marpフォーマットを活用した効果的でプロフェッショナルなプレゼンテーション作成を支援。 |
 | **pptx-design** | PowerPoint（.pptx）デッキの設計支援エキスパート。タイポグラフィ・配色・レイアウト・データ可視化・構造図／アーキ図・デッキジャンル別作法・アクセシビリティを網羅。装飾的な箱・矢印を排し、構造を符号化する図のみを採用。 |
 
+### ドキュメンテーション (Documentation)
+
+| Plugin | Description |
+|---|---|
+| **faithful-translation** | 任意の言語ペアで原文に忠実な翻訳を生成。検証用の文単位parallel ledger、用語集、訳者注を必須化。要約はせず、必要なら `document-summary` と連携。 |
+| **document-summary** | 文献の構造化要約スキル。エグゼクティブ向け／プロフェッショナル向けの2モード。出典紐付けの Claim Ledger を全モード必須化し、原文に無い推論は `[Inference]` ブロックとして明示分離してハルシネーションを防止。 |
+
 ### 品質管理 (Quality)
 
 | Plugin | Description |

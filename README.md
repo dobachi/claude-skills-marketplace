@@ -46,6 +46,13 @@ Personal skills marketplace for Claude Code.
 | **marp-slides** | Creates effective and professional presentations using Marp format. |
 | **pptx-design** | Expert guidance for designing professional PowerPoint (.pptx) decks: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility. |
 
+### Documentation
+
+| Plugin | Description |
+|---|---|
+| **faithful-translation** | Produces source-faithful translations across any language pair with a parallel sentence ledger, terminology glossary, and translator's notes. No summarization — chain with `document-summary` if you need both. |
+| **document-summary** | Structured document/literature summarization with Executive and Professional modes. Mandatory source-grounded Claim Ledger and Source-vs-Inference separation prevent hallucinated content. |
+
 ### Quality
 
 | Plugin | Description |

@@ -139,6 +139,16 @@
       "name": "pptx-design",
       "source": "./plugins/pptx-design",
       "description": "Expert guidance for designing professional PowerPoint presentations: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility."
+    },
+    {
+      "name": "faithful-translation",
+      "source": "./plugins/faithful-translation",
+      "description": "Faithful translation skill that produces source-faithful translations across any language pair, with a parallel sentence ledger for verification, terminology preservation, and translator's notes."
+    },
+    {
+      "name": "document-summary",
+      "source": "./plugins/document-summary",
+      "description": "Document and literature summarization skill with Executive and Professional modes, mandatory source-grounded Claim Ledger, and explicit Source vs Inference separation to prevent hallucinated content."
     }
   ]
 }

@@ -1,0 +1,6 @@
+{
+  "name": "document-summary",
+  "description": "Document and literature summarization skill with Executive and Professional modes, mandatory source-grounded Claim Ledger, and explicit Source vs Inference separation to prevent hallucinated content.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
