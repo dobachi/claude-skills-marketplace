@@ -154,6 +154,11 @@
       "name": "literature-search",
       "source": "./plugins/literature-search",
       "description": "Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services."
+    },
+    {
+      "name": "document-figures",
+      "source": "./plugins/document-figures",
+      "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."
     }
   ]
 }

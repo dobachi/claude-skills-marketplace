@@ -52,6 +52,7 @@ Personal skills marketplace for Claude Code.
 |---|---|
 | **faithful-translation** | Produces source-faithful translations across any language pair with a parallel sentence ledger, terminology glossary, and translator's notes. No summarization — chain with `document-summary` if you need both. |
 | **document-summary** | Structured document/literature summarization with Executive and Professional modes. Mandatory source-grounded Claim Ledger and Source-vs-Inference separation prevent hallucinated content. |
+| **document-figures** | Extracts figures from existing documents (PDF / Word / PowerPoint / web) with provenance and creates new structural diagrams (Mermaid-first). Produces a Figure Ledger that chains into `document-summary`. Requires Node.js 18+, Puppeteer, and poppler-utils. |
 
 ### Research
 
@@ -175,6 +176,14 @@ The fact-checker plugin requires:
 
 - **Node.js** (v18+)
 - **Puppeteer** — Install with `npm install puppeteer`
+
+The document-figures plugin requires:
+
+- **Node.js** (v18+)
+- **Puppeteer** — `npm install puppeteer`
+- **poppler-utils** — `pdfimages`, `pdftocairo`, `pdftotext` (`apt install poppler-utils` or `brew install poppler`)
+- **xmllint** — `apt install libxml2-utils` or `brew install libxml2`
+- **(optional) LibreOffice** — for slide-to-PNG rendering of PPTX
 
 ## Adding a New Plugin
 

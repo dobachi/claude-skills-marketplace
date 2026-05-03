@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>mermaid render</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: white; }
+    #container { display: inline-block; padding: 16px; }
+    /* Mermaid renders an inline <svg> inside #container; rasterizer screenshots that element. */
+  </style>
+  <!--
+    Default: load Mermaid from CDN. For offline / restricted environments, replace this src with
+    a locally-hosted file (download mermaid.min.js into this assets/ directory and point at it).
+    Pinned to a major version line; bump deliberately.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <div id="container"></div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "document-figures",
+  "description": "Extract figures from existing documents (PDF, Word, PowerPoint, web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}
