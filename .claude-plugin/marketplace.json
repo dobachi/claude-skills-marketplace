@@ -159,6 +159,11 @@
       "name": "document-figures",
       "source": "./plugins/document-figures",
       "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."
+    },
+    {
+      "name": "math-paper",
+      "source": "./plugins/math-paper",
+      "description": "Mathematical paper writing support: notation consistency (Symbol Ledger), theorem/proof structure, equation cross-references, and journal/arXiv submission preparation. Works with LaTeX and Markdown+math; delegates citations to literature-search and fact-checking to fact-checker."
     }
   ]
 }

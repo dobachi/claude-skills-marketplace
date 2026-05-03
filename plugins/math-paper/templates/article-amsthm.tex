@@ -1,0 +1,123 @@
+% Minimal LaTeX article scaffold for mathematical papers.
+% Loads amsmath/amsthm/amssymb, sets up theorem environments with shared
+% counter, and includes a basic title/abstract/MSC/keywords block.
+%
+% Compile with: pdflatex -> bibtex -> pdflatex -> pdflatex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+\usepackage{amsmath,amsthm,amssymb,mathtools}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% --- Theorem environments (shared counter) -----------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{assumption}[theorem]{Assumption}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% --- Equation numbering: per-section ----------------------------------------
+\numberwithin{equation}{section}
+
+% --- Operators ---------------------------------------------------------------
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+
+% --- Frequently-used sets ----------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prb}{\mathbb{P}}
+
+% --- Convenience -------------------------------------------------------------
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\inner}[2]{\left\langle #1, #2 \right\rangle}
+
+% =============================================================================
+\title{Paper Title}
+\author{Author Name\thanks{Affiliation, email@example.com}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Abstract goes here. Keep it under 200 words. State the problem, the approach,
+the main result, and the contribution.
+\end{abstract}
+
+\noindent\textbf{Keywords:} keyword1, keyword2, keyword3.
+
+\noindent\textbf{MSC2020:} 00A00, 11B11, 22C22.
+
+% =============================================================================
+\section{Introduction}\label{sec:intro}
+
+Motivation, prior work, contributions.
+
+\paragraph{Notation.}
+Throughout, $\R$ denotes the real numbers and $\norm{\cdot}$ the Euclidean
+norm. Vectors are bold lowercase ($\bm{x}$); matrices are bold uppercase ($\bm{A}$);
+sets are calligraphic ($\mathcal{F}$). See also the Symbol Ledger maintained
+during writing.
+
+% =============================================================================
+\section{Preliminaries}\label{sec:prelim}
+
+\begin{definition}\label{def:lipschitz}
+A function $f : \R^n \to \R$ is \emph{$L$-Lipschitz} if
+\begin{equation}\label{eq:lipschitz}
+\abs{f(\bm{x}) - f(\bm{y})} \le L \norm{\bm{x} - \bm{y}}
+\quad \text{for all } \bm{x}, \bm{y} \in \R^n.
+\end{equation}
+\end{definition}
+
+% =============================================================================
+\section{Main Results}\label{sec:main}
+
+\begin{theorem}\label{thm:main}
+Let $f : \R^n \to \R$ be $L$-Lipschitz. Then \dots.
+\end{theorem}
+
+\begin{proof}
+\textbf{Step 1 (Setup).}
+\dots
+
+\textbf{Step 2 (Estimate).}
+By \eqref{eq:lipschitz}, \dots
+\end{proof}
+
+% =============================================================================
+\section{Discussion}\label{sec:discussion}
+
+% =============================================================================
+\section*{Acknowledgements}
+% Remove for double-blind submission.
+
+% =============================================================================
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}

@@ -1,0 +1,6 @@
+{
+  "name": "math-paper",
+  "description": "Mathematical paper writing support: notation consistency (Symbol Ledger), theorem/proof structure, equation cross-references, and journal/arXiv submission preparation. Works with LaTeX and Markdown+math.",
+  "version": "0.1.0",
+  "author": {"name": "dobachi"}
+}
