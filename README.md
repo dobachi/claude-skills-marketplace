@@ -53,6 +53,12 @@ Personal skills marketplace for Claude Code.
 | **faithful-translation** | Produces source-faithful translations across any language pair with a parallel sentence ledger, terminology glossary, and translator's notes. No summarization — chain with `document-summary` if you need both. |
 | **document-summary** | Structured document/literature summarization with Executive and Professional modes. Mandatory source-grounded Claim Ledger and Source-vs-Inference separation prevent hallucinated content. |
 
+### Research
+
+| Plugin | Description |
+|---|---|
+| **literature-search** | Literature search, citation chasing, snowballing (Wohlin), author profile + h-index, BibTeX export, and retraction screening using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services. Requires Node.js 18+. |
+
 ### Quality
 
 | Plugin | Description |

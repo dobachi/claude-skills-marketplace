@@ -53,6 +53,12 @@ Personal skills marketplace for Claude Code.
 | **faithful-translation** | 任意の言語ペアで原文に忠実な翻訳を生成。検証用の文単位parallel ledger、用語集、訳者注を必須化。要約はせず、必要なら `document-summary` と連携。 |
 | **document-summary** | 文献の構造化要約スキル。エグゼクティブ向け／プロフェッショナル向けの2モード。出典紐付けの Claim Ledger を全モード必須化し、原文に無い推論は `[Inference]` ブロックとして明示分離してハルシネーションを防止。 |
 
+### 研究 (Research)
+
+| Plugin | Description |
+|---|---|
+| **literature-search** | 文献検索・引用チェイス・スノーボーリング(Wohlin法)・著者プロファイル+h-index・BibTeX 出力・撤回論文チェックを、無料公式API(Semantic Scholar + OpenAlex + CrossRef)のみで実現。スクレイピングや有料サービスを使わない誠実な Google Scholar 代替。Node.js 18+ が必要。 |
+
 ### 品質管理 (Quality)
 
 | Plugin | Description |
