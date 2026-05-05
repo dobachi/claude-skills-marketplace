@@ -1,0 +1,6 @@
+{
+  "name": "humanize-prose",
+  "description": "Rewrite AI-generated or AI-assisted text to read as human-authored. Reduces common AI tells (em-dash overuse, 'delve'/'leverage', tricolons, reflex bullet lists, 'いかがでしたでしょうか', generic closers) while preserving meaning, register, and factual content. Bilingual: English and Japanese. Reader-experience focused, not detector evasion.",
+  "version": "0.1.0",
+  "author": {"name": "dobachi"}
+}
