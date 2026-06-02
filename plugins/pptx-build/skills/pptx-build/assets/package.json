@@ -1,0 +1,14 @@
+{
+  "name": "pptx-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Clean, white-based .pptx generator (no drifting bands) built on PptxGenJS.",
+  "bin": { "build-deck": "build_deck.js" },
+  "scripts": {
+    "example": "node build_deck.js deck.example.yaml -o out.pptx"
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.0",
+    "js-yaml": "^4.0.0"
+  }
+}

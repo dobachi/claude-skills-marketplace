@@ -1,0 +1,67 @@
+# Example deck spec for build_deck.js
+# Run:  node build_deck.js deck.example.yaml -o /tmp/out.pptx
+#
+# meta.* overrides the active theme module for this deck. Omit any key to keep
+# the theme default. Keep it quiet: one accent, white bg, action titles.
+meta:
+  aspect: "16:9"            # or "4:3"
+  bg: "FFFFFF"              # FAFAFA for a softer paper white
+  ink: "1A1A1A"
+  accent: "2F5DA8"          # a single restrained accent — hairline + emphasis only
+  rule: true                # short master-level hairline (NOT a full-width band)
+  font_heading: "Yu Gothic Medium"
+  font_body: "Yu Gothic"
+
+slides:
+  - type: title
+    title: "新サービスの市場投入計画"
+    subtitle: "2026年度 第2四半期レビュー"
+
+  - type: section
+    number: "01"
+    title: "現状と課題"
+
+  - type: bullets
+    title: "解約率は3四半期連続で低下、ただし新規獲得が鈍化"   # action title = conclusion
+    bullets:
+      - "解約率は前年同期比で4.2pt改善"
+      - text: "改善はエンタープライズ契約の更新が牽引"
+        level: 1
+      - "一方、新規MRRは2四半期連続で前期割れ"
+      - text: "中小セグメントのCACが上昇"
+        level: 1
+    source: "出典: 社内BIダッシュボード 2026-05集計"
+
+  - type: two_col
+    title: "強みは定着、弱みは入口にある"
+    left:
+      heading: "効いている施策"
+      bullets:
+        - "オンボーディング改善"
+        - "カスタマーサクセスの増員"
+    right:
+      heading: "効いていない施策"
+      bullets:
+        - "上位プランへの誘導"
+        - "紹介プログラム"
+
+  - type: big_number
+    title: "更新率は過去最高水準に到達"
+    number: "94%"
+    caption: "エンタープライズ契約の年間更新率"
+    source: "出典: 契約管理システム"
+
+  - type: quote
+    quote: "顧客は製品を買うのではなく、進歩を雇用する。"
+    attribution: "Clayton Christensen"
+
+  - type: section
+    number: "02"
+    title: "次の一手"
+
+  - type: bullets
+    title: "獲得チャネルへ投資を再配分する"
+    bullets:
+      - "中小セグメントの広告予算を縮小"
+      - "エンタープライズの紹介設計に再投資"
+      - "プロダクト主導の無料トライアルを試験導入"

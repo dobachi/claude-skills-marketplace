@@ -141,6 +141,11 @@
       "description": "Expert guidance for designing professional PowerPoint presentations: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility."
     },
     {
+      "name": "pptx-build",
+      "source": "./plugins/pptx-build",
+      "description": "Generate clean, white-based .pptx files that don't look AI-made: grid-anchored layout with no drifting decorative bands (accent lives on the Slide Master), plus a swappable JS theme module to match a brand template. Built on PptxGenJS (Node) with a LibreOffice preview."
+    },
+    {
       "name": "faithful-translation",
       "source": "./plugins/faithful-translation",
       "description": "Faithful translation skill that produces source-faithful translations across any language pair, with a parallel sentence ledger for verification, terminology preservation, and translator's notes."

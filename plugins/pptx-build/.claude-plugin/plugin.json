@@ -1,0 +1,6 @@
+{
+  "name": "pptx-build",
+  "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made: grid-anchored layout with no drifting decorative bands (accent lives on the Slide Master), a swappable JS theme module to match a brand template, built on PptxGenJS (Node) with a LibreOffice preview pass.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

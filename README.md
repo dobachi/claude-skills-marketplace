@@ -45,6 +45,7 @@ Personal skills marketplace for Claude Code.
 |---|---|
 | **marp-slides** | Creates effective and professional presentations using Marp format. |
 | **pptx-design** | Expert guidance for designing professional PowerPoint (.pptx) decks: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility. |
+| **pptx-build** | Generates clean, white-based .pptx files that don't look AI-made: grid-anchored layout with no drifting decorative bands (accent lives on the Slide Master), plus a swappable JS theme module to match a brand template. Built on PptxGenJS (Node) with LibreOffice preview. |
 
 ### Documentation
 
