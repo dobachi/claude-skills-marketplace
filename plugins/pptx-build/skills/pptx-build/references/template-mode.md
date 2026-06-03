@@ -1,55 +1,117 @@
-# Template Mode — JS Theme Modules
+# Template-Fill Mode — using a real `.pptx`/`.potx`
 
-How to make the generator match a provided/brand look.
+How to make the generator write into a template the user actually hands you, so the
+output inherits that template's master, theme, fonts, logos, and **placeholders**.
 
-## Why a theme module, not a .potx
+## Why this is a real engine feature now
 
-PptxGenJS builds presentations from scratch; it **cannot open a binary `.pptx`/`.potx`** and inherit its master/theme. So "use our template" is implemented by **transcribing the template's look into a JS theme module** — palette, fonts, grid. This matches how the user's own decks already work (palette + font constants in code), and it keeps the output fully editable and drift-free.
+python-pptx can **open an existing presentation** and add slides from its layouts:
 
-> If a stakeholder genuinely needs the *binary* corporate `.potx` carried through (its master XML, embedded logos, etc.), that is outside PptxGenJS. In that case generate with this skill, then open the result inside the corporate template in PowerPoint, or use a separate OOXML step. The theme-module route below covers the large majority of "make it look like our brand" requests.
-
-## Anatomy of a theme
-
-A theme module exports a plain object (see `themes/minimal-white.js`):
-
-```js
-module.exports = {
-  name: "minimal-white",
-  layout: "LAYOUT_WIDE",          // or "LAYOUT_4x3"
-  color: { bg, ink, muted, accent },   // hex strings, no '#'
-  font:  { heading, body, number },
-  rule: true,                     // master-level accent hairline (NOT a band)
-  pageNumbers: true,
-  grid: { marginX, top, titleH }, // optional overrides (inches)
-};
+```python
+prs = Presentation("corp.pptx")          # the real template, master + theme + logos
+slide = prs.slides.add_slide(prs.slide_layouts[1])   # a layout from the template
+slide.placeholders[0].text = "..."       # write the title placeholder it defines
 ```
 
-`build_deck.js` reads only these fields, so a theme is the *entire* surface area of "the look." Everything else — slide types, grid math, the no-drift hairline — is shared.
+That is the whole fix. The earlier PptxGenJS engine built from scratch and could not
+touch a binary template's placeholders, so "use our template" silently degraded to
+"transcribe the colors." Now the template's layouts and placeholders are first-class.
 
-## Matching a brand: the workflow
+## The workflow: inspect → (map) → fill
 
-1. **Copy** `themes/minimal-white.js` to `themes/<brand>.js`.
-2. **Transcribe** the brand: set `color.bg` (keep it light for the white-based look), `color.ink`, `color.muted`, `color.accent` (the one signature color), and `font.heading`/`font.body` to the brand fonts. `themes/brand-example.js` is a worked example using an editorial navy palette.
-3. **Decide on the hairline.** If the brand has its own strong title treatment, set `rule:false` so nothing competes. Otherwise keep the hairline in the brand accent.
-4. **Generate**: `node build_deck.js deck.yaml -o out.pptx --theme themes/<brand>.js`.
-5. **Preview**: `./render_preview.sh out.pptx` and confirm the palette/fonts read as the brand and the accent lines up across slides.
+Foreign templates have arbitrary layout names and placeholder indices. Don't guess —
+**inspect first.**
 
-## Per-deck overrides without editing the theme
+### 1. Inspect
 
-`meta.*` in the spec overrides individual theme values for one deck:
+```bash
+python3 inspect_template.py corp.pptx
+```
 
-| meta key | overrides |
-|---|---|
-| `accent`, `bg`, `ink`, `muted` | `theme.color.*` |
-| `font_heading`, `font_body`, `font_number` | `theme.font.*` |
-| `rule` (bool) | master hairline on/off |
-| `page_numbers` (bool) | footer page numbers |
-| `aspect` (`"16:9"`/`"4:3"`) | `theme.layout` |
+Prints every layout (with its index) and every placeholder on it: `idx`, semantic
+`type` (TITLE / CENTER_TITLE / SUBTITLE / BODY / OBJECT / PICTURE …), name, position,
+and size. This is the ground truth for "which placeholder is the title."
 
-Use this for one-off tweaks (e.g. a single deck in 4:3, or a different accent for one client) without forking the theme module.
+### 2. Map (optional but recommended for odd templates)
 
-## Honoring vs. overriding
+```bash
+python3 inspect_template.py corp.pptx --map > map.json
+```
 
-- **Do** set the brand accent and fonts.
-- **Avoid** moving `bg` off-white unless the brand truly is dark — the whole point of this skill is the clean white-based look.
-- **Don't** add extra colors. Emphasis comes from the single accent + weight + size, not a second hue.
+Emits a starter map: for each slide `type`, the layout index and the placeholder
+`idx` for each role. Open it, fix any wrong guess, delete roles you don't want filled.
+
+```json
+{
+  "title":      {"layout": 0, "title": 0, "subtitle": 1},
+  "section":    {"layout": 2, "title": 0},
+  "bullets":    {"layout": 1, "title": 0, "body": 1},
+  "two_col":    {"layout": 3, "title": 0, "left": 1, "right": 2},
+  "big_number": {"layout": 1, "title": 0, "body": 1},
+  "image":      {"layout": 8, "title": 0, "image": 1, "caption": 2},
+  "blank":      {"layout": 6}
+}
+```
+
+- `layout` is an **index** (int) or a **name** (string, case-insensitive substring match).
+- Role values (`title`, `subtitle`, `body`, `left`, `right`, `image`, `caption`,
+  `source`) are placeholder **idx** values from the inspect output.
+
+### 3. Fill
+
+```bash
+python3 build_deck.py deck.yaml -o out.pptx --template corp.pptx           # auto-detect
+python3 build_deck.py deck.yaml -o out.pptx --template corp.pptx --map map.json
+```
+
+The build log prints which layout each slide landed on:
+
+```
+title       -> layout 'Title Slide'
+bullets     -> layout 'Title and Content'
+two_col     -> layout 'Two Content'
+```
+
+Read that log. If a slide picked the wrong layout, pin it (below) and rerun.
+
+## How resolution works (precedence)
+
+For each spec slide, the layout is chosen by: **per-slide `layout:` in the spec → the
+map → a name/type heuristic.** Placeholders are chosen by: **explicit idx in the map →
+placeholder type on the chosen layout** (title = TITLE/CENTER_TITLE; body = the
+BODY/OBJECT placeholders in reading order; subtitle = SUBTITLE; picture = PICTURE).
+
+The auto-heuristic (no map) matches common layout names — "Title Slide", "Section
+Header", "Title and Content", "Two Content"/"Comparison", "Picture with Caption",
+"Blank" — and falls back to a content layout. It handles the standard PowerPoint
+layout set well; reach for a map only when names are non-standard or a guess is wrong.
+
+### Pinning one slide without a whole map
+
+```yaml
+- type: bullets
+  layout: "Title and Content"   # name or index, overrides the heuristic/map for this slide
+  title: "…"
+  bullets: ["…"]
+```
+
+## What carries the look
+
+In template-fill mode the **template owns the look** — colors, fonts, the master's
+logos and chrome, the bullet styling of each BODY placeholder. So:
+
+- We write **plain text / bullet levels** into placeholders and let the template style
+  them. We do **not** override fonts or colors, and `meta.*` color/font keys are ignored.
+- `two_col` needs two BODY/OBJECT placeholders (e.g. the "Two Content" layout). If the
+  chosen layout has only one, the right column is appended into it rather than dropped.
+- `image` uses a PICTURE placeholder when the layout has one (`insert_picture`); else
+  the image is added at the placeholder's box, or top-left as a fallback.
+- `quote`/`big_number` reuse the title+body of a content layout (the quote/number go in
+  the body) unless you map them to a dedicated layout.
+
+## When the binary master itself must be carried — this is it
+
+This *is* the path that carries the binary corporate master/theme/logos through. The
+only thing it does not do is invent layouts the template lacks; if the template has no
+"Two Content" layout, map `two_col` to whatever two-region layout it does have, or fall
+back to default mode for those slides.

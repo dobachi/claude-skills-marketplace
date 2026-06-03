@@ -1,0 +1,26 @@
+{
+  "name": "brand-example",
+  "aspect": "16:9",
+
+  "color": {
+    "bg": "F4F7FB",
+    "ink": "0A1F44",
+    "muted": "7A8AA6",
+    "accent": "1E5AA8"
+  },
+
+  "font": {
+    "heading": "Yu Gothic Medium",
+    "body": "Yu Gothic",
+    "number": "Cambria"
+  },
+
+  "rule": true,
+  "pageNumbers": true,
+
+  "grid": {
+    "marginX": 0.92,
+    "top": 0.62,
+    "titleH": 0.95
+  }
+}

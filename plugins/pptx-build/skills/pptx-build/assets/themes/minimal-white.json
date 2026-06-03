@@ -1,0 +1,26 @@
+{
+  "name": "minimal-white",
+  "aspect": "16:9",
+
+  "color": {
+    "bg": "FFFFFF",
+    "ink": "1A1A1A",
+    "muted": "6B7280",
+    "accent": "2F5DA8"
+  },
+
+  "font": {
+    "heading": "Yu Gothic Medium",
+    "body": "Yu Gothic",
+    "number": "Yu Gothic Medium"
+  },
+
+  "rule": true,
+  "pageNumbers": true,
+
+  "grid": {
+    "marginX": 0.92,
+    "top": 0.62,
+    "titleH": 0.95
+  }
+}

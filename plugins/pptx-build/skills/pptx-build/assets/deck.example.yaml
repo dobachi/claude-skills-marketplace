@@ -1,8 +1,10 @@
-# Example deck spec for build_deck.js
-# Run:  node build_deck.js deck.example.yaml -o /tmp/out.pptx
+# Example deck spec for build_deck.py
+# Default look:    python3 build_deck.py deck.example.yaml -o /tmp/out.pptx
+# Into a template: python3 build_deck.py deck.example.yaml -o /tmp/out.pptx --template corp.pptx
 #
-# meta.* overrides the active theme module for this deck. Omit any key to keep
-# the theme default. Keep it quiet: one accent, white bg, action titles.
+# meta.* overrides the active theme for this deck IN DEFAULT MODE (ignored when
+# --template is used — the template owns the look). Omit any key to keep the
+# theme default. Keep it quiet: one accent, white bg, action titles.
 meta:
   aspect: "16:9"            # or "4:3"
   bg: "FFFFFF"              # FAFAFA for a softer paper white

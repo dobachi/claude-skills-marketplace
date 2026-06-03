@@ -1,8 +1,8 @@
 # Spec Format
 
-The deck spec is YAML or JSON (detected by file extension). Two top-level keys: `meta` and `slides`.
+The deck spec is YAML or JSON (detected by file extension). Two top-level keys: `meta` and `slides`. The **same spec drives both modes** — default (`build_deck.py spec -o out.pptx`) and template-fill (`--template corp.pptx`). In template-fill mode the look comes from the template, so `meta` color/font keys are ignored (only `aspect` still has no effect there — the template sets slide size); per-slide `layout:` is honored.
 
-## meta (all optional — omit to keep defaults)
+## meta (all optional — omit to keep defaults; default mode only)
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -17,13 +17,15 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 | `font_number` | `Yu Gothic Medium` | Typeface for the `big_number` figure |
 | `page_numbers` | `true` | Footer page numbers on content slides |
 
-These override the active theme module (`--theme`, default `themes/minimal-white.js`) for one deck. To change the look permanently, edit/copy the theme module instead — see `template-mode.md`.
+These override the active theme JSON (`--theme`, default `themes/minimal-white.json`) for one deck in default mode. To change the look permanently, edit/copy the theme file. For an actual `.pptx`/`.potx` template, use `--template` instead — see `template-mode.md`.
 
 Colors take a bare hex (`2F5DA8`) or `#2F5DA8`.
 
 ## slides
 
 A list. Each item has a `type` and type-specific fields. Default type is `bullets`.
+
+Any slide may also carry `layout:` (a layout name or index). It is used only in template-fill mode, to pin which template layout that slide lands on, overriding the map/heuristic. Ignored in default mode.
 
 ### title
 ```yaml

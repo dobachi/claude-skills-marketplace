@@ -143,7 +143,7 @@
     {
       "name": "pptx-build",
       "source": "./plugins/pptx-build",
-      "description": "Generate clean, white-based .pptx files that don't look AI-made: grid-anchored layout with no drifting decorative bands (accent lives on the Slide Master), plus a swappable JS theme module to match a brand template. Built on PptxGenJS (Node) with a LibreOffice preview."
+      "description": "Generate clean, white-based .pptx files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. LibreOffice preview."
     },
     {
       "name": "faithful-translation",

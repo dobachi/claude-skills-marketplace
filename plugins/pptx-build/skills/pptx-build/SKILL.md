@@ -1,21 +1,24 @@
 ---
 name: pptx-build
-description: Generate clean, white-based .pptx decks that don't look AI-made — built on PptxGenJS (Node). Grid-anchored layout with no drifting decorative bands (accent lives on the Slide Master, so it can't shift slide to slide), and a swappable JS theme module to match a provided/brand template. Use when the user wants to actually produce a PowerPoint file (not just design advice), asks for a "simple white deck," "テンプレに沿ったパワポ," or a deck that doesn't look AI-generated.
+description: Generate clean, white-based .pptx decks that don't look AI-made — built on python-pptx. Two modes from ONE spec: (1) default — grid-anchored from-scratch layout with no drifting decorative bands (accent computed once from the grid, identical on every slide); (2) template-fill — open a real corporate .pptx/.potx and write into ITS layouts and placeholders (title/body/subtitle), inheriting the template's master, theme, fonts, and logos. Use when the user wants to actually produce a PowerPoint file (not just design advice), asks for a "simple white deck," "テンプレに沿ったパワポ," "会社のテンプレートで作って," or a deck that doesn't look AI-generated.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
 
-# Clean PowerPoint Generator (PptxGenJS)
+# Clean PowerPoint Generator (python-pptx)
 
-Produces an actual `.pptx` file that reads as human-designed: white background, quiet typography, one restrained accent, everything snapped to a shared grid. The opposite of a default-template AI deck.
+Produces an actual `.pptx` file. Two rendering paths share one spec:
 
-**Engine: PptxGenJS (Node).** Chosen to match the user's existing slide-generation workflow. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **pptx-design** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
+- **Default mode** — a deck that reads as human-designed: white background, quiet typography, one restrained accent, everything snapped to a shared grid. The opposite of a default-template AI deck.
+- **Template-fill mode** — open a **real** `.pptx`/`.potx` the user provides and write content into **its slide layouts and placeholders**, so the deck inherits the template's master, theme, fonts, and logos. This is what "use our company template" actually means.
+
+**Engine: python-pptx.** Chosen specifically because it can *open* an existing binary template and address its placeholders — the thing PptxGenJS could not do. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **pptx-design** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
 
 ## The three guarantees this skill is built around
 
-1. **White-based and quiet.** `#FFFFFF`/`#FAFAFA` paper, near-black ink (`#1A1A1A`, never pure black), a single accent used only for a hairline and emphasis. No gradients, shadows, WordArt, or clipart.
-2. **No drifting bands.** The classic ugly AI/Office tell is a full-width colored rectangle drawn behind each title that ends up a few pixels off from slide to slide. This skill **never draws per-slide bands.** The accent is a short hairline placed on the **Slide Master**, so it is pixel-identical on every slide and cannot drift. See `references/anti-band-design.md`.
-3. **Honors a provided template.** PptxGenJS cannot open a binary `.pptx`/`.potx`, so a "template" here is a **JS theme module** (palette + fonts + grid). Copy `themes/minimal-white.js`, transcribe the brand's colors/fonts, pass it with `--theme`. See `references/template-mode.md`.
+1. **White-based and quiet (default mode).** `#FFFFFF`/`#FAFAFA` paper, near-black ink (`#1A1A1A`, never pure black), a single accent used only for a hairline and emphasis. No gradients, shadows, WordArt, or clipart.
+2. **No drifting bands (default mode).** The classic ugly AI/Office tell is a full-width colored rectangle behind each title that ends up a few pixels off from slide to slide. This skill **never draws per-slide bands.** The accent is a short hairline whose coordinates are computed once from the shared grid, so it is identical on every slide of a family and cannot drift. See `references/anti-band-design.md`.
+3. **Honors a real template (template-fill mode).** Pass `--template corp.pptx`. python-pptx opens it, and each spec slide is mapped to one of the template's **layouts** and written into its **placeholders** (title, body, subtitle, picture). The template's own master/theme/fonts/logos come through untouched. See `references/template-mode.md`.
 
 ## How to use it
 
@@ -24,9 +27,8 @@ Everything lives in `assets/`. Run the commands from there.
 ### 0. Install deps (once)
 
 ```bash
-cd assets && npm install      # pptxgenjs + js-yaml
+cd assets && pip install -r requirements.txt   # python-pptx + PyYAML
 ```
-(If `pptxgenjs` already resolves from a parent `node_modules`, you can skip this.)
 
 ### 1. Write a spec
 
@@ -34,17 +36,33 @@ Author a small YAML (or JSON) spec describing slides. Start from `assets/deck.ex
 
 - Use **action titles** — state the conclusion ("解約率は3四半期連続で低下、ただし新規獲得が鈍化"), not a topic label ("解約率").
 - One message per slide. If a slide carries two arguments, split it.
-- Set `meta.accent` to the brand color; leave the rest of `meta` unless asked.
+- The **same spec** drives both modes — you don't rewrite it to switch.
 
-### 2. Generate
+### 2a. Generate — default white-minimal look
 
 ```bash
-# Default white-minimal theme:
-node build_deck.js deck.yaml -o out.pptx
-
-# Brand/provided look — a JS theme module:
-node build_deck.js deck.yaml -o out.pptx --theme themes/brand-example.js
+python3 build_deck.py deck.yaml -o out.pptx
+python3 build_deck.py deck.yaml -o out.pptx --theme themes/brand-example.json   # transcribed brand palette
 ```
+
+Set `meta.accent` to the brand color; leave the rest of `meta` unless asked.
+
+### 2b. Generate — fill the user's real template
+
+```bash
+# 1. INSPECT the template first — this is the step that prevents "the title placeholder
+#    isn't being filled": it prints each layout's index and each placeholder's idx/type.
+python3 inspect_template.py corp.pptx
+
+# 2. (Optional) write a starter role->placeholder map, edit any wrong guess, and pass it.
+python3 inspect_template.py corp.pptx --map > map.json
+
+# 3. Build into the template. Without --map, layouts/placeholders are auto-detected.
+python3 build_deck.py deck.yaml -o out.pptx --template corp.pptx
+python3 build_deck.py deck.yaml -o out.pptx --template corp.pptx --map map.json
+```
+
+The command prints which layout each slide landed on. If a slide picked the wrong layout, pin it in `map.json` (or per-slide via `layout:` in the spec) and rerun. See `references/template-mode.md`.
 
 ### 3. Preview and QA
 
@@ -52,23 +70,28 @@ node build_deck.js deck.yaml -o out.pptx --theme themes/brand-example.js
 ./render_preview.sh out.pptx        # -> preview/slide-*.png via LibreOffice
 ```
 
-Read the PNGs back and run the checklist below. LibreOffice may substitute fonts, but it faithfully shows alignment and confirms the no-drifting-band property.
+Read the PNGs back and run the checklist below. LibreOffice may substitute fonts, but it faithfully shows alignment, placeholder fills, and the no-drift property.
 
 ## Slide types
 
-`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `blank`. Each is grid-anchored; titles share one Y coordinate and the accent hairline (a master object) sits at the same place across the whole deck. Detail in `references/spec-format.md`.
+`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `blank`. In default mode each is grid-anchored and titles share one Y coordinate. In template-fill mode each maps to a template layout and writes the template's placeholders. Detail in `references/spec-format.md`.
 
-## Themes (the "template" mechanism)
+## Themes vs. templates — pick the right one
 
-A theme module exports `{ color, font, grid, layout, rule, pageNumbers }`. `build_deck.js` turns `rule:true` into a **master-level** hairline — never a per-slide shape. To match a brand: copy `themes/minimal-white.js`, swap the palette and fonts, pass `--theme`. The grid, slide types, and no-drift guarantee stay identical; only the look changes. `meta.*` in the spec can override individual theme values without editing the module.
+| The user has… | Use | What carries the look |
+|---|---|---|
+| no template, wants a clean deck | default mode | `themes/minimal-white.json` |
+| a brand palette/fonts but no file | default mode + `--theme` | a JSON theme you transcribe |
+| an actual `.pptx`/`.potx` template | `--template` | the template's own master/layouts/placeholders |
+
+`meta.*` in the spec overrides individual theme values in default mode (see `spec-format.md`). In template-fill mode the look comes from the template, so `meta` color/font keys are ignored by design.
 
 ## Pre-delivery checklist
 
 - [ ] Every title is an **action title** (states the takeaway), not a topic label.
-- [ ] One message per slide; no wall of text (body ≥18 pt — split if it won't fit).
-- [ ] Background is white/near-white; ink is `#1A1A1A`, not pure black.
-- [ ] Exactly **one** accent color; used only for the hairline + emphasis.
-- [ ] **No full-width band** behind any title. Hairlines line up across all slides (flip through the PNGs — the accent mark should never jump).
+- [ ] One message per slide; no wall of text (split if it won't fit).
+- [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (hairline + emphasis only); **no full-width band**; hairline lines up across all slides (flip the PNGs — the accent should never jump).
+- [ ] **Template mode:** every intended placeholder is actually filled (read the build log + a PNG); no slide fell back to the wrong layout; the deck still looks like the template, not like us.
 - [ ] Data slides carry a `source:` footnote.
 - [ ] Sub-bullets use a real hanging indent (no glyph flush against text, no tofu boxes).
 
@@ -78,6 +101,6 @@ Apply the **information test** before adding any shape: if deleting it changes n
 
 ## References
 
-- `references/anti-band-design.md` — why bands drift and the master/grid alternatives this generator uses
-- `references/template-mode.md` — matching a provided/brand template via a JS theme module
+- `references/template-mode.md` — filling a real `.pptx`/`.potx`: inspect → map → fill, and how foreign layouts/placeholders are resolved
+- `references/anti-band-design.md` — why bands drift and the computed-grid alternative this generator uses
 - `references/spec-format.md` — every spec field and slide type, with examples
