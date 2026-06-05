@@ -1,0 +1,38 @@
+# archimate-ea — intentionally INVALID fixture for the test harness.
+# Seeds exactly five defects, one per validator check. Expected problem codes:
+#   unknown-type, illegal-relationship, dangling-target, undeclared-property, view-bad-ref
+
+model:
+  id: model-broken
+  name: { en: Broken sample }
+
+propertyDefinitions:
+  - { key: owner, type: string, name: { en: Owner } }
+
+elements:
+  - { id: goal-revenue,   type: Goal,                 name: { en: Grow revenue } }
+  - { id: req-portal,     type: Requirement,          name: { en: Self-service portal } }
+  - id: appcomp-order
+    type: ApplicationComponent
+    name: { en: Order Service }
+    properties:
+      owner: Platform team      # ok — declared
+      team: Payments            # DEFECT 4 (undeclared-property): 'team' not in propertyDefinitions
+  - { id: dataobj-order,  type: DataObject,           name: { en: Order data } }
+  # DEFECT 1 (unknown-type): 'MicroService' is not an ArchiMate element type
+  - { id: svc-ghost,      type: MicroService,         name: { en: A microservice } }
+
+relationships:
+  - { id: r-req-goal,     type: Realization, source: req-portal,    target: goal-revenue }
+  # DEFECT 2 (illegal-relationship): Triggering from Goal (motivation) to a component (active) is not allowed
+  - { id: r-goal-comp,    type: Triggering,  source: goal-revenue,  target: appcomp-order }
+  # DEFECT 3 (dangling-target): 'app-ghost' is not a defined element
+  - { id: r-comp-ghost,   type: Serving,     source: appcomp-order, target: app-ghost }
+
+views:
+  - id: view-main
+    name: { en: Main }
+    viewpoint: Layered
+    # DEFECT 5 (view-bad-ref): 'nonexistent-1' is not a defined element
+    elements: [goal-revenue, req-portal, nonexistent-1]
+    relationships: [r-req-goal]

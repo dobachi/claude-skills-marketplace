@@ -1,0 +1,6 @@
+{
+  "name": "archimate-ea",
+  "description": "Conversational ArchiMate 3.2 enterprise-architecture facilitator. Elicits requirements and designs the full layered model with the user into one YAML running model (single source of truth), validates it against the metamodel, then generate-forwards PlantUML views and Open Group Exchange XML for the Archi tool.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
