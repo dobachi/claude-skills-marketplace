@@ -1,0 +1,204 @@
+# archimate-ea — valid full-EA fixture (passes validate_model.py with no errors).
+# A small "digital sales" enterprise architecture spanning all seven aspects,
+# exercising every relationship modifier (accessType, isDirected, influence
+# strength), a junction, multilingual labels, and custom properties.
+#
+# This file IS the contract the validator and emitters read. See
+# references/yaml-schema.md for the full field reference.
+
+model:
+  id: model-digital-sales
+  name:
+    ja: ACME デジタル営業 EA
+    en: ACME Digital Sales EA
+  documentation:
+    en: Running model — single source of truth for the digital-sales transformation.
+  version: "0.3.0"
+
+propertyDefinitions:
+  - key: owner
+    type: string
+    name: { en: Owner }
+  - key: criticality
+    type: string
+    name: { en: Criticality }
+  - key: reviewDate
+    type: date
+    name: { en: Review date }
+
+elements:
+  # --- Motivation ---------------------------------------------------------
+  - { id: stake-cfo,            type: Stakeholder, name: { ja: CFO, en: CFO } }
+  - { id: driver-competition,   type: Driver,      name: { ja: 競争激化, en: Market competition } }
+  - { id: assess-churn,         type: Assessment,  name: { ja: 解約率が高い, en: High churn rate } }
+  - id: goal-revenue
+    type: Goal
+    name: { ja: オンライン収益20%増, en: Grow online revenue 20% }
+    documentation: { en: Board-level FY26 financial goal. }
+    properties:
+      owner: CFO
+      criticality: high
+      reviewDate: "2026-03-31"
+  - { id: outcome-retention,    type: Outcome,     name: { ja: 顧客維持率向上, en: Improved retention } }
+  - { id: principle-selfsvc,    type: Principle,   name: { ja: セルフサービス優先, en: Self-service first } }
+  - id: req-portal
+    type: Requirement
+    name: { ja: セルフサービスポータル, en: Self-service portal }
+    properties: { owner: "Head of Digital", criticality: high }
+  - { id: req-mobile,           type: Requirement, name: { ja: モバイル対応, en: Mobile support } }
+  - { id: constraint-gdpr,      type: Constraint,  name: { ja: GDPR準拠, en: GDPR compliance } }
+  - { id: value-convenience,    type: Value,       name: { ja: 利便性, en: Convenience } }
+
+  # --- Strategy -----------------------------------------------------------
+  - { id: cap-digitalsales,     type: Capability,     name: { ja: デジタル営業, en: Digital sales } }
+  - { id: resource-platform,    type: Resource,       name: { ja: ECプラットフォーム, en: E-commerce platform } }
+  - { id: course-onlineshift,   type: CourseOfAction, name: { ja: オンライン化施策, en: Online-shift initiative } }
+  - { id: vstream-acquire,      type: ValueStream,    name: { ja: 顧客獲得, en: Customer acquisition } }
+
+  # --- Business -----------------------------------------------------------
+  - { id: actor-customer,       type: BusinessActor,   name: { ja: 顧客, en: Customer } }
+  - { id: role-salesrep,        type: BusinessRole,    name: { ja: 営業担当, en: Sales representative } }
+  - { id: bproc-order,          type: BusinessProcess, name: { ja: 注文処理, en: Order handling } }
+  - { id: bproc-onboard,        type: BusinessProcess, name: { ja: オンボーディング, en: Onboarding } }
+  - { id: bsvc-online,          type: BusinessService, name: { ja: オンライン販売サービス, en: Online sales service } }
+  - { id: bobj-order,           type: BusinessObject,  name: { ja: 注文, en: Order } }
+
+  # --- Application --------------------------------------------------------
+  - { id: appcomp-portal,       type: ApplicationComponent, name: { ja: 顧客ポータル, en: Customer Portal } }
+  - { id: appcomp-order,        type: ApplicationComponent, name: { ja: 注文サービス, en: Order Service } }
+  - { id: appfunc-process,      type: ApplicationFunction,  name: { ja: 注文処理機能, en: Order processing } }
+  - { id: appsvc-order,         type: ApplicationService,   name: { ja: 注文API, en: Order API } }
+  - { id: appiface-rest,        type: ApplicationInterface, name: { ja: REST API, en: REST API } }
+  - { id: dataobj-order,        type: DataObject,           name: { ja: 注文データ, en: Order data } }
+
+  # --- Technology ---------------------------------------------------------
+  - { id: node-k8s,             type: Node,              name: { en: Kubernetes Cluster } }
+  - { id: syssw-db,             type: SystemSoftware,    name: { en: PostgreSQL } }
+  - { id: artifact-image,       type: Artifact,          name: { en: Order Service image } }
+  - { id: techsvc-hosting,      type: TechnologyService, name: { ja: コンテナ実行基盤, en: Container hosting } }
+  - { id: net-vpc,              type: CommunicationNetwork, name: { en: VPC } }
+  - { id: device-server,        type: Device,            name: { ja: 物理サーバ, en: Physical server } }
+
+  # --- Physical -----------------------------------------------------------
+  - { id: facility-dc,          type: Facility,            name: { ja: データセンター, en: Data center } }
+  - { id: equip-rack,           type: Equipment,           name: { ja: サーバラック, en: Server rack } }
+  - { id: distnet-power,        type: DistributionNetwork, name: { ja: 電源網, en: Power network } }
+
+  # --- Implementation & Migration ----------------------------------------
+  - { id: wp-phase1,            type: WorkPackage,         name: { ja: フェーズ1構築, en: Phase 1 build } }
+  - { id: deliv-portal,         type: Deliverable,         name: { ja: ポータルv1, en: Portal v1 } }
+  - { id: plateau-current,      type: Plateau,             name: { ja: 現状, en: Current state } }
+  - { id: plateau-target,       type: Plateau,             name: { ja: 目標状態, en: Target state } }
+  - { id: gap-portal,           type: Gap,                 name: { ja: ポータル不在, en: No portal } }
+  - { id: implevent-golive,     type: ImplementationEvent, name: { ja: 本番稼働, en: Go-live } }
+
+  # --- Connector ----------------------------------------------------------
+  - { id: junc-reqs,            type: Junction, junctionType: and }
+
+relationships:
+  # Motivation
+  - { id: r-stake-driver,   type: Association, source: stake-cfo,          target: driver-competition }
+  - { id: r-driver-assess,  type: Influence,   source: driver-competition, target: assess-churn, strength: "+" }
+  - { id: r-assess-goal,    type: Influence,   source: assess-churn,       target: goal-revenue, strength: "-" }
+  - { id: r-outcome-goal,   type: Realization, source: outcome-retention,  target: goal-revenue }
+  - { id: r-princ-req,      type: Influence,   source: principle-selfsvc,  target: req-portal, strength: "++" }
+  - { id: r-gdpr-req,       type: Association,  source: constraint-gdpr,    target: req-portal }
+  - { id: r-value-goal,     type: Association,  source: value-convenience,  target: goal-revenue }
+  # Junction: portal AND mobile requirements jointly realize the revenue goal
+  - { id: r-portal-junc,    type: Realization, source: req-portal,         target: junc-reqs }
+  - { id: r-mobile-junc,    type: Realization, source: req-mobile,         target: junc-reqs }
+  - { id: r-junc-goal,      type: Realization, source: junc-reqs,          target: goal-revenue }
+
+  # Strategy
+  - { id: r-res-cap,        type: Assignment,  source: resource-platform,  target: cap-digitalsales }
+  - { id: r-course-cap,     type: Realization, source: course-onlineshift, target: cap-digitalsales }
+  - { id: r-cap-goal,       type: Realization, source: cap-digitalsales,   target: goal-revenue }
+  - { id: r-cap-vstream,    type: Serving,     source: cap-digitalsales,   target: vstream-acquire }
+
+  # Business
+  - { id: r-role-bproc,     type: Assignment,  source: role-salesrep,      target: bproc-order }
+  - { id: r-bproc-bsvc,     type: Realization, source: bproc-order,        target: bsvc-online }
+  - { id: r-bsvc-customer,  type: Serving,     source: bsvc-online,        target: actor-customer }
+  - { id: r-bproc-bobj,     type: Access,      source: bproc-order,        target: bobj-order, accessType: write }
+  - { id: r-bproc-onboard,  type: Triggering,  source: bproc-order,        target: bproc-onboard }
+  - { id: r-bsvc-req,       type: Realization, source: bsvc-online,        target: req-portal }
+
+  # Application
+  - { id: r-appcomp-func,   type: Assignment,  source: appcomp-order,      target: appfunc-process }
+  - { id: r-func-svc,       type: Realization, source: appfunc-process,    target: appsvc-order }
+  - { id: r-func-data,      type: Access,      source: appfunc-process,    target: dataobj-order, accessType: readWrite }
+  - { id: r-appcomp-iface,  type: Assignment,  source: appcomp-order,      target: appiface-rest }
+  - { id: r-svc-bproc,      type: Serving,     source: appsvc-order,       target: bproc-order }
+  - { id: r-portal-customer,type: Serving,     source: appcomp-portal,     target: actor-customer }
+  - { id: r-svc-req,        type: Realization, source: appsvc-order,       target: req-portal }
+  - { id: r-data-bobj,      type: Realization, source: dataobj-order,      target: bobj-order }
+  - { id: r-portal-order,   type: Association, source: appcomp-portal,     target: appsvc-order, isDirected: true }
+
+  # Technology
+  - { id: r-node-artifact,  type: Assignment,  source: node-k8s,           target: artifact-image }
+  - { id: r-artifact-comp,  type: Realization, source: artifact-image,     target: appcomp-order }
+  - { id: r-node-hosting,   type: Realization, source: node-k8s,           target: techsvc-hosting }
+  - { id: r-hosting-comp,   type: Serving,     source: techsvc-hosting,    target: appcomp-order }
+  - { id: r-node-db,        type: Assignment,  source: node-k8s,           target: syssw-db }
+  - { id: r-node-device,    type: Aggregation, source: node-k8s,           target: device-server }
+  - { id: r-vpc-node,       type: Association, source: net-vpc,            target: node-k8s }
+  - { id: r-device-db,      type: Assignment,  source: device-server,      target: syssw-db }
+
+  # Physical
+  - { id: r-dc-rack,        type: Composition, source: facility-dc,        target: equip-rack }
+  - { id: r-rack-node,      type: Serving,     source: equip-rack,         target: node-k8s }
+  - { id: r-power-dc,       type: Serving,     source: distnet-power,      target: facility-dc }
+
+  # Implementation & Migration
+  - { id: r-wp-deliv,       type: Realization, source: wp-phase1,          target: deliv-portal }
+  - { id: r-deliv-portal,   type: Realization, source: deliv-portal,       target: appcomp-portal }
+  - { id: r-wp-golive,      type: Triggering,  source: wp-phase1,          target: implevent-golive }
+  - { id: r-cur-gap,        type: Association, source: plateau-current,    target: gap-portal }
+  - { id: r-gap-target,     type: Association, source: gap-portal,         target: plateau-target }
+
+organizations:
+  - label: { en: Motivation }
+    items: [stake-cfo, driver-competition, assess-churn, goal-revenue, outcome-retention,
+            principle-selfsvc, req-portal, req-mobile, constraint-gdpr, value-convenience, junc-reqs]
+  - label: { en: Strategy }
+    items: [cap-digitalsales, resource-platform, course-onlineshift, vstream-acquire]
+  - label: { en: Business }
+    items: [actor-customer, role-salesrep, bproc-order, bproc-onboard, bsvc-online, bobj-order]
+  - label: { en: Application }
+    items: [appcomp-portal, appcomp-order, appfunc-process, appsvc-order, appiface-rest, dataobj-order]
+  - label: { en: Technology & Physical }
+    items: [node-k8s, syssw-db, artifact-image, techsvc-hosting, net-vpc, device-server,
+            facility-dc, equip-rack, distnet-power]
+  - label: { en: Implementation }
+    items: [wp-phase1, deliv-portal, plateau-current, plateau-target, gap-portal, implevent-golive]
+
+views:
+  - id: view-motivation
+    name: { ja: 動機ビュー, en: Motivation view }
+    viewpoint: Motivation
+    elements: [driver-competition, assess-churn, goal-revenue, outcome-retention,
+               principle-selfsvc, req-portal, req-mobile, junc-reqs, constraint-gdpr]
+    relationships: [r-driver-assess, r-assess-goal, r-outcome-goal, r-princ-req,
+                    r-portal-junc, r-mobile-junc, r-junc-goal, r-gdpr-req]
+
+  - id: view-app-coop
+    name: { ja: アプリ連携ビュー, en: Application cooperation view }
+    viewpoint: Application_Cooperation
+    elements: [appcomp-portal, appcomp-order, appfunc-process, appsvc-order,
+               appiface-rest, dataobj-order, bproc-order]
+    relationships: [r-appcomp-func, r-func-svc, r-func-data, r-appcomp-iface,
+                    r-svc-bproc, r-portal-order]
+
+  - id: view-layered
+    name: { ja: レイヤードビュー, en: Layered view }
+    viewpoint: Layered
+    elements: [goal-revenue, req-portal, bsvc-online, bproc-order, appsvc-order,
+               appcomp-order, techsvc-hosting, node-k8s]
+    relationships: [r-bsvc-req, r-bproc-bsvc, r-svc-bproc, r-hosting-comp, r-node-hosting]
+
+  - id: view-migration
+    name: { ja: 移行ビュー, en: Implementation & migration view }
+    viewpoint: Migration
+    elements: [plateau-current, gap-portal, plateau-target, wp-phase1, deliv-portal,
+               appcomp-portal, implevent-golive]
+    relationships: [r-cur-gap, r-gap-target, r-wp-deliv, r-deliv-portal, r-wp-golive]
