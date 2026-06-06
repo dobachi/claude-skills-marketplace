@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="Sample Digital Sales" id="model-1" version="3.1.1">
+  <purpose>Hand-made fixture for archimate-native tests (legacy era vocabulary).</purpose>
+  <folder name="Business" id="f-biz" type="business">
+    <element xsi:type="archimate:BusinessActor" id="b-cust" name="Customer"/>
+    <element xsi:type="archimate:BusinessService" id="b-svc" name="Online Sales">
+      <documentation>Sell policies online.</documentation>
+    </element>
+    <element xsi:type="archimate:BusinessProcess" id="b-proc" name="Order Handling"/>
+    <element xsi:type="archimate:BusinessObject" id="b-order" name="Order"/>
+  </folder>
+  <folder name="Application" id="f-app" type="application">
+    <element xsi:type="archimate:ApplicationComponent" id="a-comp" name="Order Service"/>
+    <element xsi:type="archimate:ApplicationService" id="a-svc" name="Order API"/>
+    <element xsi:type="archimate:DataObject" id="a-data" name="Order Data"/>
+  </folder>
+  <folder name="Technology" id="f-tech" type="technology">
+    <element xsi:type="archimate:Node" id="t-node" name="Kubernetes Cluster"/>
+    <element xsi:type="archimate:InfrastructureService" id="t-svc" name="Container Hosting"/>
+  </folder>
+  <folder name="Relations" id="f-rel" type="relations">
+    <element xsi:type="archimate:UsedByRelationship" id="r-svc-cust" source="b-svc" target="b-cust"/>
+    <element xsi:type="archimate:RealisationRelationship" id="r-proc-svc" source="b-proc" target="b-svc"/>
+    <element xsi:type="archimate:UsedByRelationship" id="r-asvc-proc" source="a-svc" target="b-proc"/>
+    <element xsi:type="archimate:RealisationRelationship" id="r-comp-asvc" source="a-comp" target="a-svc"/>
+    <element xsi:type="archimate:AccessRelationship" id="r-proc-data" source="b-proc" target="a-data"/>
+    <element xsi:type="archimate:RealisationRelationship" id="r-node-tsvc" source="t-node" target="t-svc"/>
+    <element xsi:type="archimate:UsedByRelationship" id="r-tsvc-comp" source="t-svc" target="a-comp"/>
+    <element xsi:type="archimate:RealisationRelationship" id="r-data-order" source="a-data" target="b-order"/>
+  </folder>
+  <folder name="Views" id="f-view" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" id="v-overview" name="Overview">
+      <child xsi:type="archimate:DiagramObject" id="do-cust" textAlignment="2" targetConnections="conn-svc-cust" fillColor="#ffffb5" archimateElement="b-cust">
+        <bounds x="24" y="24" width="120" height="55"/>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="do-svc" textAlignment="2" fillColor="#ffffb5" archimateElement="b-svc">
+        <bounds x="240" y="24" width="120" height="55"/>
+        <sourceConnection xsi:type="archimate:Connection" id="conn-svc-cust" source="do-svc" target="do-cust" relationship="r-svc-cust">
+          <bendpoint startX="-12" startY="0" endX="12" endY="0"/>
+        </sourceConnection>
+      </child>
+      <child xsi:type="archimate:DiagramObject" id="do-proc" textAlignment="2" fillColor="#ffffb5" archimateElement="b-proc">
+        <bounds x="240" y="140" width="120" height="55"/>
+      </child>
+    </element>
+  </folder>
+</archimate:model>

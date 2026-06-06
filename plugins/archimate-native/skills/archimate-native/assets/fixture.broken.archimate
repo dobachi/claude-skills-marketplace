@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<archimate:model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:archimate="http://www.archimatetool.com/archimate" name="Broken Sample" id="model-broken" version="3.1.1">
+  <folder name="Business" id="f-biz" type="business">
+    <element xsi:type="archimate:BusinessActor" id="b-cust" name="Customer"/>
+    <element xsi:type="archimate:BusinessObject" id="b-lonely" name="Lonely Object"/>
+  </folder>
+  <folder name="Application" id="f-app" type="application">
+    <element xsi:type="archimate:ApplicationComponent" id="a-comp" name="Order Service"/>
+    <element xsi:type="archimate:ApplicationService" id="a-svc" name="Order API"/>
+  </folder>
+  <folder name="Relations" id="f-rel" type="relations">
+    <element xsi:type="archimate:RealisationRelationship" id="r-comp-asvc" source="a-comp" target="a-svc"/>
+    <element xsi:type="archimate:AccessRelationship" id="r-bad" source="b-cust" target="a-comp"/>
+    <element xsi:type="archimate:UsedByRelationship" id="r-dangle" source="a-svc" target="ghost-id"/>
+  </folder>
+  <folder name="Views" id="f-view" type="diagrams">
+    <element xsi:type="archimate:ArchimateDiagramModel" id="v-main" name="Main">
+      <child xsi:type="archimate:DiagramObject" id="do-comp" textAlignment="2" fillColor="#ffffb5" archimateElement="a-comp">
+        <bounds x="24" y="24" width="120" height="55"/>
+      </child>
+    </element>
+  </folder>
+</archimate:model>

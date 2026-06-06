@@ -1,0 +1,6 @@
+{
+  "name": "archimate-native",
+  "description": "Read, review, interpret, and surgically edit existing Archi-native .archimate model files in place — round-trip-safe (preserves ids, geometry, folders, styles). Validates against the ArchiMate 3.2 metamodel via a version-aware native↔canonical vocabulary bridge, and generates Markdown reports and PlantUML views for quick review without opening Archi. Brownfield counterpart to archimate-ea.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
