@@ -112,16 +112,18 @@ views:
 A relationship listed in a view whose endpoints are not both in `elements`
 produces a `view-dangling-edge` warning (and is skipped by the emitters).
 
-## Future round-trip seam
+## Round-trip
 
-v1 is generate-forward: emitters never write geometry, and nothing reads it back.
-When round-trip lands, re-ingested layout will live in an **optional** per-view
-`geometry` block (ignored by v1):
+Round-trip is **implemented**: `ingest_archi_xml.py` merges Archi-exported Open
+Exchange XML back into this YAML, keyed on stable ids (see `references/round-trip.md`).
+**Geometry is still discarded** — the model stores logical view membership only, not
+positions. If per-view layout recovery is ever added, it would live in an optional
+`geometry` block (not written today):
 
 ```yaml
   views:
     - id: view-motivation
-      # geometry:                  # FUTURE — populated only by a re-ingester
+      # geometry:                  # not written — logical membership only
       #   nodes: { goal-revenue: { x: 12, y: 24, w: 120, h: 55 } }
       #   bendpoints: { r-junc-goal: [ { x: 80, y: 40 } ] }
 ```
