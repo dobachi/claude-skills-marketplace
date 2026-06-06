@@ -18,8 +18,11 @@ generated *from* that model; they are never authored by hand.
 1. **The running model is the source of truth.** `ea-model.yaml` is upstream;
    diagrams and XML are downstream, disposable render artifacts. Edit the YAML and
    re-emit — never hand-edit emitted files.
-2. **Generate-forward (v1).** YAML → PlantUML (review) + Open Exchange XML (Archi).
-   Round-trip (re-ingesting Archi edits) is a future extension; do not promise it.
+2. **Generate-forward, with a round-trip return path.** YAML → PlantUML (review) +
+   Open Exchange XML (Archi). When the user edits in Archi, `ingest_archi_xml.py`
+   merges their exported Open Exchange XML back into the YAML — id-keyed, comment-
+   preserving, non-destructive by default. Geometry is not recovered; Influence
+   `strength` and YAML-only fields are preserved. A no-op ingest changes nothing.
 3. **Facilitate, don't dictate.** Propose a model fragment, then ask the user to
    correct it. Their "no" is the most valuable signal in the loop.
 4. **Validate before you render.** Run the validator at every checkpoint; surface
@@ -92,7 +95,7 @@ Full question banks, red-pen prompts, and per-layer Definition of Done:
 
 ```bash
 cd plugins/archimate-ea/skills/archimate-ea
-pip install -r scripts/requirements.txt          # PyYAML, lxml
+pip install -r scripts/requirements.txt          # PyYAML, lxml, ruamel.yaml
 
 # validate (run constantly; drives the dialogue)
 python3 scripts/validate_model.py ea-model.yaml            # text
@@ -104,14 +107,21 @@ python3 scripts/emit_plantuml.py ea-model.yaml -o out/
 
 # emit Open Group Exchange XML for Archi (File → Import → Open Exchange File)
 python3 scripts/emit_archimate_xml.py ea-model.yaml -o out/model.xml
+
+# round-trip: merge Archi edits back (Archi: File → Export → Open Exchange File)
+python3 scripts/ingest_archi_xml.py ea-model.yaml --xml model.xml --dry-run   # report only
+python3 scripts/ingest_archi_xml.py ea-model.yaml --xml model.xml             # merge & write
+python3 scripts/ingest_archi_xml.py ea-model.yaml --xml model.xml --prune     # also delete items absent in Archi
 ```
 
 Validation errors block both emitters (override with `--force` only to inspect).
 Macro/XML details and the Archi import steps: `references/emit-and-archi.md`.
+The round-trip workflow and what is/isn't recovered: `references/round-trip.md`.
 
 ## Anti-patterns
 
-- Hand-editing emitted `.puml`/`.xml` instead of the YAML.
+- Hand-editing emitted `.puml`/`.xml` instead of the YAML (the sanctioned edit path
+  for diagrams is: edit in Archi, then `ingest_archi_xml.py` back to the YAML).
 - Skipping validation "just to see the picture."
 - Modeling layout, colours, or aesthetics in the YAML.
 - Boiling the ocean: filling all seven layers to full depth before any checkpoint.
@@ -127,5 +137,6 @@ Macro/XML details and the Archi import steps: `references/emit-and-archi.md`.
 - `references/metamodel-and-relationships.md` — element catalog, the allowed-relationship rules, and modifiers.
 - `references/elicitation-playbook.md` — per-layer question banks, Definition of Done, pacing rules.
 - `references/emit-and-archi.md` — PlantUML macro map, XML gotchas, Archi import workflow.
+- `references/round-trip.md` — Archi export → ingest workflow; what is/isn't recovered.
 - `references/viewpoints.md` — ArchiMate standard viewpoints (reference only).
 - `references/togaf-mapping.md` — TOGAF ADM ↔ ArchiMate layer mapping (reference only).
