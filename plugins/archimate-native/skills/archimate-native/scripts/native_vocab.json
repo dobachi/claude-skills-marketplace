@@ -1,0 +1,90 @@
+{
+  "_doc": "Bridges Archi-native xsi:type names (without the 'archimate:' prefix) to the canonical ArchiMate 3.2 names used by archimate_metamodel.json. Archi's vocabulary is version-dependent: 'legacy' (model file version <=4.0, ArchiMate 2.x/3.1 flavored — UsedBy/Realisation/Infrastructure*/Network) vs 'modern' (Archi 4.1+, ArchiMate 3.x spec names + Strategy layer). native_to_canonical is used at PARSE time (union of both eras + relationship-suffix handling). canonical_to_native_by_era is used when WRITING new nodes, so we emit the spelling matching the file's own era and never silently upgrade vocabulary.",
+
+  "version_eras": {
+    "legacy": {"version_regex": "^(?:[0-3]\\.|4\\.0)", "note": "Archi file version <=4.0 (e.g. 3.1.1)"},
+    "modern": {"version_regex": "^(?:4\\.[1-9]|[5-9]\\.|[1-9][0-9]\\.)", "note": "Archi file version >=4.1"}
+  },
+  "modern_only_native_types": [
+    "ServingRelationship", "RealizationRelationship", "SpecializationRelationship",
+    "TechnologyService", "TechnologyFunction", "TechnologyInterface", "TechnologyProcess",
+    "TechnologyInteraction", "TechnologyEvent", "TechnologyCollaboration",
+    "CommunicationNetwork", "Resource", "Capability", "CourseOfAction", "ValueStream"
+  ],
+
+  "native_to_canonical": {
+    "CompositionRelationship": "Composition",
+    "AggregationRelationship": "Aggregation",
+    "AssignmentRelationship": "Assignment",
+    "RealisationRelationship": "Realization",
+    "RealizationRelationship": "Realization",
+    "UsedByRelationship": "Serving",
+    "ServingRelationship": "Serving",
+    "AccessRelationship": "Access",
+    "InfluenceRelationship": "Influence",
+    "TriggeringRelationship": "Triggering",
+    "FlowRelationship": "Flow",
+    "AssociationRelationship": "Association",
+    "SpecialisationRelationship": "Specialization",
+    "SpecializationRelationship": "Specialization",
+
+    "InfrastructureService": "TechnologyService",
+    "InfrastructureFunction": "TechnologyFunction",
+    "InfrastructureInterface": "TechnologyInterface",
+    "Network": "CommunicationNetwork"
+  },
+
+  "canonical_to_native_by_era": {
+    "legacy": {
+      "_concepts": {
+        "TechnologyService": "InfrastructureService",
+        "TechnologyFunction": "InfrastructureFunction",
+        "TechnologyInterface": "InfrastructureInterface",
+        "CommunicationNetwork": "Network"
+      },
+      "_relationships": {
+        "Composition": "CompositionRelationship",
+        "Aggregation": "AggregationRelationship",
+        "Assignment": "AssignmentRelationship",
+        "Realization": "RealisationRelationship",
+        "Serving": "UsedByRelationship",
+        "Access": "AccessRelationship",
+        "Influence": "InfluenceRelationship",
+        "Triggering": "TriggeringRelationship",
+        "Flow": "FlowRelationship",
+        "Association": "AssociationRelationship",
+        "Specialization": "SpecialisationRelationship"
+      }
+    },
+    "modern": {
+      "_concepts": {},
+      "_relationships": {
+        "Composition": "CompositionRelationship",
+        "Aggregation": "AggregationRelationship",
+        "Assignment": "AssignmentRelationship",
+        "Realization": "RealizationRelationship",
+        "Serving": "ServingRelationship",
+        "Access": "AccessRelationship",
+        "Influence": "InfluenceRelationship",
+        "Triggering": "TriggeringRelationship",
+        "Flow": "FlowRelationship",
+        "Association": "AssociationRelationship",
+        "Specialization": "SpecializationRelationship"
+      }
+    }
+  },
+
+  "folder_type_by_layer": {
+    "motivation": "motivation",
+    "strategy": "strategy",
+    "business": "business",
+    "application": "application",
+    "technology": "technology",
+    "physical": "technology",
+    "implementation": "implementation_migration",
+    "composite": "other",
+    "connector": "connectors"
+  },
+
+  "notes": "Relationship native types always carry the 'Relationship' suffix; canonical metamodel keys do not. Concept types are mostly identity (BusinessActor == BusinessActor) — those are resolved by falling back to the metamodel element catalog when a type is absent from native_to_canonical. Junctions are xsi:type='archimate:Junction' with a 'type' attr (and/or) and map to canonical 'Junction'."
+}
