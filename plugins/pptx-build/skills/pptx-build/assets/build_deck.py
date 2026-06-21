@@ -24,6 +24,7 @@ Inspect a template first to build/verify a map:  python3 inspect_template.py cor
 """
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -55,6 +56,32 @@ def load_theme(path):
         return json.load(f)
 
 
+# Readable type scale. Every size the default renderer uses is routed through
+# here so a deck can never silently fall back to tiny text. `min_body`/`min_title`
+# are floors the renderer will NOT shrink past — when content won't fit at the
+# floor it warns to split the slide instead of shrinking (see _check_overflow).
+SIZE_DEFAULTS = {
+    "title_max": 30, "title_min": 24, "title_slide": 40, "subtitle": 20,
+    "section": 34, "section_number": 22,
+    "body": 18, "body_sub": 16, "min_body": 16,
+    "big_number": 88, "big_caption": 20,
+    "quote": 28, "quote_attr": 18,
+    "caption": 15, "caption_note": 14,
+    "source": 11, "page_number": 11,
+}
+
+
+def _apply_size_defaults(theme, meta=None):
+    """Ensure theme['size'] has every key, then let meta.size.* override per deck."""
+    sz = dict(SIZE_DEFAULTS)
+    sz.update(theme.get("size") or {})
+    for k, v in ((meta or {}).get("size") or {}).items():
+        if isinstance(v, (int, float)):
+            sz[k] = v
+    theme["size"] = sz
+    return theme
+
+
 def apply_meta(theme, meta):
     """meta.* in the spec overrides individual theme values for one deck."""
     meta = meta or {}
@@ -84,22 +111,59 @@ def make_grid(theme):
         "pageH": 7.5,
         "marginX": over.get("marginX", 0.92 if wide else 0.75),
         "top": over.get("top", 0.62),
-        "titleH": over.get("titleH", 0.95),
-        "gap": 0.18,
+        # titleH is the fixed title REGION height — tall enough for up to two
+        # lines at title_max. The title text is BOTTOM-anchored inside it and
+        # shares one baseline across every slide, so a two-line title grows
+        # UPWARD into the top margin and can never reach the hairline or body.
+        "titleH": over.get("titleH", 1.04),
+        "gap": 0.22,
         "footY": 7.04,
         "ruleLen": 1.05,
         "ruleH": 0.045,
     }
     g["contentW"] = g["pageW"] - 2 * g["marginX"]
-    g["bodyTop"] = g["top"] + g["titleH"] + g["gap"]
+    g["titleBottom"] = g["top"] + g["titleH"]
+    # Hairline sits in the gap below the title region; body starts below the hairline.
+    g["bodyTop"] = g["titleBottom"] + g["gap"]
     g["bodyH"] = g["footY"] - g["bodyTop"] - 0.1
     g["ruleY"] = {
-        "content": g["top"] + g["titleH"] - 0.02,
+        "content": g["titleBottom"] + 0.08,
         "title": 2.30,
         "section": 2.78,
         "quote": 2.02,
     }
     return g
+
+
+# ---------------------------------------------------------------------------
+# Overflow guard — keep type LARGE. We never auto-shrink below the floor; when
+# content won't fit at readable sizes we warn so the operator splits the slide.
+# ---------------------------------------------------------------------------
+_WARNINGS = []
+
+
+def _warn(msg):
+    _WARNINGS.append(msg)
+    sys.stderr.write("  warning: %s\n" % msg)
+
+
+def _disp_width(text):
+    """Approximate display width of text in 'em' units: CJK/full-width ~1.0, ASCII ~0.55."""
+    w = 0.0
+    for ch in str(text):
+        w += 1.0 if ord(ch) > 0x2E7F else 0.55
+    return w
+
+
+def _est_lines(text, size_pt, width_in):
+    """Estimate how many wrapped lines `text` takes at `size_pt` in `width_in`."""
+    if not text:
+        return 0
+    chars_per_line = max(1.0, width_in / (size_pt / 72.0))
+    n = 0
+    for seg in str(text).split("\n"):
+        n += max(1, math.ceil(_disp_width(seg) / chars_per_line))
+    return n
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +237,19 @@ def set_simple(tf, text, theme, font="body", size=18, bold=False, color="ink",
 
 # ---------------------------------------------------------------------------
 # DEFAULT MODE — build from scratch on the shared grid.
+#
+# Titles are written into a slide-LAYOUT title placeholder whose geometry is
+# configured ONCE (setup_layouts). Every content slide inherits that one title
+# box, so titles are master-governed: edit the layout later in PowerPoint and
+# all titles move together. The box is bottom-anchored, so a long (two-line)
+# title grows UP into the top margin and can never collide with the hairline or
+# body. Body text stays grid-placed so we keep full control over readable sizes.
 # ---------------------------------------------------------------------------
+CONTENT_LAYOUT = 5   # "Title Only" — a title placeholder, nothing else to fight
+TITLE_LAYOUT = 0     # "Title Slide" — title + subtitle placeholders
+BLANK_LAYOUT = 6     # "Blank"
+
+
 def _normalize_bullets(items):
     out = []
     for it in items or []:
@@ -184,17 +260,31 @@ def _normalize_bullets(items):
     return out
 
 
-def _fill_bullets(tf, theme, items, base=18):
-    first = True
-    for it in _normalize_bullets(items):
-        lvl = it["level"]
-        p = tf.paragraphs[0] if first else tf.add_paragraph()
-        first = False
-        _bullet_para(p, "–" if lvl == 0 else "•", lvl, theme["font"]["body"])
-        run = p.add_run()
-        run.text = it["text"]
-        _set_run_font(run, name=theme["font"]["body"], size=base - (2 if lvl else 0),
-                      color=theme["color"]["ink" if lvl == 0 else "muted"])
+def _place(ph, x, y, w, h):
+    ph.left, ph.top, ph.width, ph.height = Inches(x), Inches(y), Inches(w), Inches(h)
+
+
+def setup_layouts(prs, theme, g):
+    """Configure the title placeholders we build on, ONCE, on the layouts. New
+    slides inherit this geometry — the 'use the master/layout' guarantee."""
+    ct = prs.slide_layouts[CONTENT_LAYOUT].placeholders[0]
+    _place(ct, g["marginX"], g["top"], g["contentW"], g["titleH"])
+    ct.text_frame.vertical_anchor = MSO_ANCHOR.BOTTOM   # two-line titles grow upward
+    ts = prs.slide_layouts[TITLE_LAYOUT]
+    _place(ts.placeholders[0], g["marginX"], 2.45, g["contentW"], 1.3)
+    if len(ts.placeholders) > 1:
+        _place(ts.placeholders[1], g["marginX"], 3.78, g["contentW"], 0.8)
+
+
+def _fit_title_size(text, theme, g, width=None):
+    """Largest size in [title_min, title_max] that keeps the title to two lines.
+    Returns (size, overflow) — overflow True means it still needs >2 lines at the
+    floor, so we keep it at the floor (never tiny) and warn to split/shorten."""
+    sz, w = theme["size"], (width or g["contentW"])
+    for size in range(int(sz["title_max"]), int(sz["title_min"]) - 1, -1):
+        if _est_lines(text, size, w) <= 2:
+            return size, False
+    return int(sz["title_min"]), True
 
 
 def _set_bg(slide, theme):
@@ -213,72 +303,165 @@ def _hairline(slide, theme, g, y):
     shp.shadow.inherit = False
 
 
-def _title(slide, theme, g, text, size=30):
-    tf = add_textbox(slide, g["marginX"], g["top"], g["contentW"], g["titleH"])
-    set_simple(tf, text, theme, font="heading", size=size, bold=True, color="ink",
-               line_spacing=1.1)
+def _content_slide(prs, theme, g):
+    slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
+    _set_bg(slide, theme)
+    return slide
+
+
+def _title(slide, theme, g, text, idx):
+    """Write the title into the inherited placeholder with an auto-fit size."""
+    text = text or ""
+    size, overflow = _fit_title_size(text, theme, g)
+    if overflow:
+        _warn("slide %d: title needs >2 lines even at %dpt — shorten or split: %r"
+              % (idx, int(theme["size"]["title_min"]), text[:24] + ("…" if len(text) > 24 else "")))
+    ph = slide.shapes.title
+    tf = ph.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.BOTTOM
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    tf.clear()
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    p.line_spacing = 1.12
+    _no_bullet(p)
+    run = p.add_run()
+    run.text = text
+    _set_run_font(run, name=theme["font"]["heading"], size=size, bold=True,
+                  color=theme["color"]["ink"])
+    _hairline(slide, theme, g, g["ruleY"]["content"])
+
+
+def _fill_bullets(tf, theme, items):
+    sz = theme["size"]
+    first = True
+    for it in _normalize_bullets(items):
+        lvl = it["level"]
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
+        _bullet_para(p, "–" if lvl == 0 else "•", lvl, theme["font"]["body"])
+        run = p.add_run()
+        run.text = it["text"]
+        _set_run_font(run, name=theme["font"]["body"],
+                      size=sz["body"] if lvl == 0 else sz["body_sub"],
+                      color=theme["color"]["ink" if lvl == 0 else "muted"])
+
+
+def _bullets_height(items, theme, width, heading=None):
+    """Estimate the rendered height (inches) of a bullet column at readable sizes."""
+    sz = theme["size"]
+    h = 0.0
+    if heading:
+        h += _est_lines(heading, sz["body"], width) * (sz["body"] * 1.32 / 72) + 8 / 72
+    for it in _normalize_bullets(items):
+        size = sz["body"] if it["level"] == 0 else sz["body_sub"]
+        avail = width - (0.30 + 0.22 * it["level"])
+        h += _est_lines(it["text"], size, avail) * (size * 1.34 / 72) + 9 / 72
+    return h
+
+
+def _check_body_overflow(height_in, g, idx):
+    if height_in > g["bodyH"] + 0.05:
+        _warn("slide %d: body needs ~%.1f in but only %.1f in fits at readable sizes"
+              " — split into two slides (one message per slide)" % (idx, height_in, g["bodyH"]))
 
 
 def _source(slide, theme, g, text):
     if not text:
         return
     tf = add_textbox(slide, g["marginX"], g["footY"] - 0.02, g["contentW"] - 0.9, 0.3)
-    set_simple(tf, text, theme, font="body", size=10, color="muted")
+    set_simple(tf, text, theme, font="body", size=theme["size"]["source"], color="muted")
 
 
 def _page_number(slide, theme, g, n):
     if not theme.get("pageNumbers"):
         return
     tf = add_textbox(slide, g["pageW"] - g["marginX"] - 0.9, g["footY"], 0.9, 0.3)
-    set_simple(tf, str(n), theme, font="body", size=10, color="muted", align=PP_ALIGN.RIGHT)
+    set_simple(tf, str(n), theme, font="body", size=theme["size"]["page_number"],
+               color="muted", align=PP_ALIGN.RIGHT)
 
 
-def _blank_slide(prs):
-    return prs.slides.add_slide(prs.slide_layouts[6])  # 6 = Blank in the default master
+def _caption_block(slide, theme, g, x, y, w, label, note):
+    """A real figure caption: a readable bold label plus an optional wrapping
+    explanation — NOT a 10pt footnote. Returns the block's height in inches."""
+    sz = theme["size"]
+    used = 0.0
+    if label:
+        tf = add_textbox(slide, x, y, w, sz["caption"] * 1.5 / 72)
+        set_simple(tf, label, theme, font="heading", size=sz["caption"], bold=True, color="ink")
+        used += sz["caption"] * 1.5 / 72
+    if note:
+        nh = _est_lines(note, sz["caption_note"], w) * (sz["caption_note"] * 1.34 / 72) + 0.04
+        tf = add_textbox(slide, x, y + used + (0.05 if label else 0), w, nh)
+        set_simple(tf, note, theme, font="body", size=sz["caption_note"], color="muted",
+                   line_spacing=1.15)
+        used += nh + (0.05 if label else 0)
+    return used
+
+
+def _caption_height(theme, g, w, label, note):
+    sz = theme["size"]
+    h = (sz["caption"] * 1.5 / 72) if label else 0.0
+    if note:
+        h += _est_lines(note, sz["caption_note"], w) * (sz["caption_note"] * 1.34 / 72) + 0.04
+        h += 0.05 if label else 0
+    return h
 
 
 def render_default(prs, theme, g, slides):
+    setup_layouts(prs, theme, g)
     for i, s in enumerate(slides, start=1):
         t = s.get("type", "bullets")
-        slide = _blank_slide(prs)
-        _set_bg(slide, theme)
 
         if t == "title":
+            slide = prs.slides.add_slide(prs.slide_layouts[TITLE_LAYOUT])
+            _set_bg(slide, theme)
             _hairline(slide, theme, g, g["ruleY"]["title"])
-            tf = add_textbox(slide, g["marginX"], 2.45, g["contentW"], 1.2)
-            set_simple(tf, s.get("title", ""), theme, font="heading", size=40, bold=True,
-                       color="ink", line_spacing=1.1)
-            if s.get("subtitle"):
-                tf2 = add_textbox(slide, g["marginX"], 3.72, g["contentW"], 0.6)
-                set_simple(tf2, s["subtitle"], theme, font="body", size=20, color="muted")
+            ph = slide.shapes.title
+            ph.text_frame.word_wrap = True
+            set_simple(ph.text_frame, s.get("title", ""), theme, font="heading",
+                       size=theme["size"]["title_slide"], bold=True, color="ink", line_spacing=1.1)
+            if s.get("subtitle") and len(slide.placeholders) > 1:
+                set_simple(slide.placeholders[1].text_frame, s["subtitle"], theme,
+                           font="body", size=theme["size"]["subtitle"], color="muted")
+            continue
 
-        elif t == "section":
+        if t == "section":
+            slide = _blank_with_bg(prs, theme)
             _hairline(slide, theme, g, g["ruleY"]["section"])
             if s.get("number") is not None:
                 tf0 = add_textbox(slide, g["marginX"], 2.18, g["contentW"], 0.6)
-                set_simple(tf0, str(s["number"]), theme, font="heading", size=22,
-                           bold=True, color="accent")
-            tf = add_textbox(slide, g["marginX"], 2.86, g["contentW"], 1.2)
-            set_simple(tf, s.get("title", ""), theme, font="heading", size=34, bold=True,
-                       color="ink", line_spacing=1.1)
+                set_simple(tf0, str(s["number"]), theme, font="heading",
+                           size=theme["size"]["section_number"], bold=True, color="accent")
+            tf = add_textbox(slide, g["marginX"], 2.86, g["contentW"], 1.4)
+            set_simple(tf, s.get("title", ""), theme, font="heading",
+                       size=theme["size"]["section"], bold=True, color="ink", line_spacing=1.1)
+            continue
 
-        elif t == "quote":
+        if t == "quote":
+            slide = _blank_with_bg(prs, theme)
             _hairline(slide, theme, g, g["ruleY"]["quote"])
             tf = add_textbox(slide, g["marginX"], 2.4, g["contentW"], 2.2, anchor=MSO_ANCHOR.MIDDLE)
             set_simple(tf, "“" + s.get("quote", "") + "”", theme, font="heading",
-                       size=28, color="ink", line_spacing=1.25)
+                       size=theme["size"]["quote"], color="ink", line_spacing=1.25)
             if s.get("attribution"):
                 tf2 = add_textbox(slide, g["marginX"], 4.5, g["contentW"], 0.5)
-                set_simple(tf2, "— " + s["attribution"], theme, font="body", size=18,
-                           color="muted")
+                set_simple(tf2, "— " + s["attribution"], theme, font="body",
+                           size=theme["size"]["quote_attr"], color="muted")
+            continue
 
-        elif t == "two_col":
-            _hairline(slide, theme, g, g["ruleY"]["content"])
-            _title(slide, theme, g, s.get("title", ""))
+        # --- families that carry a top title in the inherited placeholder ---
+        slide = _content_slide(prs, theme, g)
+        _title(slide, theme, g, s.get("title", ""), i)
+
+        if t == "two_col":
             gutter = 0.5
             col_w = (g["contentW"] - gutter) / 2
             for idx, key in enumerate(("left", "right")):
                 col = s.get(key) or {}
+                _check_body_overflow(
+                    _bullets_height(col.get("bullets"), theme, col_w, col.get("heading")), g, i)
                 x = g["marginX"] + idx * (col_w + gutter)
                 tf = add_textbox(slide, x, g["bodyTop"], col_w, g["bodyH"])
                 first = True
@@ -288,8 +471,8 @@ def render_default(prs, theme, g, slides):
                     p.space_after = Pt(8)
                     run = p.add_run()
                     run.text = col["heading"]
-                    _set_run_font(run, name=theme["font"]["heading"], size=18, bold=True,
-                                  color=theme["color"]["accent"])
+                    _set_run_font(run, name=theme["font"]["heading"], size=theme["size"]["body"],
+                                  bold=True, color=theme["color"]["accent"])
                     first = False
                 if first:
                     _fill_bullets(tf, theme, col.get("bullets"))
@@ -297,62 +480,78 @@ def render_default(prs, theme, g, slides):
                     for it in _normalize_bullets(col.get("bullets")):
                         lvl = it["level"]
                         p = tf.add_paragraph()
-                        _bullet_para(p, "–" if lvl == 0 else "•", lvl,
-                                     theme["font"]["body"])
+                        _bullet_para(p, "–" if lvl == 0 else "•", lvl, theme["font"]["body"])
                         run = p.add_run()
                         run.text = it["text"]
                         _set_run_font(run, name=theme["font"]["body"],
-                                      size=18 - (2 if lvl else 0),
+                                      size=theme["size"]["body"] if lvl == 0
+                                      else theme["size"]["body_sub"],
                                       color=theme["color"]["ink" if lvl == 0 else "muted"])
             _source(slide, theme, g, s.get("source"))
             _page_number(slide, theme, g, i)
 
         elif t == "big_number":
-            _hairline(slide, theme, g, g["ruleY"]["content"])
-            _title(slide, theme, g, s.get("title", ""))
             tf = add_textbox(slide, g["marginX"], g["bodyTop"], g["contentW"],
                              g["bodyH"] * 0.62, anchor=MSO_ANCHOR.MIDDLE)
-            set_simple(tf, str(s.get("number", "")), theme, font="number", size=88,
-                       bold=True, color="accent")
+            set_simple(tf, str(s.get("number", "")), theme, font="number",
+                       size=theme["size"]["big_number"], bold=True, color="accent")
             if s.get("caption"):
                 tf2 = add_textbox(slide, g["marginX"], g["bodyTop"] + g["bodyH"] * 0.6,
                                   g["contentW"], 0.5)
-                set_simple(tf2, s["caption"], theme, font="body", size=20, color="muted")
+                set_simple(tf2, s["caption"], theme, font="body",
+                           size=theme["size"]["big_caption"], color="muted")
             _source(slide, theme, g, s.get("source"))
             _page_number(slide, theme, g, i)
 
         elif t == "image":
-            has_title = bool(s.get("title"))
-            if has_title:
-                _hairline(slide, theme, g, g["ruleY"]["content"])
-                _title(slide, theme, g, s["title"])
-            y = g["bodyTop"] if has_title else g["top"]
-            h = g["bodyH"] if has_title else g["footY"] - g["top"] - 0.4
-            img = s.get("image")
-            if img and os.path.exists(img):
-                slide.shapes.add_picture(img, Inches(g["marginX"]), Inches(y),
-                                         height=Inches(h))
-            else:
-                tf = add_textbox(slide, g["marginX"], y, g["contentW"], h,
-                                 anchor=MSO_ANCHOR.MIDDLE)
-                set_simple(tf, "[ image: %s ]" % (img or "missing"), theme, font="body",
-                           size=16, color="muted", align=PP_ALIGN.CENTER)
-            if s.get("caption"):
-                _source(slide, theme, g, s["caption"])
-            _page_number(slide, theme, g, i)
+            _render_image(slide, theme, g, s, i)
 
         elif t == "blank":
-            if s.get("title"):
-                _title(slide, theme, g, s["title"])
             _page_number(slide, theme, g, i)
 
         else:  # bullets (default)
-            _hairline(slide, theme, g, g["ruleY"]["content"])
-            _title(slide, theme, g, s.get("title", ""))
+            _check_body_overflow(_bullets_height(s.get("bullets"), theme, g["contentW"]), g, i)
             tf = add_textbox(slide, g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"])
             _fill_bullets(tf, theme, s.get("bullets"))
             _source(slide, theme, g, s.get("source"))
             _page_number(slide, theme, g, i)
+
+
+def _blank_with_bg(prs, theme):
+    slide = prs.slides.add_slide(prs.slide_layouts[BLANK_LAYOUT])
+    _set_bg(slide, theme)
+    return slide
+
+
+def _render_image(slide, theme, g, s, i):
+    """Image with a reserved, readable caption band (label + explanation)."""
+    label, note = s.get("caption"), (s.get("note") or s.get("description"))
+    area_top = g["bodyTop"]
+    area_bottom = g["footY"] - 0.12
+    cap_h = _caption_height(theme, g, g["contentW"], label, note)
+    cap_gap = 0.16 if cap_h else 0.0
+    img_h = area_bottom - area_top - cap_h - cap_gap
+    img = s.get("image")
+    if img and os.path.exists(img):
+        pic = slide.shapes.add_picture(img, Inches(g["marginX"]), Inches(area_top),
+                                       height=Inches(img_h))
+        max_w = Inches(g["contentW"])
+        if pic.width > max_w:                       # too wide: refit by width, keep aspect
+            pic.height = int(pic.height * max_w / pic.width)
+            pic.width = max_w
+            img_h = Emu(pic.height).inches
+        pic.left = Inches(g["marginX"] + (g["contentW"] - Emu(pic.width).inches) / 2)
+    else:
+        _warn("slide %d: image not found (%r) — placeholder drawn" % (i, img))
+        tf = add_textbox(slide, g["marginX"], area_top, g["contentW"], img_h,
+                         anchor=MSO_ANCHOR.MIDDLE)
+        set_simple(tf, "[ image: %s ]" % (img or "missing"), theme, font="body",
+                   size=16, color="muted", align=PP_ALIGN.CENTER)
+    if cap_h:
+        _caption_block(slide, theme, g, g["marginX"], area_top + img_h + cap_gap,
+                       g["contentW"], label, note)
+    _source(slide, theme, g, s.get("source"))
+    _page_number(slide, theme, g, i)
 
 
 # ---------------------------------------------------------------------------
@@ -576,14 +775,19 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None):
         for t, name in chosen:
             print("  %-11s -> layout %r" % (t, name))
     else:
-        theme = apply_meta(load_theme(theme_path), spec.get("meta"))
+        meta = spec.get("meta")
+        theme = _apply_size_defaults(apply_meta(load_theme(theme_path), meta), meta)
         g = make_grid(theme)
         prs = Presentation()
         prs.slide_width = Inches(g["pageW"])
         prs.slide_height = Inches(g["pageH"])
+        del _WARNINGS[:]
         render_default(prs, theme, g, spec.get("slides") or [])
         prs.save(out)
         print("wrote %s  (default theme: %s)" % (out, theme.get("name", "?")))
+        if _WARNINGS:
+            print("  %d layout warning(s) above — consider splitting/shortening those slides."
+                  % len(_WARNINGS))
 
 
 def main(argv=None):

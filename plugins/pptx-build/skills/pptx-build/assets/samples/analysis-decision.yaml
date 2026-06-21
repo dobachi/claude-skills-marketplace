@@ -1,0 +1,77 @@
+# SAMPLE — Analysis / decision deck (criteria → comparison → recommendation)
+# Argument shape: "Among the options, choose B — because it wins on the criteria
+# that matter." State the decision first, justify it on explicit MECE criteria,
+# then resolve the remaining risk. Validate:
+#   python3 validate_deck.py samples/analysis-decision.yaml
+meta:
+  accent: "8A4B2F"
+
+slides:
+  - type: title
+    title: "データ基盤ベンダーの選定"
+    subtitle: "技術選定委員会 / 2026-06-20 / v1.0"
+
+  # Decision-first. The recommendation leads; the rest is justification.
+  - type: bullets
+    title: "結論: ベンダーBを推奨する"
+    bullets:
+      - "総コストが最も低く、3年TCOで明確な優位"
+      - "必須の機能要件を全社部門で充足できる唯一の候補"
+      - "唯一の懸念だった移行リスクには有効な緩和策がある"
+
+  - type: section
+    number: "01"
+    title: "評価の前提"
+
+  - type: bullets
+    title: "選定は重複しない3つの評価軸で判断する"
+    bullets:
+      - "軸①: 総保有コスト（3年TCO）"
+      - "軸②: 機能要件の充足（必須要件の全社カバレッジ）"
+      - "軸③: 移行・運用リスク"
+      - text: "3軸はMECEとなるよう設計し、重みは事前合意済み"
+        level: 1
+
+  - type: section
+    number: "02"
+    title: "評価結果"
+
+  - type: two_col
+    title: "コストと機能でBが優位、Aは機能要件を一部満たさない"
+    left:
+      heading: "ベンダーA"
+      bullets:
+        - "TCO: 基準"
+        - "機能: 一部部門で要件未充足"
+        - "リスク: 低"
+    right:
+      heading: "ベンダーB（推奨）"
+      bullets:
+        - "TCO: A比で削減"
+        - "機能: 全社で要件充足"
+        - "リスク: 中（緩和策あり）"
+    source: "出典: RFP回答 / PoC結果 2026-Q1"
+
+  - type: big_number
+    title: "Bは3年TCOを基準比で大きく削減できる"
+    number: "28%"
+    caption: "ベンダーB の 3年TCO 削減率（A比）"
+    source: "出典: 調達見積 / 財務モデル 2026-Q1"
+
+  - type: section
+    number: "03"
+    title: "意思決定"
+
+  - type: bullets
+    title: "残る懸念は移行リスクのみで、段階移行で緩和できる"
+    bullets:
+      - "リスク: 既存パイプラインの移行に伴う一時的な停止"
+      - "緩和: 並行稼働期間を設け、部門単位で段階移行する"
+      - "判断: 緩和策を前提にBのコスト・機能優位が上回る"
+
+  - type: bullets
+    title: "ベンダーBの採用決裁と移行PJTの発足をお願いしたい"
+    bullets:
+      - "依頼①: ベンダーB採用の決裁"
+      - "依頼②: 移行プロジェクトの発足と責任者の指名"
+      - "次回: 移行計画の詳細を次回委員会で提示"

@@ -32,6 +32,16 @@ A common Office/AI look is a **colored band** — a full-width filled rectangle 
 
 This is the structural reason the output looks designed rather than assembled: alignment is guaranteed, not maintained by hand.
 
+## Titles live on the layout, bottom-anchored
+
+The title is the one element promoted onto the slide **master/layout**: `setup_layouts()` configures the content layout's title placeholder geometry once, and every content slide inherits it (`slide.shapes.title`). This is the "exists once" guarantee for the title box — edit that layout in PowerPoint and all titles move together. The placeholder is **bottom-anchored** to a shared baseline, so:
+
+- One- and two-line titles share the same baseline and line up when you flip through.
+- A two-line title grows **upward** into the top margin; it can never reach down into the hairline or body. (Overlapping titles were the original "looks careless" tell this fixes.)
+- The renderer auto-fits the title size to stay within two lines and **warns** rather than shrinking to illegible type when a title is too long.
+
+The hairline itself stays computed-from-grid rather than promoted onto the layout: python-pptx's `LayoutShapes` has no `add_shape`, so emitting it per slide from identical grid coordinates is the robust equivalent (zero drift by construction, as above). If you ever need it truly inherited, add it once in Slide Master view after generation, or ship a real template and use template-fill mode.
+
 ## If a stakeholder insists on a band
 
 Offer the master-level route: add the strip once in PowerPoint's Slide Master view after generation (or, better, ship it on a real template and use template-fill mode). It will be identical on every slide. Decline to replicate it as a hand-nudged per-slide shape — that is the exact thing that drifts.
