@@ -1,0 +1,64 @@
+# SAMPLE — Progress / business review (answer-first status)
+# Argument shape: "We are on track, EXCEPT Y — and here's the fix to approve."
+# Status decks are read async, so every title is a claim and what-changed leads.
+# Validate:  python3 validate_deck.py samples/progress-review.yaml
+meta:
+  accent: "1E7A5A"
+
+slides:
+  - type: title
+    title: "2026年度 第2四半期 事業レビュー"
+    subtitle: "事業部定例 / 2026-06-20 / v1.0"
+
+  # Bottom line up front — the summary IS the first content slide.
+  - type: bullets
+    title: "計画は概ね順調、ただし新規獲得の遅延が唯一の未達領域"
+    bullets:
+      - "収益・定着・更新の3指標は目標を達成またはオーバーペース"
+      - "新規獲得のみ目標比82%にとどまり、四半期の主要リスク"
+      - "本日は遅延の主因と、回復のための対策の承認を諮りたい"
+    source: "出典: 社内BIダッシュボード 2026-05集計"
+
+  - type: section
+    number: "01"
+    title: "計画に対する進捗"
+
+  - type: big_number
+    title: "更新率は過去最高で、定着は計画を上回って推移している"
+    number: "94%"
+    caption: "エンタープライズ契約の年間更新率（目標90%）"
+    source: "出典: 契約管理システム 2026-05"
+
+  - type: two_col
+    title: "主要KPIは大半が目標達成、未達は新規MRRのみ"
+    left:
+      heading: "目標達成（3/4）"
+      bullets:
+        - "更新率 94%（目標90%）"
+        - "解約率 改善4.2pt"
+        - "粗利率 計画線上"
+    right:
+      heading: "未達（1/4）"
+      bullets:
+        - "新規MRR 目標比82%"
+        - "中小セグメントが主因"
+    source: "出典: 月次KPIレポート 2026-05"
+
+  - type: section
+    number: "02"
+    title: "リスクと対策"
+
+  - type: bullets
+    title: "新規遅延の主因は中小セグメントのCAC上昇である"
+    bullets:
+      - "中小向けCACは前年同期比で38%上昇した"
+      - "広告ROASの悪化が獲得ペースを押し下げている"
+      - "エンタープライズ側のパイプラインは健全で、配分の問題と判断"
+    source: "出典: マーケティング月次レポート 2026-05"
+
+  - type: bullets
+    title: "獲得予算の再配分による回復策の承認をお願いしたい"
+    bullets:
+      - "対策: 中小向け広告の一部をエンタープライズ獲得へ再配分"
+      - "依頼: 第3四半期からの再配分方針の承認"
+      - "次回: ROISの中間報告を次月定例で実施"

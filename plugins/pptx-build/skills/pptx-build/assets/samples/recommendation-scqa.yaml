@@ -1,0 +1,77 @@
+# SAMPLE — Recommendation deck (SCQA opening + Pyramid Principle)
+# Argument shape: "We should DO X." Answer-first, then MECE supporting reasons,
+# then the plan and the ask. Read the title spine alone — it makes the case
+# without the bodies. Validate it:  python3 validate_deck.py samples/recommendation-scqa.yaml
+meta:
+  accent: "2F5DA8"
+
+slides:
+  - type: title
+    title: "獲得投資の再配分提案"
+    subtitle: "経営会議 / 2026-06-20 / v1.0"
+
+  # SCQA opening — frame the complication so the question is earned.
+  - type: bullets
+    title: "成長の制約は『定着』から『獲得』へ移った"
+    bullets:
+      - "状況: 解約率は3四半期連続で改善し、定着は計画線上にある"
+      - "変化: 一方で新規MRRは2四半期連続で前期割れし、成長を制約しはじめた"
+      - "問い: 限られた獲得予算を、どこに配分すれば成長を取り戻せるか"
+    source: "出典: 社内BIダッシュボード 2026-05集計"
+
+  # The Answer = the governing thought. Stated up front, then proven.
+  - type: bullets
+    title: "中小向け広告予算をエンタープライズ獲得へ再配分すべき"
+    bullets:
+      - "理由①: 中小セグメントの獲得効率は悪化が続いている"
+      - "理由②: エンタープライズは投資妙味が大きく伸びしろがある"
+      - "理由③: 再配分しても既存の定着改善は毀損しない"
+
+  - type: section
+    number: "01"
+    title: "なぜ再配分すべきか"
+
+  - type: bullets
+    title: "中小セグメントのCACは上昇し、広告ROASは悪化している"
+    bullets:
+      - "中小向けCACは前年同期比で38%上昇した"
+      - "同チャネルの広告ROASは1.4倍まで低下し、損益分岐に接近している"
+    source: "出典: マーケティング月次レポート 2026-05"
+
+  - type: big_number
+    title: "エンタープライズのLTV/CACは中小の約3倍に達する"
+    number: "3.1x"
+    caption: "エンタープライズ vs 中小 の LTV/CAC 比"
+    source: "出典: 契約管理システム / 財務モデル 2026-Q1"
+
+  - type: two_col
+    title: "再配分しても定着改善のドライバーは維持できる"
+    left:
+      heading: "定着を支える施策（継続）"
+      bullets:
+        - "オンボーディング改善"
+        - "カスタマーサクセス増員"
+    right:
+      heading: "今回見直す施策（縮小）"
+      bullets:
+        - "中小向けの運用型広告"
+        - "効果の薄い紹介インセンティブ"
+    source: "出典: 施策別効果測定 2026-Q1"
+
+  - type: section
+    number: "02"
+    title: "実行プランと依頼事項"
+
+  - type: bullets
+    title: "四半期内に3段階で段階移行し、各段でROISを検証する"
+    bullets:
+      - "第1段: 中小向け広告の一部を停止し、影響をモニタリング"
+      - "第2段: 停止分をエンタープライズABMへ振替"
+      - "第3段: ROISを確認のうえ追加配分を判断"
+
+  - type: bullets
+    title: "本提案の承認と、再配分枠の決裁をお願いしたい"
+    bullets:
+      - "依頼①: 獲得予算の再配分方針の承認"
+      - "依頼②: 第1四半期の再配分枠（広告予算の一部）の決裁"
+      - "依頼③: 次回会議でのROIS中間報告の場の確保"
