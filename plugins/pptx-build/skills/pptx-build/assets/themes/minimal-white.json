@@ -21,6 +21,15 @@
   "grid": {
     "marginX": 0.92,
     "top": 0.62,
-    "titleH": 0.95
+    "titleH": 1.04
+  },
+
+  "size": {
+    "title_max": 30,
+    "title_min": 24,
+    "body": 18,
+    "body_sub": 16,
+    "caption": 15,
+    "caption_note": 14
   }
 }
