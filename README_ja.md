@@ -60,6 +60,7 @@ Personal skills marketplace for Claude Code.
 | Plugin | Description |
 |---|---|
 | **literature-search** | 文献検索・引用チェイス・スノーボーリング(Wohlin法)・著者プロファイル+h-index・BibTeX 出力・撤回論文チェックを、無料公式API(Semantic Scholar + OpenAlex + CrossRef)のみで実現。スクレイピングや有料サービスを使わない誠実な Google Scholar 代替。Node.js 18+ が必要。 |
+| **x-social-signal-research** | Hermes Tweet で X/Twitter の市場シグナルを調査し、競合分析・市場規模推定・戦略検討に使える根拠付き示唆を整理。 |
 
 ### 品質管理 (Quality)
 

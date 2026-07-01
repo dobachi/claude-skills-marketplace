@@ -1,0 +1,8 @@
+{
+  "name": "x-social-signal-research",
+  "description": "Research X/Twitter market signals with Hermes Tweet and summarize sourced implications for competitive analysis, market sizing, and strategy work.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

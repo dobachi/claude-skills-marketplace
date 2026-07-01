@@ -161,6 +161,11 @@
       "description": "Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services."
     },
     {
+      "name": "x-social-signal-research",
+      "source": "./plugins/x-social-signal-research",
+      "description": "Research X/Twitter market signals with Hermes Tweet and summarize sourced implications for competitive analysis, market sizing, and strategy work."
+    },
+    {
       "name": "document-figures",
       "source": "./plugins/document-figures",
       "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."

@@ -60,6 +60,7 @@ Personal skills marketplace for Claude Code.
 | Plugin | Description |
 |---|---|
 | **literature-search** | Literature search, citation chasing, snowballing (Wohlin), author profile + h-index, BibTeX export, and retraction screening using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services. Requires Node.js 18+. |
+| **x-social-signal-research** | Researches X/Twitter market signals with Hermes Tweet, then summarizes sourced implications for competitive analysis, market sizing, and strategy work. |
 
 ### Quality
 
