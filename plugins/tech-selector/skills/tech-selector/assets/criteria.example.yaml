@@ -1,0 +1,35 @@
+# tech-selector running artifact — one decision per file.
+# Schema: references/criteria-schema.md
+#
+# This example selects a relational datastore for the `syssw-db` placeholder in the
+# archimate-ea example model. Raw `scores` are candidate facts gathered by research
+# (competitive-analysis / web); this skill normalizes and weights them, it does not
+# invent them.
+
+decision:
+  id: db-selection
+  title: { ja: リレーショナルDBの選定, en: Relational datastore selection }
+  target: syssw-db            # ea-model element id this decision fills
+  drivers: [req-mobile, constraint-gdpr]   # Requirement/Constraint ids that justify it
+
+criteria:
+  # Each axis maps to a driving requirement (driver). weight: relative importance.
+  # direction: max = higher raw score is better; min = lower is better (e.g. cost).
+  - { key: throughput,  name: { en: Write throughput (ktps) }, weight: 5, direction: max, driver: req-mobile }
+  - { key: residency,   name: { en: Data residency / GDPR }, weight: 5, direction: max, driver: constraint-gdpr }
+  - { key: ops-cost,    name: { en: Monthly ops cost (kUSD) }, weight: 3, direction: min }
+  - { key: team-skill,  name: { en: Team familiarity (1-5) }, weight: 2, direction: max }
+
+candidates:
+  - id: postgres
+    name: PostgreSQL 16
+    scores: { throughput: 40, residency: 5, ops-cost: 3, team-skill: 5 }
+    notes: { en: Strong SQL + extensions; team already fluent. }
+  - id: mysql
+    name: MySQL 8
+    scores: { throughput: 38, residency: 4, ops-cost: 3, team-skill: 4 }
+    notes: { en: Comparable; slightly weaker residency tooling. }
+  - id: dynamodb
+    name: DynamoDB
+    scores: { throughput: 80, residency: 2, ops-cost: 6, team-skill: 2 }
+    notes: { en: Highest throughput but region/residency constraints and low team skill. }

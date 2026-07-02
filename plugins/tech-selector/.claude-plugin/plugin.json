@@ -1,0 +1,6 @@
+{
+  "name": "tech-selector",
+  "description": "Select concrete middleware/runtime from an ArchiMate EA model's non-functional requirements. Runs a weighted, sensitivity-checked evaluation, records the rationale as an ADR, and writes the decision back into the running model's Technology-layer elements.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

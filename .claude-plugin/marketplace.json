@@ -184,6 +184,11 @@
       "name": "archimate-native",
       "source": "./plugins/archimate-native",
       "description": "Brownfield ArchiMate: work conversationally on an EXISTING .archimate file (born in Archi) as the source of truth — read/understand, review (metamodel + quality), interpret, and surgically edit in place (round-trip-safe; ids/geometry/folders/styles preserved). Reuses the canonical ArchiMate 3.2 metamodel via a version-aware native vocabulary bridge; emits Markdown reports and PlantUML. Counterpart to archimate-ea (greenfield)."
+    },
+    {
+      "name": "tech-selector",
+      "source": "./plugins/tech-selector",
+      "description": "Select concrete middleware/runtime from an ArchiMate EA model's non-functional requirements: weighted, sensitivity-checked evaluation, an ADR for the rationale, and write-back of the decision into the model's Technology-layer elements. Bridges archimate-ea (design) to archimate-to-impl (implementation)."
     }
   ]
 }
