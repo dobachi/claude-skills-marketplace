@@ -209,6 +209,21 @@
       "name": "plugin-platform",
       "source": "./plugins/plugin-platform",
       "description": "Design a plugin / extension platform (e.g. an algorithm marketplace): a stable versioned contract (SDK), a registry with discovery and compatibility, and safe execution of untrusted code via sandboxing, resource limits, and denial of ambient authority."
+    },
+    {
+      "name": "event-driven-service",
+      "source": "./plugins/event-driven-service",
+      "description": "Design event-driven, asynchronous, and real-time services beyond request/response REST: messaging (queues/streams), async workers, scheduled/round-based jobs, and WebSocket/SSE push, with correctness under concurrency — idempotency, ordering, delivery guarantees, and backpressure."
+    },
+    {
+      "name": "simulation-harness",
+      "source": "./plugins/simulation-harness",
+      "description": "Build simulation and backtesting harnesses to evaluate algorithms and system behavior: generate scenarios, run discrete-event or time-stepped models, replay history, collect metrics, and compare variants (A/B) reproducibly under fixed seeds. Feeds scenarios to optimization-modeling."
+    },
+    {
+      "name": "web-frontend-dev",
+      "source": "./plugins/web-frontend-dev",
+      "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real implementation and consumes OpenAPI contracts."
     }
   ]
 }
