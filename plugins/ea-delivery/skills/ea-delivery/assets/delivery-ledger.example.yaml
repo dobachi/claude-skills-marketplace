@@ -1,0 +1,49 @@
+# ea-delivery conductor state — process tracking only (NOT architecture content).
+# Schema: references/delivery-ledger.md. The architecture lives in ea-model.yaml.
+#
+# This example shows a run that reached the bridge phase, hit an orphan at the
+# bridge→implementation gate, and opened a back-edge after the bridge surfaced a new
+# non-functional requirement.
+
+delivery:
+  model: ea-model.yaml
+  phase: bridge
+  entry_phase: requirements
+  updated: "2026-07-03"
+
+phases:
+  requirements:
+    status: done
+    skill: archimate-ea
+    artifacts: [ea-model.yaml]
+  design:
+    status: done
+    skill: archimate-ea
+  tech-selection:
+    status: done
+    skill: tech-selector
+    artifacts: [docs/adr/0003-relational-datastore.md]
+  bridge:
+    status: in-progress
+    skill: archimate-to-impl
+    artifacts: [out/traceability.yaml, out/openapi/, out/tasks.md]
+  implementation:
+    status: pending
+    skill: web-api-dev
+  service:
+    status: pending
+    skill: project-manager
+
+gates:
+  - { at: "requirements→design",    check: model-valid,             status: passed, on: "2026-07-03" }
+  - { at: "design→tech-selection",  check: placeholders-identified, status: passed, on: "2026-07-03" }
+  - { at: "tech-selection→bridge",  check: no-unselected-tech,      status: passed, on: "2026-07-03" }
+  - { at: "bridge→implementation",  check: no-orphans,              status: failed, on: "2026-07-03",
+      note: "req-mobile unimplemented — decide scope or add a mobile-facing service" }
+
+back_edges:
+  - from: bridge
+    to: tech-selection
+    reason: "order service turned out event-driven; needs a message broker (new NFR)"
+    opened: "2026-07-03"
+    status: open
