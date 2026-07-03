@@ -199,6 +199,16 @@
       "name": "ea-delivery",
       "source": "./plugins/ea-delivery",
       "description": "Thin conductor for end-to-end EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills (archimate-ea, tech-selector, archimate-to-impl, dev skills), carries ea-model.yaml as the through-line, gates each handoff, and tracks progress and back-edges in a delivery ledger. Delegates all phase work."
+    },
+    {
+      "name": "optimization-modeling",
+      "source": "./plugins/optimization-modeling",
+      "description": "Mathematical optimization / decision-engineering expert: formulate decisions as LP/MILP/convex/stochastic models, pick and drive a solver, handle uncertainty (stochastic & robust), and validate solutions with feasibility and sensitivity checks. For decision-support algorithms beyond descriptive statistics/ML."
+    },
+    {
+      "name": "plugin-platform",
+      "source": "./plugins/plugin-platform",
+      "description": "Design a plugin / extension platform (e.g. an algorithm marketplace): a stable versioned contract (SDK), a registry with discovery and compatibility, and safe execution of untrusted code via sandboxing, resource limits, and denial of ambient authority."
     }
   ]
 }
