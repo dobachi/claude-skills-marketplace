@@ -1,0 +1,6 @@
+{
+  "name": "archimate-to-impl",
+  "description": "Bridge an ArchiMate EA model's Application layer to implementation: derive a requirement→component→service→api→task traceability matrix, OpenAPI skeletons per ApplicationService, DataObject entity stubs, and a per-component task list, then check for orphans (unimplemented requirements, untraced components).",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

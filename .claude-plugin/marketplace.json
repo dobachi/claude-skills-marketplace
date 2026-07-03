@@ -189,6 +189,11 @@
       "name": "tech-selector",
       "source": "./plugins/tech-selector",
       "description": "Select concrete middleware/runtime from an ArchiMate EA model's non-functional requirements: weighted, sensitivity-checked evaluation, an ADR for the rationale, and write-back of the decision into the model's Technology-layer elements. Bridges archimate-ea (design) to archimate-to-impl (implementation)."
+    },
+    {
+      "name": "archimate-to-impl",
+      "source": "./plugins/archimate-to-impl",
+      "description": "Bridge an ArchiMate EA model's Application layer to implementation: derive a requirement→component→service→api→task traceability matrix, OpenAPI skeletons per ApplicationService, DataObject entity stubs, and a per-component task list, then check for orphans (unimplemented requirements, untraced components). Hands structured input to the dev skills."
     }
   ]
 }
