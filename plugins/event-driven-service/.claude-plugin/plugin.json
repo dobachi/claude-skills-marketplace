@@ -1,0 +1,6 @@
+{
+  "name": "event-driven-service",
+  "description": "Design event-driven, asynchronous, and real-time services beyond request/response REST: messaging (queues/streams), async workers, scheduled/round-based jobs, and WebSocket/SSE push, with correctness under concurrency — idempotency, ordering, delivery guarantees, and backpressure.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

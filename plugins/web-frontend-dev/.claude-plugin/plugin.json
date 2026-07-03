@@ -1,0 +1,6 @@
+{
+  "name": "web-frontend-dev",
+  "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real, maintainable implementation and consumes web-api-dev / archimate-to-impl OpenAPI contracts.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

@@ -1,0 +1,6 @@
+{
+  "name": "simulation-harness",
+  "description": "Build simulation and backtesting harnesses to evaluate algorithms and system behavior: generate scenarios, run discrete-event or time-stepped models, replay history, collect metrics, and compare variants (A/B) — all reproducibly under fixed seeds. Feeds scenarios to optimization-modeling and validates decisions out-of-sample.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

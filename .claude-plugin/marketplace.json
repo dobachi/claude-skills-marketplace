@@ -199,6 +199,31 @@
       "name": "ea-delivery",
       "source": "./plugins/ea-delivery",
       "description": "Thin conductor for end-to-end EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills (archimate-ea, tech-selector, archimate-to-impl, dev skills), carries ea-model.yaml as the through-line, gates each handoff, and tracks progress and back-edges in a delivery ledger. Delegates all phase work."
+    },
+    {
+      "name": "optimization-modeling",
+      "source": "./plugins/optimization-modeling",
+      "description": "Mathematical optimization / decision-engineering expert: formulate decisions as LP/MILP/convex/stochastic models, pick and drive a solver, handle uncertainty (stochastic & robust), and validate solutions with feasibility and sensitivity checks. For decision-support algorithms beyond descriptive statistics/ML."
+    },
+    {
+      "name": "plugin-platform",
+      "source": "./plugins/plugin-platform",
+      "description": "Design a plugin / extension platform (e.g. an algorithm marketplace): a stable versioned contract (SDK), a registry with discovery and compatibility, and safe execution of untrusted code via sandboxing, resource limits, and denial of ambient authority."
+    },
+    {
+      "name": "event-driven-service",
+      "source": "./plugins/event-driven-service",
+      "description": "Design event-driven, asynchronous, and real-time services beyond request/response REST: messaging (queues/streams), async workers, scheduled/round-based jobs, and WebSocket/SSE push, with correctness under concurrency — idempotency, ordering, delivery guarantees, and backpressure."
+    },
+    {
+      "name": "simulation-harness",
+      "source": "./plugins/simulation-harness",
+      "description": "Build simulation and backtesting harnesses to evaluate algorithms and system behavior: generate scenarios, run discrete-event or time-stepped models, replay history, collect metrics, and compare variants (A/B) reproducibly under fixed seeds. Feeds scenarios to optimization-modeling."
+    },
+    {
+      "name": "web-frontend-dev",
+      "source": "./plugins/web-frontend-dev",
+      "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real implementation and consumes OpenAPI contracts."
     }
   ]
 }

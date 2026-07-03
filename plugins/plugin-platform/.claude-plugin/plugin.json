@@ -1,0 +1,6 @@
+{
+  "name": "plugin-platform",
+  "description": "Design a plugin / extension platform where third parties contribute pluggable units (e.g. an algorithm marketplace): a stable versioned contract (SDK), a registry with discovery and compatibility, and — critically — safe execution of untrusted code via sandboxing, resource limits, and denial of ambient authority.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
