@@ -194,6 +194,11 @@
       "name": "archimate-to-impl",
       "source": "./plugins/archimate-to-impl",
       "description": "Bridge an ArchiMate EA model's Application layer to implementation: derive a requirement→component→service→api→task traceability matrix, OpenAPI skeletons per ApplicationService, DataObject entity stubs, and a per-component task list, then check for orphans (unimplemented requirements, untraced components). Hands structured input to the dev skills."
+    },
+    {
+      "name": "ea-delivery",
+      "source": "./plugins/ea-delivery",
+      "description": "Thin conductor for end-to-end EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills (archimate-ea, tech-selector, archimate-to-impl, dev skills), carries ea-model.yaml as the through-line, gates each handoff, and tracks progress and back-edges in a delivery ledger. Delegates all phase work."
     }
   ]
 }

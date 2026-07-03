@@ -1,0 +1,6 @@
+{
+  "name": "ea-delivery",
+  "description": "Thin conductor for end-to-end EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills, carries ea-model.yaml as the through-line, enforces a gate before each handoff, and tracks progress plus back-edges in a delivery ledger. Delegates all phase work; holds no phase logic itself.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
