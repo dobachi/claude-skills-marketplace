@@ -166,6 +166,11 @@
       "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."
     },
     {
+      "name": "doc-refactor",
+      "source": "./plugins/doc-refactor",
+      "description": "Refactor prose documents — restructure and de-duplicate without changing meaning, the way code refactoring preserves behavior. Runs a diagnose-first workflow (reverse outline → issue inventory → confirm structural moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them."
+    },
+    {
       "name": "math-paper",
       "source": "./plugins/math-paper",
       "description": "Mathematical paper writing support: notation consistency (Symbol Ledger), theorem/proof structure, equation cross-references, and journal/arXiv submission preparation. Works with LaTeX and Markdown+math; delegates citations to literature-search and fact-checking to fact-checker."

@@ -1,0 +1,6 @@
+{
+  "name": "doc-refactor",
+  "description": "Refactor prose documents — restructure and de-duplicate without changing meaning, the way code refactoring preserves behavior. Runs a diagnose-first workflow (reverse outline → issue inventory → confirm structural moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

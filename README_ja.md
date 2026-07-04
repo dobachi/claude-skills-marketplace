@@ -54,6 +54,7 @@ Personal skills marketplace for Claude Code.
 | **faithful-translation** | 任意の言語ペアで原文に忠実な翻訳を生成。検証用の文単位parallel ledger、用語集、訳者注を必須化。要約はせず、必要なら `document-summary` と連携。 |
 | **document-summary** | 文献の構造化要約スキル。エグゼクティブ向け／プロフェッショナル向けの2モード。出典紐付けの Claim Ledger を全モード必須化し、原文に無い推論は `[Inference]` ブロックとして明示分離してハルシネーションを防止。 |
 | **document-figures** | 既存ドキュメント（PDF / Word / PowerPoint / Web）から図を出典付きで抽出し、新規の構造図（Mermaid 優先）を作成。`document-summary` と連携する Figure Ledger を生成。装飾的な箱・矢印は情報量テストで排除。Node.js 18+ / Puppeteer / poppler-utils が必要。 |
+| **doc-refactor** | 文章ドキュメントをリファクタリング — コードのリファクタリングが挙動を保つように、意味を変えずに構造整理と重複削除を行う。診断優先のワークフロー（逆アウトライン → 課題棚卸し → 構造変更の確認 → リファクタ → 変更ログ）で、すべての主張・事実・図・著者の声を保ちつつ、実質的な問題は勝手に直さず指摘する。 |
 
 ### 研究 (Research)
 
@@ -193,6 +194,9 @@ document-figures プラグインは以下を必要とします：
 3. `skills/<skill-name>/SKILL.md` にスキル本体を配置
 4. `.claude-plugin/marketplace.json` の `plugins` 配列にエントリを追加
 5. コミット & プッシュ
+
+パッケージ済み `.skill` ファイルの取り込み、既存プラグインの更新、検証、インストールまでの
+詳細な手順は [docs/adding-or-updating-a-skill.md](docs/adding-or-updating-a-skill.md) を参照してください。
 
 ```
 plugins/<plugin-name>/

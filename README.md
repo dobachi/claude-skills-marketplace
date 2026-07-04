@@ -54,6 +54,7 @@ Personal skills marketplace for Claude Code.
 | **faithful-translation** | Produces source-faithful translations across any language pair with a parallel sentence ledger, terminology glossary, and translator's notes. No summarization — chain with `document-summary` if you need both. |
 | **document-summary** | Structured document/literature summarization with Executive and Professional modes. Mandatory source-grounded Claim Ledger and Source-vs-Inference separation prevent hallucinated content. |
 | **document-figures** | Extracts figures from existing documents (PDF / Word / PowerPoint / web) with provenance and creates new structural diagrams (Mermaid-first). Produces a Figure Ledger that chains into `document-summary`. Requires Node.js 18+, Puppeteer, and poppler-utils. |
+| **doc-refactor** | Refactors prose documents — restructures and de-duplicates without changing meaning, the way code refactoring preserves behavior. Diagnose-first workflow (reverse outline → issue inventory → confirm moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them. |
 
 ### Research
 
@@ -193,6 +194,10 @@ The document-figures plugin requires:
 3. Place the skill body in `skills/<skill-name>/SKILL.md`
 4. Add an entry to the `plugins` array in `.claude-plugin/marketplace.json`
 5. Commit & push
+
+For the full step-by-step procedure (importing a packaged `.skill` file, updating an
+existing plugin, validation, and installation), see
+[docs/adding-or-updating-a-skill.md](docs/adding-or-updating-a-skill.md).
 
 ```
 plugins/<plugin-name>/
