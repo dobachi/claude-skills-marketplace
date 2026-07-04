@@ -72,19 +72,35 @@ Personal skills marketplace for Claude Code.
 
 ## Installation
 
-### 1. Add the marketplace (first time only)
+### Option A — one-liner: register the marketplace and install every plugin
+
+No clone required. Registers the marketplace from GitHub and installs all plugins:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dobachi/claude-skills-marketplace/master/install.sh | bash
+```
+
+Requires the `claude` CLI, plus `python3` or `jq` (to parse the plugin list).
+Then run `/reload-plugins` in a running session, or restart Claude Code.
+
+From a local checkout you can run the same script directly — `./install.sh` — which
+discovers plugins from the directory tree instead of fetching the manifest.
+
+### Option B — install individual plugins in-session
+
+**1. Add the marketplace (first time only)**
 
 ```
 /plugin marketplace add dobachi/claude-skills-marketplace
 ```
 
-### 2. Install a plugin
+**2. Install a plugin**
 
 ```
 /plugin install fact-checker@dobachi-skills
 ```
 
-### 3. Restart Claude Code
+**3. Restart Claude Code**
 
 After installation, restart Claude Code to activate the plugin.
 

@@ -72,19 +72,35 @@ Personal skills marketplace for Claude Code.
 
 ## Installation
 
-### 1. マーケットプレイスを追加（初回のみ）
+### 方法A — ワンライナー：マーケット登録から全プラグイン導入まで
+
+clone不要。GitHubからマーケットを登録し、全プラグインを一括インストールします。
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dobachi/claude-skills-marketplace/master/install.sh | bash
+```
+
+必要なもの: `claude` CLI と、`python3` または `jq`（プラグイン一覧の解析用）。
+実行後、起動中セッションでは `/reload-plugins`、または Claude Code を再起動してください。
+
+ローカルにcloneしている場合は同じスクリプトを `./install.sh` で直接実行できます（マニフェストを
+取得せず、ディレクトリツリーからプラグインを検出します）。
+
+### 方法B — セッション内で個別にインストール
+
+**1. マーケットプレイスを追加（初回のみ）**
 
 ```
 /plugin marketplace add dobachi/claude-skills-marketplace
 ```
 
-### 2. プラグインをインストール
+**2. プラグインをインストール**
 
 ```
 /plugin install fact-checker@dobachi-skills
 ```
 
-### 3. Claude Codeを再起動
+**3. Claude Codeを再起動**
 
 インストール後、Claude Codeを再起動すると有効になります。
 
