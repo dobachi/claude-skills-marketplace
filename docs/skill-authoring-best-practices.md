@@ -2,6 +2,11 @@
 
 Guidelines for creating effective Claude Code skills in this marketplace.
 
+> For the step-by-step procedure to register or update a plugin in this repo (which
+> files to touch, how to validate, how to install), see
+> [adding-or-updating-a-skill.md](./adding-or-updating-a-skill.md). This document
+> covers how to write the skill *content*.
+
 ## SKILL.md Structure
 
 Every skill requires a `SKILL.md` file with YAML frontmatter:
