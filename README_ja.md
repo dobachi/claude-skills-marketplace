@@ -54,6 +54,7 @@ Personal skills marketplace for Claude Code.
 | **faithful-translation** | 任意の言語ペアで原文に忠実な翻訳を生成。検証用の文単位parallel ledger、用語集、訳者注を必須化。要約はせず、必要なら `document-summary` と連携。 |
 | **document-summary** | 文献の構造化要約スキル。エグゼクティブ向け／プロフェッショナル向けの2モード。出典紐付けの Claim Ledger を全モード必須化し、原文に無い推論は `[Inference]` ブロックとして明示分離してハルシネーションを防止。 |
 | **document-figures** | 既存ドキュメント（PDF / Word / PowerPoint / Web）から図を出典付きで抽出し、新規の構造図（Mermaid 優先）を作成。`document-summary` と連携する Figure Ledger を生成。装飾的な箱・矢印は情報量テストで排除。Node.js 18+ / Puppeteer / poppler-utils が必要。 |
+| **ai-tell-reducer** | 文章の「AIっぽさ」を低減 — 単調な文のリズム、反射的なヘッジ、曖昧な抽象化、定型的な骨組み、大げさな語彙、表層的な癖（ダッシュ・太字・三点列挙の多用）を、意味・事実・レジスター・著者の声を保ったまま、何も捏造せずに整える。日本語・英語対応。 |
 
 ### 研究 (Research)
 

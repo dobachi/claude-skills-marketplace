@@ -1,0 +1,6 @@
+{
+  "name": "ai-tell-reducer",
+  "description": "Reduce the \"AI-ness\" of writing — uniform sentence rhythm, reflexive hedging, vague abstraction, formulaic scaffolding, inflated vocabulary, and surface tics (em-dash / bold / rule-of-three overuse) — while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
