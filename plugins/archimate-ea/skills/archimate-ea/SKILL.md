@@ -31,8 +31,9 @@ generated *from* that model; they are never authored by hand.
    to Motivation → down, but start where the user has material and reconnect upward.
 6. **Stable ids forever.** An element's `id` is permanent — the anchor for XML and
    future round-trip. Never renumber or reuse.
-7. **No geometry in YAML.** Layout is presentation, computed at emit time. Model
-   meaning, not pixels.
+7. **No geometry in YAML.** Layout is presentation, derived at emit time from the
+   logical structure — `emit_archimate_xml.py` lays views out in layer bands so
+   Archi shows them top-down, not as a grid. Model meaning, not pixels.
 8. **Method-agnostic core.** TOGAF ADM and ArchiMate viewpoints are *reference*
    (see `references/`), never mandatory framing.
 
@@ -127,6 +128,7 @@ python3 scripts/emit_plantuml.py ea-model.yaml -o out/
 ./assets/render_plantuml.sh out/views/*.puml               # best-effort PNG
 
 # emit Open Group Exchange XML for Archi (File → Import → Open Exchange File)
+# default --layout layered arranges views in layer bands (top-down); grid|none also available
 python3 scripts/emit_archimate_xml.py ea-model.yaml -o out/model.xml
 
 # round-trip: merge Archi edits back (Archi: File → Export → Open Exchange File)

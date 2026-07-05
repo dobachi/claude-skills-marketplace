@@ -40,9 +40,14 @@ emit+validate is the testable core; rendering is best-effort.
 
 Targets namespace `http://www.opengroup.org/xsd/archimate/3.0/`. Children are
 written in the schema-mandated order: `name → documentation → elements →
-relationships → organizations → propertyDefinitions → views`. Geometry: a simple
-grid placeholder (`--layout grid`, or `none` for zeros) — the schema requires
-`x/y/w/h`, so run Archi's auto-layout after import.
+relationships → organizations → propertyDefinitions → views`. Geometry
+(`--layout`, default `layered`): the schema requires `x/y/w/h`, so the emitter
+computes positions from the model's **logical structure** — each ArchiMate layer
+becomes a horizontal band (motivation at top, descending to technology /
+implementation) and nodes within a band are ordered by a barycenter sweep to line
+related elements up and reduce crossings. The view therefore reads top-down on
+import, without hand-layout. `--layout grid` is the old row-major placeholder and
+`none` emits zeros — use either only when you intend to run Archi's own auto-layout.
 
 ### Gotchas this emitter handles (and you should know)
 
@@ -72,5 +77,6 @@ and pass the path. Without it, the emitter still produces well-formed XML.
 1. `File → Import → Open Exchange File`.
 2. Select the emitted `model.xml`.
 3. Elements, relationships, properties, junctions, organizations, and views appear.
-4. Open each view, then `Edit → Auto-layout` (or right-click → Format) to replace
-   the grid placeholder positions.
+4. Views open with the `layered` structure-aware layout — layers stacked top-down.
+   If you want a different arrangement, `Edit → Auto-layout` (or right-click →
+   Format) re-flows the view with Archi's own algorithm.

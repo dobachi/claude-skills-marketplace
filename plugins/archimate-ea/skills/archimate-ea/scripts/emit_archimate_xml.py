@@ -3,13 +3,17 @@
 
 Generate-forward: the YAML model is upstream; the XML is downstream, for
 interchange with the Archi tool (File -> Import -> Open Exchange File). The
-schema requires node geometry, so a simple grid layout is written as a
-placeholder — run Archi's auto-layout / "format" after import.
+schema requires node geometry. The default `layered` layout reflects the model's
+logical structure — ArchiMate layers become stacked horizontal bands (motivation
+at top down to technology/implementation) and nodes within a band are ordered by
+a barycenter heuristic to reduce edge crossings — so the imported view reads
+top-down instead of as an arbitrary grid. `grid` (the old placeholder) and `none`
+remain for when you intend to re-run Archi's own auto-layout after import.
 
 Refuses to emit if the model has ERROR-level validation problems.
 
 Usage:
-    emit_archimate_xml.py MODEL.yaml -o OUT.xml [--layout grid|none] [--xsd SCHEMA.xsd] [--force]
+    emit_archimate_xml.py MODEL.yaml -o OUT.xml [--layout layered|grid|none] [--xsd SCHEMA.xsd] [--force]
 """
 
 from __future__ import annotations
@@ -31,6 +35,13 @@ NSMAP = {None: ARCHI_NS, "xsi": XSI_NS}
 _ID_RE = re.compile(r"[^\w.\-]")
 GRID_COLS = 5
 NW, NH, GAP, MARGIN = 120, 55, 40, 20
+BAND_GAP = 70          # vertical space between layer bands in the layered layout
+JW, JH = 14, 14        # junction / connector node size (small, like Archi's dots)
+
+# ArchiMate layers top-to-bottom; connector (junctions) and composite (Grouping,
+# Location) have no band and are slotted between their neighbours by barycenter.
+LAYER_BANDS = ["motivation", "strategy", "business",
+               "application", "technology", "physical", "implementation"]
 
 
 def xml_id(raw: str) -> str:
@@ -54,7 +65,80 @@ def _add_lang_texts(parent, tag, value):
         e.text = str(value)
 
 
-def build(model, mm) -> etree._Element:
+def compute_layout(members, edges, node_layer, strategy):
+    """Return {eid: (x, y, w, h)} for the nodes of one view.
+
+    strategy 'layered' places elements in horizontal bands by ArchiMate layer and
+    orders each band with a barycenter sweep so related elements line up vertically;
+    'grid' is the legacy row-major placeholder; 'none' emits zero geometry (defer to
+    Archi's own auto-layout)."""
+    if strategy == "none":
+        return {eid: (0, 0, 0, 0) for eid in members}
+    if strategy == "grid":
+        pos = {}
+        for i, eid in enumerate(members):
+            col, row = i % GRID_COLS, i // GRID_COLS
+            pos[eid] = (MARGIN + col * (NW + GAP), MARGIN + row * (NH + GAP), NW, NH)
+        return pos
+    return _layered_layout(members, edges, node_layer)
+
+
+def _layered_layout(members, edges, node_layer):
+    band_rank = {name: i for i, name in enumerate(LAYER_BANDS)}
+    mset = set(members)
+    adj = {m: set() for m in members}
+    for s, t in edges:
+        if s in mset and t in mset and s != t:
+            adj[s].add(t)
+            adj[t].add(s)
+
+    # 1. band per node; connector/composite (no rank) inherit their neighbours' mean.
+    raw = {m: band_rank.get(node_layer.get(m)) for m in members}
+    for _ in range(3):
+        for m in members:
+            if raw[m] is None:
+                nb = [raw[n] for n in adj[m] if raw[n] is not None]
+                if nb:
+                    raw[m] = int(round(sum(nb) / len(nb)))
+    for m in members:
+        if raw[m] is None:
+            raw[m] = 0
+
+    # 2. compress to consecutive rows; seed each band in stable membership order.
+    rows = {b: i for i, b in enumerate(sorted(set(raw.values())))}
+    bands = [[] for _ in rows]
+    for m in members:               # members is already in view order -> stable
+        bands[rows[raw[m]]].append(m)
+
+    # 3. barycenter crossing reduction: alternate down/up sweeps.
+    pos = {m: i for band in bands for i, m in enumerate(band)}
+    for sweep in range(4):
+        order = range(1, len(bands)) if sweep % 2 == 0 else range(len(bands) - 2, -1, -1)
+        for bi in order:
+            band = bands[bi]
+            band.sort(key=lambda m: (
+                sum(pos[n] for n in adj[m]) / len(adj[m]) if adj[m] else pos[m], pos[m]))
+            for i, m in enumerate(band):
+                pos[m] = i
+
+    # 4. coordinates: bands stacked vertically, each centred on the widest band.
+    def size(m):
+        return (JW, JH) if node_layer.get(m) not in band_rank else (NW, NH)
+    span = [sum(size(m)[0] + GAP for m in band) for band in bands]
+    widest = max(span) if span else 0
+    coords = {}
+    y = MARGIN
+    for bi, band in enumerate(bands):
+        x = MARGIN + max(0, (widest - span[bi]) // 2)
+        for m in band:
+            w, h = size(m)
+            coords[m] = (x, y + (NH - h) // 2, w, h)
+            x += w + GAP
+        y += NH + BAND_GAP
+    return coords
+
+
+def build(model, mm, layout="layered") -> etree._Element:
     id_map = {}  # original id -> xml id (elements + relationships)
     for e in model.elements:
         if isinstance(e, dict) and e.get("id"):
@@ -148,18 +232,25 @@ def build(model, mm) -> etree._Element:
 
             node_id = {}  # element id -> node id (unique per view)
             members = [m for m in (v.get("elements", []) or []) if m in model.element_by_id]
-            for i, eid in enumerate(members):
+            member_set = set(members)
+            edges = [(r.get("source"), r.get("target"))
+                     for rid in (v.get("relationships", []) or [])
+                     for r in [model.rel_by_id.get(rid)] if r
+                     and r.get("source") in member_set and r.get("target") in member_set]
+            node_layer = {m: mm.layer_of(model.element_by_id[m].get("type")) for m in members}
+            coords = compute_layout(members, edges, node_layer, layout)
+            for eid in members:
                 nid = f"node-{xml_id(v['id'])}-{xml_id(eid)}"
                 node_id[eid] = nid
                 n = etree.SubElement(view, "node")
                 n.set("identifier", nid)
                 n.set("elementRef", id_map[eid])
                 _set_xsi_type(n, "Element")
-                col, row = i % GRID_COLS, i // GRID_COLS
-                n.set("x", str(MARGIN + col * (NW + GAP)))
-                n.set("y", str(MARGIN + row * (NH + GAP)))
-                n.set("w", str(NW))
-                n.set("h", str(NH))
+                x, y, w, h = coords[eid]
+                n.set("x", str(x))
+                n.set("y", str(y))
+                n.set("w", str(w))
+                n.set("h", str(h))
             for rid in v.get("relationships", []) or []:
                 r = model.rel_by_id.get(rid)
                 if not r:
@@ -181,8 +272,10 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Emit Open Group ArchiMate Exchange XML from a running model.")
     ap.add_argument("model")
     ap.add_argument("-o", "--out", required=True)
-    ap.add_argument("--layout", choices=["grid", "none"], default="grid",
-                    help="node geometry strategy (grid placeholder, or zeros)")
+    ap.add_argument("--layout", choices=["layered", "grid", "none"], default="layered",
+                    help="node geometry: 'layered' = structure-aware bands by ArchiMate "
+                         "layer (default); 'grid' = row-major placeholder; 'none' = zeros "
+                         "(defer to Archi auto-layout)")
     ap.add_argument("--xsd", help="validate output against the official ArchiMate Exchange XSD")
     ap.add_argument("--force", action="store_true", help="emit even if validation has errors")
     args = ap.parse_args(argv)
@@ -195,11 +288,7 @@ def main(argv=None):
                          "Run validate_model.py for details (or pass --force).\n")
         return 2
 
-    if args.layout == "none":
-        global MARGIN, NW, NH, GAP
-        MARGIN = NW = NH = GAP = 0
-
-    root = build(model, mm)
+    root = build(model, mm, layout=args.layout)
     tree = etree.ElementTree(root)
 
     if args.xsd:
