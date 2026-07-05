@@ -97,18 +97,22 @@ def build(model, mm) -> etree._Element:
         rel.set("target", id_map.get(r.get("target"), xml_id(r.get("target", ""))))
         if r.get("type") == "Access" and r.get("accessType"):
             rel.set("accessType", mm.access_type_xml(r["accessType"]))
-        if r.get("type") == "Association" and r.get("isDirected"):
-            rel.set("isDirected", "true")
         _set_xsi_type(rel, r.get("type"))
-        # NOTE: Influence 'strength' is a notation modifier, not a schema attribute;
-        # it is kept in YAML (and rendered in PlantUML) but not emitted here.
+        # NOTE: Influence 'strength' AND Association 'isDirected' are notation modifiers,
+        # not Open Exchange 3.0 schema attributes (isDirected arrived in 3.1). They are
+        # kept in YAML (and rendered in PlantUML) but not emitted here — emitting
+        # isDirected fails Archi import with cvc-complex-type ("attribute not allowed").
 
     # ---- organizations ---------------------------------------------------
     if model.organizations:
         orgs_el = etree.SubElement(root, "organizations")
 
         def emit_org(parent, org):
-            o = etree.SubElement(parent, "organization")
+            # Open Exchange 3.0: organizations contain <item> (label-only folder or
+            # identifierRef leaf); there is no <organization> element. Nested folders
+            # are <item> with a <label>. (Previously emitted <organization>, which is
+            # not in the XSD and fails Archi import with cvc-complex-type.2.4.a.)
+            o = etree.SubElement(parent, "item")
             _add_lang_texts(o, "label", org.get("label"))
             for ref in org.get("items", []) or []:
                 if ref in id_map:
