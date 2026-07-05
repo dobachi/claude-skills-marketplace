@@ -109,6 +109,13 @@ being right (a paper, a high-stakes proposal), spawn independent sub-agents to
 attack the findings and keep only those that survive. A short list of sharp findings
 beats a long list of soft ones.
 
+**Findings are discovered, not allocated.** If a document is genuinely strong, the
+honest result is few findings — or none above Minor — and a verdict that says so.
+That is a *good* review, not a failed one. Never manufacture a Blocker or Major to
+justify the effort: an invented finding is false criticism, which destroys the
+author's trust faster than a missed one. When the sweep comes up empty, report that
+plainly and stop.
+
 ### Pass 4 — Rank and report
 Order by severity. Write the report (below). List handoffs. Do **not** edit the doc.
 
@@ -118,7 +125,9 @@ Each finding:
 - **dimension** · **severity** · **location** (quote or section)
 - **problem** — the concrete reader-failure (the finding test)
 - **why it matters** — impact on the reader or the document's goal
-- **direction** — how the author *could* fix it (a direction, not an applied edit)
+- **direction** — how the author *could* fix it: name **what** to change and **why**.
+  The moment you write the *replacement sentence itself*, you've crossed into
+  rewriting (doc-refactor's job) — stop at the direction.
 - **confidence** — how sure you are it's real (be honest; low-confidence findings
   are allowed if labelled, but never padding)
 
@@ -157,6 +166,38 @@ Severity:
 ```
 
 Then stop. Applying anything is a separate, author-approved step.
+
+### A worked finding (what "sharp" looks like)
+
+The template is empty; this is a filled instance, so the bar is concrete. Target: a
+one-page proposal recommending a vendor migration.
+
+```markdown
+# Review — Migrate billing to Vendor X  (proposal, reader: VP Eng approving spend, goal: get a yes/no)
+
+**Verdict:** The recommendation is defensible but unreachable — the ask and its cost
+are buried on page 2, and the one number the whole case rests on is unsupported. As
+written, a skimming approver stalls before the decision.
+
+**Reader takeaway (Pass 1):** "The team likes Vendor X." — diverges from intent (the
+author wants a funded migration decision, not a preference).
+
+## Findings (most severe first)
+### [Blocker] The load-bearing cost claim has no source · evidence
+- **Where:** "Vendor X will cut billing incidents by 70%."
+- **Problem:** This 70% is the entire justification, but nothing backs it. The first
+  thing a skeptical VP probes is exactly this figure; with no source, the meeting ends
+  here and the decision is deferred.
+- **Why it matters:** If the number is wrong or unfounded, the proposal collapses — and
+  it's the single most load-bearing claim in the document.
+- **Direction:** Cite the incident data behind the 70%, or soften the claim to what the
+  evidence actually supports. (Whether the source is valid → verify-content.)
+- **Confidence:** high
+```
+
+Note what makes it sharp: it names a *specific reader* (the VP), the *exact moment*
+they're lost (the unsourced number), and the *consequence* (deferred decision) — not
+"the evidence could be stronger."
 
 ## Anti-patterns
 
