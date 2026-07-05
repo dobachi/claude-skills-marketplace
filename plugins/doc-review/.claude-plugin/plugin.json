@@ -1,0 +1,6 @@
+{
+  "name": "doc-review",
+  "description": "Critical, read-only review of a prose document — the prose counterpart of /code-review. Hunts substantive weaknesses (unsound argument, buried conclusion, thin evidence, unstated assumptions, missing counterargument, audience mismatch, internal contradiction) across a genre-weighted rubric, adversarially verifies its own findings to kill sycophancy and nitpicks, and returns a prioritized findings report the author decides on — WITHOUT editing the text. Hands off rewriting to doc-refactor, fact-checking to verify-content, restyling to ai-tell-reducer. Bilingual JA/EN.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
