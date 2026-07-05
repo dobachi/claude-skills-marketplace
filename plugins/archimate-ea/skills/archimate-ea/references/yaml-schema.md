@@ -11,6 +11,16 @@ A complete, valid example lives in `assets/ea-model.example.yaml`.
 - **Multilingual text** — `name` and `documentation` are maps keyed by BCP-47
   language code: `name: { ja: 注文, en: Order }`. A plain string is also accepted
   (`name: Order`). All languages are emitted to XML as repeated `<name xml:lang>`.
+  - **Quote any text containing a comma or colon**, or write the map in block style.
+    In flow style a bare comma splits the mapping: `name: { en: A fair, open market }`
+    silently parses as `{ en: "A fair", "open market": null }` — the validator now
+    flags this (`bad-lang-key` / `empty-lang-text`), but the safe habit is:
+    ```yaml
+    name:                          # block style — commas/colons need no quoting
+      ja: 公正で開かれた市場
+      en: A fair, open market
+    ```
+    or, in flow style, `name: { en: "A fair, open market" }`.
 - **Stable ids** — every `id` is permanent. Never renumber or reuse an id; it is
   the anchor that maps 1:1 to the XML `identifier` and (future) round-trip. Use
   kebab-case starting with a letter (`goal-revenue`, `appcomp-order`).

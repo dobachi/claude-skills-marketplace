@@ -29,6 +29,13 @@ requirement or goal traces to is a prompt, not a fact.
 
 ## Per-layer question banks & Definition of Done
 
+> The forward-trace half of each DoD below — "X realizes a Requirement", "each
+> ApplicationComponent is realized/served by technology" — is machine-checked by
+> `scripts/trace_coverage.py`, encoded as its rule table. Run it at every CHECKPOINT:
+> it names the upper elements left without a downstream carrier and shows a per-Goal
+> reach matrix so skew is visible. If you add or change a DoD rule here, mirror it in
+> that script's `RULES` so prose and check stay in sync.
+
 ### Motivation
 Ask: Who are the stakeholders and what does each care about? What external/internal
 drivers force change? What is your honest assessment of the current state? What are

@@ -35,6 +35,14 @@ WARN = "WARN"
 # NCName-ish: valid xsd:ID lexical form (used verbatim as XML identifier on emit).
 _ID_RE = re.compile(r"^[A-Za-z_][\w.\-]*$")
 
+# BCP-47-ish language subtag, used as the key of a multilingual name/documentation
+# map. A key that is not a plausible language tag is almost always the artifact of
+# a broken YAML flow mapping — e.g. `name: { en: Establish a fair, reliable market }`
+# parses to `{en: "Establish a fair", "reliable market": null}` because the unquoted
+# comma splits the flow entry. Emitters would then write it verbatim as
+# `<name xml:lang="reliable market">None</name>`, so we catch it here instead.
+_LANG_RE = re.compile(r"^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$")
+
 
 class Problem:
     __slots__ = ("severity", "code", "ref", "message")
@@ -75,6 +83,26 @@ def _truthy_bool(v) -> bool:
     return isinstance(v, bool)
 
 
+def _check_langmap(P, kind, ref, field, value):
+    """Flag a multilingual name/documentation/label map whose keys are not plausible
+    language tags, or whose values are null/empty. Both are the tell-tale signature of
+    a YAML flow mapping split by an unquoted comma or colon inside the text."""
+    if not isinstance(value, dict):
+        return  # plain string (or absent) — nothing to check
+    for lang, text in value.items():
+        if not isinstance(lang, str) or not _LANG_RE.match(lang):
+            P(ERROR, "bad-lang-key", ref,
+              f"{kind} '{ref}' {field} has key {lang!r}, which is not a language code. "
+              "This usually means an unquoted comma/colon split a YAML flow mapping "
+              f"(e.g. `{field}: {{ en: A, B }}` parses as two keys); quote the text "
+              "(`en: \"A, B\"`) or write the map in block style.")
+        if text is None or (isinstance(text, str) and not text.strip()):
+            P(ERROR, "empty-lang-text", ref,
+              f"{kind} '{ref}' {field}[{lang!r}] has no text; a split flow mapping "
+              "often leaves the tail key with a null value. Check the source line for "
+              "an unquoted comma or colon.")
+
+
 def validate(model: Model, mm) -> list[Problem]:
     problems: list[Problem] = []
     P = lambda *a: problems.append(Problem(*a))
@@ -111,6 +139,29 @@ def validate(model: Model, mm) -> list[Problem]:
     for v in model.views:
         if isinstance(v, dict):
             register("view", v.get("id"))
+
+    # ---- 1b. multilingual name/documentation/label maps -----------------
+    # Catch flow-mapping corruption (unquoted comma/colon) before it reaches emit.
+    _check_langmap(P, "model", model.header.get("id", "model"), "name", model.header.get("name"))
+    _check_langmap(P, "model", model.header.get("id", "model"), "documentation", model.header.get("documentation"))
+    for e in model.elements:
+        if isinstance(e, dict):
+            _check_langmap(P, "element", e.get("id"), "name", e.get("name"))
+            _check_langmap(P, "element", e.get("id"), "documentation", e.get("documentation"))
+    for pd in model.property_defs:
+        if isinstance(pd, dict):
+            _check_langmap(P, "propertyDefinition", pd.get("key"), "name", pd.get("name"))
+    for v in model.views:
+        if isinstance(v, dict):
+            _check_langmap(P, "view", v.get("id"), "name", v.get("name"))
+    def _walk_org_labels(org):
+        if not isinstance(org, dict):
+            return
+        _check_langmap(P, "organization", org.get("label"), "label", org.get("label"))
+        for child in org.get("children", []) or []:
+            _walk_org_labels(child)
+    for org in model.organizations:
+        _walk_org_labels(org)
 
     # ---- 2/6. elements: type + modifiers + properties --------------------
     for e in model.elements:

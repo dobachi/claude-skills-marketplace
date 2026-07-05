@@ -59,11 +59,27 @@ Repeat this loop, one layer at a time:
    a one-line plain-language summary ("Order Service realizes the self-service
    requirement; it accesses Order data"). Ask the user to red-pen it: wrong types?
    missing actors? is that really the dependency, or the reverse?
+   - When a multilingual `name`/`documentation` contains a comma or colon, **quote it
+     or use block style** (`en: "A fair, open market"`). A bare comma in flow style
+     (`{ en: A fair, open market }`) silently splits into a bogus extra key; the
+     validator flags this (`bad-lang-key`) but writing it safely avoids the round-trip.
 3. **VALIDATE** — run `validate_model.py`. Turn any errors into the next question
    ("I had the portal *trigger* the goal, but the metamodel only allows realize or
    influence between those — which did you mean?").
-4. **CHECKPOINT** — restate the decisions, confirm the layer's Definition of Done
-   (`references/elicitation-playbook.md`), optionally render a view, then descend.
+4. **CHECKPOINT — reflect-back gate.** Before descending to the next layer, run
+   `trace_coverage.py` and **reconcile every gap out loud** with the user. This is what
+   stops staged design from silently dropping or skewing upstream intent — the exact
+   failure where a business input never reaches, or lopsidedly clusters in, the
+   technology layer.
+   - **Coverage gaps** name each upper element left without a downstream carrier
+     ("requirement `req-mobile` is realized by nothing"). Turn each into the next
+     question: is that intentional (out of scope), or a miss to model now?
+   - The **reach matrix** shows, per Goal, how many elements each lower layer
+     contributes. A row of zeros or a lone starved branch is skew — the model is
+     investing everywhere except that goal's line of sight. Rebalance before descending.
+   - The gate is advisory (it does not block emit like `validate_model.py`), but do
+     not declare a layer done while a Goal or Requirement traces to nothing. Then
+     restate decisions, confirm the layer's Definition of Done, optionally render a view.
 
 **Adaptive entry:** if the user arrives with an app landscape or a tech stack,
 model that first, then fan up to the requirements/goals it serves and down to
@@ -97,9 +113,14 @@ Full question banks, red-pen prompts, and per-layer Definition of Done:
 cd plugins/archimate-ea/skills/archimate-ea
 pip install -r scripts/requirements.txt          # PyYAML, lxml, ruamel.yaml
 
-# validate (run constantly; drives the dialogue)
+# validate (run constantly; drives the dialogue) — legality: is this model well-formed?
 python3 scripts/validate_model.py ea-model.yaml            # text
 python3 scripts/validate_model.py ea-model.yaml --format json   # for parsing fixes
+
+# trace coverage (run at each CHECKPOINT) — completeness: does upstream intent reach
+# a carrier in the layer below? Lists gaps + a per-Goal reach matrix (exposes skew).
+python3 scripts/trace_coverage.py ea-model.yaml           # text
+python3 scripts/trace_coverage.py ea-model.yaml --format json
 
 # emit PlantUML views (one .puml per view) and render if plantuml+graphviz present
 python3 scripts/emit_plantuml.py ea-model.yaml -o out/
@@ -129,7 +150,9 @@ The round-trip workflow and what is/isn't recovered: `references/round-trip.md`.
   (`references/metamodel-and-relationships.md`).
 - Single-language labels on a bilingual engagement.
 - Treating TOGAF phases or viewpoints as mandatory rather than reference.
-- Leaving a goal or requirement that nothing traces to, unremarked.
+- Descending a layer without running `trace_coverage.py` — leaving a goal or
+  requirement that nothing downstream carries, or a lopsided reach where the
+  technology layer clusters on some branches and starves others, unremarked.
 
 ## References
 
