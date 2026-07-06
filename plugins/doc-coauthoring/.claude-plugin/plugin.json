@@ -1,0 +1,6 @@
+{
+  "name": "doc-coauthoring",
+  "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

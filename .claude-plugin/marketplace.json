@@ -166,6 +166,11 @@
       "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."
     },
     {
+      "name": "doc-coauthoring",
+      "source": "./plugins/doc-coauthoring",
+      "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN."
+    },
+    {
       "name": "doc-refactor",
       "source": "./plugins/doc-refactor",
       "description": "Refactor prose documents — restructure and de-duplicate without changing meaning, the way code refactoring preserves behavior. Runs a diagnose-first workflow (reverse outline → issue inventory → confirm structural moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them."
