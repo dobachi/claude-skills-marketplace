@@ -42,36 +42,59 @@ class Problem:
                 "ref": self.ref, "message": self.message}
 
 
+# Dependency relationships followed forward when deriving whether a service reaches
+# a requirement. ArchiMate allows a chain of such relationships to be *derived* into
+# a single one, so an ApplicationService that Serves a BusinessProcess which (in turn)
+# Realizes a BusinessService that Realizes a Requirement covers that requirement — not
+# only the direct ApplicationService-Realization-Requirement edge.
+FWD_TRACE_TYPES = ("Realization", "Serving")
+
+
+def _req_coverage(m) -> dict:
+    """Map each ApplicationService id -> set of Requirement/Constraint ids it covers,
+    via forward reachability over FWD_TRACE_TYPES edges (derived relationships)."""
+    adj: dict = {}
+    for r in m.relationships:
+        if isinstance(r, dict) and r.get("type") in FWD_TRACE_TYPES:
+            adj.setdefault(r.get("source"), []).append(r.get("target"))
+
+    def reach(start):
+        seen, reqs, stack = set(), set(), [start]
+        while stack:
+            for t in adj.get(stack.pop(), ()):        # follow edges source -> target
+                if t in seen:
+                    continue
+                seen.add(t)
+                if m.is_type(t, *REQ_TYPES):
+                    reqs.add(t)
+                stack.append(t)
+        return reqs
+
+    return {s["id"]: reach(s["id"]) for s in m.of_type(APP_SERVICE)}
+
+
 def check(m) -> list:
     problems = []
     P = lambda *a: problems.append(Problem(WARN, *a))
 
     services = m.of_type(APP_SERVICE)
-    service_ids = {s["id"] for s in services}
-
-    # Which requirements does some ApplicationService realize?
-    realized_reqs = set()
-    for s in services:
-        for r in m.rels(type="Realization", source=s["id"]):
-            if m.is_type(r["target"], *REQ_TYPES):
-                realized_reqs.add(r["target"])
+    coverage = _req_coverage(m)                       # service id -> covered requirements (derived)
+    realized_reqs = set().union(*coverage.values()) if coverage else set()
 
     # unimplemented-requirement
     for e in m.of_type(*REQ_TYPES):
         if e["id"] not in realized_reqs:
             P("unimplemented-requirement", e["id"],
               f"{m.type_of(e['id'])} '{m.name(e['id'])}' is realized by no ApplicationService "
-              f"— no implementation traces to it.")
+              f"(directly or via a derived business-layer trace) — no implementation traces to it.")
 
     # per-service checks
     for s in services:
         sid = s["id"]
-        reqs = [r for r in m.rels(type="Realization", source=sid)
-                if m.is_type(r["target"], *REQ_TYPES)]
-        if not reqs:
+        if not coverage.get(sid):
             P("service-no-requirement", sid,
-              f"ApplicationService '{m.name(sid)}' realizes no Requirement/Constraint "
-              f"— it may be dead weight or a missing Realization edge.")
+              f"ApplicationService '{m.name(sid)}' reaches no Requirement/Constraint "
+              f"(directly or via a derived business-layer trace) — dead weight or a missing edge.")
         funcs = [r["source"] for r in m.rels(type="Realization", target=sid)
                  if m.is_type(r["source"], APP_FUNCTION)]
         comps = set()
@@ -91,7 +114,7 @@ def check(m) -> list:
               f"ApplicationService '{m.name(sid)}' is implemented but its component(s) expose "
               f"no ApplicationInterface — the protocol boundary is undefined.")
 
-    # per-component checks
+    # per-component checks (requirement coverage uses the derived coverage of its services)
     for c in m.of_type(APP_COMPONENT):
         cid = c["id"]
         funcs = [r["target"] for r in m.rels(type="Assignment", source=cid)
@@ -104,8 +127,7 @@ def check(m) -> list:
                     if m.is_type(r["target"], APP_SERVICE))
         reqs = set()
         for s in svcs:
-            reqs.update(r["target"] for r in m.rels(type="Realization", source=s)
-                        if m.is_type(r["target"], *REQ_TYPES))
+            reqs |= coverage.get(s, set())
         if not reqs:
             P("component-no-requirement", cid,
               f"ApplicationComponent '{m.name(cid)}' traces to no Requirement/Constraint "
