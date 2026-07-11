@@ -19,6 +19,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **reload-instructions** | AI指示書サブモジュールを最新版に更新し、ROOT_INSTRUCTIONを再読み込み。 |
 | **reload-and-reset** | AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセット。 |
 | **verify-content** | 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備まで一貫実行。 |
+| **agent-delegate** | 現在のエージェントから別のCLIコーディングエージェント（Codex=`codex-delegate`、Antigravity/agy=`agy-delegate`、Claude Code=`claude-code-delegate`）へタスクを委譲。明示指示のみ・読み取り優先・書き込みは preview→確認→apply ゲートを経由。3スキルを同梱。 |
 
 ### 役割スキル (Role Skills)
 

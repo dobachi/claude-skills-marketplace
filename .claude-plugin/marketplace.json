@@ -244,6 +244,11 @@
       "name": "web-frontend-dev",
       "source": "./plugins/web-frontend-dev",
       "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real implementation and consumes OpenAPI contracts."
+    },
+    {
+      "name": "agent-delegate",
+      "source": "./plugins/agent-delegate",
+      "description": "Delegate a task to another CLI coding agent — Codex (codex-delegate), Antigravity/agy (agy-delegate), or Claude Code (claude-code-delegate) — from within your current agent. Explicit-invocation only, read-first routing, and a preview→confirm→apply gate for any write. Bundles three skills."
     }
   ]
 }
