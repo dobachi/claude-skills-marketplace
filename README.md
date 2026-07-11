@@ -2,7 +2,9 @@
 
 # dobachi-skills
 
-Personal skills marketplace for Claude Code.
+Personal skills marketplace for Claude Code — and, via `install.sh`, for other coding
+agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
+[Agent Skills](https://agentskills.io) `SKILL.md` format.
 
 ## Available Plugins
 
@@ -80,13 +82,48 @@ No clone required. Registers the marketplace from GitHub and installs all plugin
 curl -fsSL https://raw.githubusercontent.com/dobachi/claude-skills-marketplace/master/install.sh | bash
 ```
 
-Requires the `claude` CLI, plus `python3` or `jq` (to parse the plugin list).
+Requires the `claude` CLI, plus `git` (one-liner mode) and `python3` or `jq`.
 Then run `/reload-plugins` in a running session, or restart Claude Code.
 
-From a local checkout you can run the same script directly — `./install.sh` — which
-discovers plugins from the directory tree instead of fetching the manifest.
+From a local checkout you can run the same script directly — `./install.sh`.
 
-### Option B — install individual plugins in-session
+The installer keeps **one on-disk copy** of the skills (`SRC_DIR`) and points every
+agent at it, so a single `git pull` updates all of them:
+
+- **checkout mode** (`./install.sh`) — `SRC_DIR` is your checkout.
+- **one-liner mode** (`curl … | bash`) — `SRC_DIR` is a neutral clone at
+  `${XDG_DATA_HOME:-~/.local/share}/agent-skills/dobachi-skills` (not Claude's private
+  plugin cache, so the other agents don't couple to it).
+
+If a different source is already registered it **reconciles** instead of silently
+overwriting; use `--force` to switch, `--status` to inspect. Useful flags:
+
+| Flag | Effect |
+|------|--------|
+| `--status` | Show what every agent currently points at, then exit (no changes) |
+| `--force` | Switch all agents to this run's `SRC_DIR`; clean stale `.bak` clones/symlinks |
+| `--no-agents` | Only (re)register the Claude Code marketplace; skip the other agents |
+| `--extra-dir DIR` | Also link into an additional discovery dir (repeatable) |
+| `--unlink` | Remove the symlinks this script created from the other agents |
+
+### Other coding agents (Codex CLI, Gemini CLI, Antigravity)
+
+`install.sh` also symlinks each skill into the discovery dirs these agents scan, so the
+same skills light up there too — no format conversion, just one shared copy:
+
+| Agent | Discovery dir it reads | Source |
+|-------|------------------------|--------|
+| Codex CLI | `~/.agents/skills/` | [OpenAI docs](https://learn.chatgpt.com/docs/build-skills) |
+| Gemini CLI | `~/.gemini/skills/` (also reads `~/.agents/skills/`) | [Google docs](https://geminicli.com/docs/cli/skills/) |
+| Antigravity CLI (1.0.x) | `~/.agents/skills/` (verified with `agy`) | [Google codelabs](https://codelabs.developers.google.com/getting-started-with-antigravity-skills) |
+
+The default run links `~/.agents/skills/` and `~/.gemini/skills/`, which covers all
+three. The **Antigravity IDE** reads `~/.gemini/config/skills/` instead — add it with
+`./install.sh --extra-dir ~/.gemini/config/skills`. Restart the agent (or start a new
+session) to pick up newly linked skills. Skills that ship helper scripts still need
+their runtime present (e.g. `python3` + the packages in the skill's `requirements.txt`).
+
+### Option B — install individual plugins in-session (Claude Code)
 
 **1. Add the marketplace (first time only)**
 

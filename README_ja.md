@@ -2,7 +2,9 @@
 
 # dobachi-skills
 
-Personal skills marketplace for Claude Code.
+Claude Code 用の個人スキルマーケットプレイス。さらに `install.sh` 経由で、同じ
+[Agent Skills](https://agentskills.io) の `SKILL.md` 形式を読む他のコーディング
+エージェント（OpenAI Codex CLI・Gemini CLI・Google Antigravity）でも使えます。
 
 ## Available Plugins
 
@@ -80,13 +82,48 @@ clone不要。GitHubからマーケットを登録し、全プラグインを一
 curl -fsSL https://raw.githubusercontent.com/dobachi/claude-skills-marketplace/master/install.sh | bash
 ```
 
-必要なもの: `claude` CLI と、`python3` または `jq`（プラグイン一覧の解析用）。
+必要なもの: `claude` CLI、`git`（ワンライナー時）、`python3` または `jq`。
 実行後、起動中セッションでは `/reload-plugins`、または Claude Code を再起動してください。
 
-ローカルにcloneしている場合は同じスクリプトを `./install.sh` で直接実行できます（マニフェストを
-取得せず、ディレクトリツリーからプラグインを検出します）。
+ローカルにcloneしている場合は同じスクリプトを `./install.sh` で直接実行できます。
 
-### 方法B — セッション内で個別にインストール
+インストーラはスキルの**実体を1つ**（`SRC_DIR`）に保ち、全エージェントをそこへ向けます。
+`git pull` 1回で全エージェントに反映されます。
+
+- **checkout モード**（`./install.sh`）— `SRC_DIR` は clone したディレクトリ。
+- **ワンライナー モード**（`curl … | bash`）— `SRC_DIR` は中立クローン
+  `${XDG_DATA_HOME:-~/.local/share}/agent-skills/dobachi-skills`（Claude 内部キャッシュ
+  ではないので、他エージェントがそこに依存しません）。
+
+別ソースが既に登録されている場合は、無断で上書きせず**照合（reconcile）**します。切替は
+`--force`、状態確認は `--status`。主なフラグ:
+
+| フラグ | 効果 |
+|--------|------|
+| `--status` | 各エージェントの現在の向き先を表示して終了（変更なし） |
+| `--force` | 全エージェントを今回の `SRC_DIR` に切替。孤立 `.bak`・古い symlink を掃除 |
+| `--no-agents` | Claude Code のマーケット登録のみ。他エージェントはスキップ |
+| `--extra-dir DIR` | 追加の探索ディレクトリにもリンク（複数指定可） |
+| `--unlink` | 本スクリプトが作成した他エージェント向け symlink を削除 |
+
+### 他のコーディングエージェント（Codex CLI・Gemini CLI・Antigravity）
+
+`install.sh` は各スキルを、これらのエージェントが走査する探索ディレクトリへ symlink します。
+形式変換は不要で、実体1つを共有するだけです。
+
+| エージェント | 読み込む探索ディレクトリ | 出典 |
+|--------------|--------------------------|------|
+| Codex CLI | `~/.agents/skills/` | [OpenAI docs](https://learn.chatgpt.com/docs/build-skills) |
+| Gemini CLI | `~/.gemini/skills/`（`~/.agents/skills/` も読む） | [Google docs](https://geminicli.com/docs/cli/skills/) |
+| Antigravity CLI (1.0.x) | `~/.agents/skills/`（`agy` で実測確認） | [Google codelabs](https://codelabs.developers.google.com/getting-started-with-antigravity-skills) |
+
+既定の実行で `~/.agents/skills/` と `~/.gemini/skills/` にリンクし、上記3つを全てカバーします。
+**Antigravity IDE** だけは `~/.gemini/config/skills/` を読むため、その場合は
+`./install.sh --extra-dir ~/.gemini/config/skills` を使ってください。新規リンクの反映には
+エージェントの再起動（または新セッション）が必要です。ヘルパースクリプトを同梱するスキルは、
+実行時ランタイム（例: `python3` とスキルの `requirements.txt`）が別途必要です。
+
+### 方法B — セッション内で個別にインストール（Claude Code）
 
 **1. マーケットプレイスを追加（初回のみ）**
 
