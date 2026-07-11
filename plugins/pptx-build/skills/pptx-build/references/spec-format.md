@@ -112,7 +112,7 @@ Both columns split the same grid content width — edges align by construction.
   note: "One or two sentences explaining what the reader should take away."  # optional
   source: "出典: …"                  # optional footnote (smaller, muted)
 ```
-The caption is a real caption block, not a 10pt footnote: `caption` renders as a **bold ink label** and `note` (alias `description`) as a wrapping muted explanation, both at readable sizes (`caption` / `caption_note` in `meta.size`). The image height is **reduced automatically** to reserve room for the caption block, so the figure and its explanation never collide. `source` remains a small footnote at the very bottom. If the image path is missing, a placeholder marker is drawn (and a `warning:` printed) so the deck still builds.
+In default mode the slide is built on the **Picture with Caption** layout: the figure is fitted (uncropped, aspect preserved) into that layout's real **PICTURE-placeholder region**, and the caption goes in its **caption placeholder** below — the image sits in the master's designated region, not free-floated on a blank slide. The caption is a real caption block, not a 10pt footnote: `caption` renders as a **bold ink label** and `note` (alias `description`) as a wrapping muted explanation, both at readable sizes (`caption` / `caption_note` in `meta.size`), so the figure and its explanation never collide. `source` remains a small footnote at the very bottom. If the image path is missing, a placeholder marker is drawn (and a `warning:` printed) so the deck still builds.
 
 Prefer a `caption` that names the figure and a `note` that states the takeaway — a figure without an explanation makes the audience guess.
 

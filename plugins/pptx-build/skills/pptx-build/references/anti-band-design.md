@@ -32,9 +32,9 @@ A common Office/AI look is a **colored band** — a full-width filled rectangle 
 
 This is the structural reason the output looks designed rather than assembled: alignment is guaranteed, not maintained by hand.
 
-## Titles live on the layout, bottom-anchored
+## Content lives on the layout's placeholders
 
-The title is the one element promoted onto the slide **master/layout**: `setup_layouts()` configures the content layout's title placeholder geometry once, and every content slide inherits it (`slide.shapes.title`). This is the "exists once" guarantee for the title box — edit that layout in PowerPoint and all titles move together. The placeholder is **bottom-anchored** to a shared baseline, so:
+Titles **and body content** are written into the standard layouts' real placeholders, not free textboxes on a blank slide. `setup_layouts()` configures each layout's placeholder geometry once (title region, body region, two columns, image + caption), and every slide created from that layout inherits it (`slide.shapes.title`, and the body/subtitle/picture placeholders resolved by type). This is the "exists once" guarantee — edit a layout in PowerPoint and every slide built on it moves together. Body placeholders also have autofit turned **off**, so the master's shrink-to-fit can't override the readable-size floors. Title placeholders are **bottom-anchored** to a shared baseline, so:
 
 - One- and two-line titles share the same baseline and line up when you flip through.
 - A two-line title grows **upward** into the top margin; it can never reach down into the hairline or body. (Overlapping titles were the original "looks careless" tell this fixes.)

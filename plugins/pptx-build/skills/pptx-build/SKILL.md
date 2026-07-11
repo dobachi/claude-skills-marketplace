@@ -9,7 +9,7 @@ description: Generate clean, white-based .pptx decks that don't look AI-made —
 
 Produces an actual `.pptx` file. Two rendering paths share one spec:
 
-- **Default mode** — a deck that reads as human-designed: white background, quiet typography, one restrained accent, everything snapped to a shared grid. The opposite of a default-template AI deck.
+- **Default mode** — a deck that reads as human-designed: white background, quiet typography, one restrained accent, everything snapped to a shared grid. Content is written into the **standard PowerPoint layouts' real placeholders** (title / body / subtitle / picture), never free textboxes floated onto a blank slide — so the deck is master-governed even without a supplied template. The opposite of a default-template AI deck.
 - **Template-fill mode** — open a **real** `.pptx`/`.potx` the user provides and write content into **its slide layouts and placeholders**, so the deck inherits the template's master, theme, fonts, and logos. This is what "use our company template" actually means.
 
 **Engine: python-pptx.** Chosen specifically because it can *open* an existing binary template and address its placeholders — the thing PptxGenJS could not do. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **pptx-design** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
@@ -24,7 +24,7 @@ Produces an actual `.pptx` file. Two rendering paths share one spec:
 
 These target the failure modes that make generated decks look careless. All are automatic — you don't configure them.
 
-4. **Master-governed titles that never overlap.** Default-mode titles are written into a real slide-**layout title placeholder** whose geometry is set once (the "use the slide master" property — edit that layout later in PowerPoint and every title moves together). The box is **bottom-anchored**, so a long two-line title grows *upward* into the top margin and can never collide with the hairline or the body. The title size **auto-fits** to the largest value that stays within two lines.
+4. **Master-governed placeholders that never overlap.** Default mode builds every slide on a **standard PowerPoint layout** (Title Slide / Section Header / Title and Content / Two Content / Picture with Caption / Blank) and writes titles **and body content** into that layout's real **placeholders** — never free textboxes on a blank page. Each placeholder's geometry is set once on the layout (the "use the slide master" property — edit a layout later in PowerPoint and every slide built on it moves together). Title boxes are **bottom-anchored**, so a long two-line title grows *upward* into the top margin and can never collide with the hairline or the body. The title size **auto-fits** to the largest value that stays within two lines; body placeholders have autofit turned **off** so the template's shrink-to-fit can never override the readable-size floors (#5).
 5. **Text stays readable — it is never shrunk to fit.** Every size flows through one type scale with floors (`title_min` 24pt, `body`/`body_sub` 18/16pt). When a title or body genuinely won't fit at those sizes, the build prints a `warning:` telling you to **split or shorten** that slide — it does not silently shrink text to an unreadable size. One message per slide; split rather than cram. Tune floors with `meta.size` (see `references/spec-format.md`).
 6. **Figures get a real caption, not a footnote.** An `image` slide's `caption` is a **bold, readable label** and its `note` (alias `description`) is a wrapping explanation at a readable size; the image height is reduced automatically to reserve room for them, so figure and explanation never collide. Give every figure a `caption` that names it and a `note` that states the takeaway.
 
@@ -91,7 +91,7 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 
 ## Slide types
 
-`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `blank`. In default mode titles share one bottom-anchored placeholder baseline and the body is grid-anchored; `image` carries an optional `caption` + `note` caption block. In template-fill mode each maps to a template layout and writes the template's placeholders. Detail in `references/spec-format.md`.
+`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `blank`. In default mode each maps to a standard PowerPoint layout and writes that layout's placeholders — titles share one bottom-anchored baseline, body/columns go in the layout's body placeholder(s), and `image` fits the figure into a real PICTURE-placeholder region with its `caption` + `note` in the caption placeholder. In template-fill mode each maps to the *supplied* template's layout and placeholders instead. Detail in `references/spec-format.md`.
 
 ## Themes vs. templates — pick the right one
 
