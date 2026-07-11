@@ -1,0 +1,9 @@
+# Python bytecode (skills ship .py sources; compiled artifacts are regenerated)
+__pycache__/
+*.py[cod]
+
+# Node dependencies (skills declare deps; installs are local, not committed)
+node_modules/
+
+# OS / editor cruft
+.DS_Store
