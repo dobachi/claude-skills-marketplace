@@ -179,6 +179,18 @@ skill_names_in() {
   done
 }
 
+# Resolve the real skill directory for skill <name> under source dir <d>.
+# A skill usually lives at plugins/<name>/skills/<name>, but a plugin MAY hold
+# several skills (plugins/<plugin>/skills/<name>), so resolve by globbing rather
+# than assuming plugin-name == skill-name. Echoes the first matching dir.
+skill_src_for() {
+  local d="$1" n="$2" s
+  for s in "$d"/plugins/*/skills/"$n"/; do
+    [ -f "$s/SKILL.md" ] && { printf '%s' "${s%/}"; return 0; }
+  done
+  return 1
+}
+
 # ---- --unlink: remove our symlinks, then exit ------------------------------
 unlink_all() {
   local src="${CHECKOUT_DIR:-$NEUTRAL_SRC}" removed=0
@@ -229,7 +241,7 @@ print_status() {
       [ -n "$n" ] || continue
       local dst="$base/$n"
       if [ -L "$dst" ]; then
-        if [ "$(readlink -f "$dst" 2>/dev/null)" = "$(readlink -f "$src/plugins/$n/skills/$n" 2>/dev/null)" ]; then ok=$((ok+1)); else other=$((other+1)); fi
+        if [ "$(readlink -f "$dst" 2>/dev/null)" = "$(readlink -f "$(skill_src_for "$src" "$n")" 2>/dev/null)" ]; then ok=$((ok+1)); else other=$((other+1)); fi
       else
         miss=$((miss+1))
       fi
@@ -374,7 +386,7 @@ link_into() {
   local n
   while IFS= read -r n; do
     [ -n "$n" ] || continue
-    link_one "$SRC_DIR/plugins/$n/skills/$n" "$base/$n"
+    link_one "$(skill_src_for "$SRC_DIR" "$n")" "$base/$n"
   done < <(skill_names_in "$SRC_DIR")
   log "  $base : ${c_grn}${LN_NEW} new${c_off}, ${LN_RELINK} repointed, ${LN_OK} already-ok, ${LN_SKIP} skipped"
 }

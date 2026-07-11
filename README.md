@@ -19,6 +19,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 | **reload-instructions** | Updates AI instruction submodules to the latest version and reloads ROOT_INSTRUCTION. |
 | **reload-and-reset** | Updates the AI instruction system to the latest version and resets AI behavior to follow instructions. |
 | **verify-content** | Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references. |
+| **agent-delegate** | Delegate a task to another CLI coding agent — Codex (`codex-delegate`), Antigravity/agy (`agy-delegate`), or Claude Code (`claude-code-delegate`) — from your current agent. Explicit-invocation only, read-first routing, and a preview→confirm→apply gate for any write. Bundles three skills. |
 
 ### Role Skills
 
@@ -59,6 +60,24 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 | **doc-coauthoring** | Guided, knowledge-grounded co-authoring workflow for substantial documents — three optional, composable stages (context gathering, section-by-section drafting, reader-testing). Grounds facts in a domain knowledge base with cited sources and consistent terminology, drafts into a working file, preserves human [人] edits, and hands off review/refactor/fact-check/de-AI/translation to sibling skills. Bilingual JA/EN. |
 | **doc-refactor** | Refactors prose documents — restructures and de-duplicates without changing meaning, the way code refactoring preserves behavior. Diagnose-first workflow (reverse outline → issue inventory → confirm moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them. |
 | **ai-tell-reducer** | Reduces the "AI-ness" of writing — uniform sentence rhythm, reflexive hedging, vague abstraction, formulaic scaffolding, inflated vocabulary, and surface tics (em-dash / bold / rule-of-three overuse) — while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Bilingual (Japanese / English). |
+| **doc-review** | Critical, read-only review of a prose document — the prose counterpart of `/code-review`. Hunts substantive weaknesses (unsound argument, buried conclusion, thin evidence, unstated assumptions, missing counterargument, audience mismatch, internal contradiction) across a genre-weighted rubric, adversarially verifies its own findings, and returns a prioritized findings report without editing the text. Bilingual JA/EN. |
+| **humanize-prose** | Rewrites AI-generated or AI-assisted text to read as human-authored: reduces common AI tells (em-dash overuse, "delve"/"leverage", tricolons, reflex bullet lists, generic openers/closers) while preserving meaning, register, and facts. Bilingual (English / Japanese), reader-experience focused. |
+| **math-paper** | Mathematical paper writing support: notation consistency (Symbol Ledger), theorem/proof structure, equation cross-references, and journal/arXiv submission preparation. Works with LaTeX and Markdown+math. |
+
+### Enterprise Architecture & Engineering
+
+| Plugin | Description |
+|---|---|
+| **archimate-ea** | Conversational ArchiMate 3.2 EA facilitator (greenfield). Elicits requirements and designs the full layered model into one YAML source of truth, validates it against the metamodel, then generates PlantUML views and Open Group Exchange XML for the Archi tool. |
+| **archimate-native** | Brownfield ArchiMate: read, review, interpret, and surgically edit an EXISTING `.archimate` file in place (round-trip-safe — ids / geometry / folders / styles preserved). Counterpart to archimate-ea. |
+| **tech-selector** | Selects concrete middleware/runtime from an EA model's non-functional requirements: weighted, sensitivity-checked evaluation, an ADR for the rationale, and write-back of the decision into the model's Technology layer. |
+| **archimate-to-impl** | Bridges an EA model's Application layer to implementation: requirement→component→service→api→task traceability, OpenAPI skeletons per service, DataObject entity stubs, per-component task lists, and orphan checks. |
+| **ea-delivery** | End-to-end conductor for EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills, carrying `ea-model.yaml` as the through-line and gating each handoff. |
+| **web-frontend-dev** | Builds production web front-ends (SPA and beyond): component architecture, state management, cached API data-fetching, forms and data tables, auth/session UI, and accessibility. Consumes OpenAPI contracts. |
+| **event-driven-service** | Designs event-driven, asynchronous, and real-time services beyond REST: messaging (queues/streams), async workers, scheduled jobs, and WebSocket/SSE push, with idempotency, ordering, delivery guarantees, and backpressure. |
+| **plugin-platform** | Designs a plugin / extension platform (e.g. an algorithm marketplace): a stable versioned SDK contract, a registry with discovery and compatibility, and safe execution of untrusted code via sandboxing and least authority. |
+| **simulation-harness** | Builds simulation and backtesting harnesses: generate scenarios, run discrete-event or time-stepped models, replay history, collect metrics, and compare variants (A/B) reproducibly under fixed seeds. |
+| **optimization-modeling** | Mathematical optimization / decision-engineering: formulate decisions as LP/MILP/convex/stochastic models, drive a solver, handle uncertainty (stochastic & robust), and validate with feasibility and sensitivity checks. |
 
 ### Research
 
