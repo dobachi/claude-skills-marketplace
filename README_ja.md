@@ -15,6 +15,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **build** | プロジェクトに適したビルドコマンドを検出・実行。Node.js、Rust、Python、Go、Makefileなど主要タイプに対応。 |
 | **checkpoint** | AI指示書システムのチェックポイント管理。タスクの開始・進捗・完了を追跡し、指示書の使用状態を管理。 |
 | **commit-and-report** | 変更のコミット、リモートへのプッシュ、GitHub Issueへの進捗報告を一括実行。 |
+| **commit-safe** | 変更を確認してから選択的にコミット。大きな変更ではファイル指定を提案し、`git add -A` を防止。AI署名を防ぐ自己完結の commit.sh を同梱。 |
 | **github-issues** | GitHub Issueの一覧取得、ラベル別集計、優先度分析を行い、タスクを整理・提案。 |
 | **reload-instructions** | AI指示書サブモジュールを最新版に更新し、ROOT_INSTRUCTIONを再読み込み。 |
 | **reload-and-reset** | AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセット。 |

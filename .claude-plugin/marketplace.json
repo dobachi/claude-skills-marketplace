@@ -31,6 +31,11 @@
       "description": "Commits changes, pushes to remote, and reports progress to a GitHub Issue in a single workflow."
     },
     {
+      "name": "commit-safe",
+      "source": "./plugins/commit-safe",
+      "description": "Assists with safe, selective commits: reviews changes before committing, suggests file-specific commits for large changesets, and prevents blanket 'git add -A'. Bundles a self-contained commit helper that blocks AI-signed commit messages."
+    },
+    {
       "name": "github-issues",
       "source": "./plugins/github-issues",
       "description": "Fetches GitHub Issues, aggregates by label, analyzes priorities, and organizes tasks with actionable suggestions."

@@ -1,0 +1,6 @@
+{
+  "name": "commit-safe",
+  "description": "Assists with safe, selective commits. Reviews changes before committing, suggests file-specific commits for large changesets, and prevents blanket 'git add -A'. Bundles a self-contained commit helper that blocks AI-signed commit messages.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
