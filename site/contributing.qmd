@@ -1,0 +1,14 @@
+---
+title: "開発ガイド"
+description: "スキルの追加・更新手順とオーサリングのベストプラクティス"
+---
+
+このページは、リポジトリの `docs/` にある開発ドキュメントをそのまま取り込んでいます。
+
+## スキルの追加・更新
+
+{{< include ../docs/adding-or-updating-a-skill.md >}}
+
+## オーサリングのベストプラクティス
+
+{{< include ../docs/skill-authoring-best-practices.md >}}

@@ -1,0 +1,81 @@
+---
+title: "EAスキルの全体像"
+description: "要求分析から実装・サービス化までを一気通貫でつなぐEAスキル群"
+---
+
+エンタープライズアーキテクチャ（EA）スキル群は、**要求分析 → 設計 → 技術選定 → 実装への橋渡し
+→ サービス化** を、1 本の running model（`ea-model.yaml`）を真実の源として引き回しながら
+つなぐスキルの集まりです。設計はモデルを起点に生成しながら前進し（generate-forward）、
+各ハンドオフでトレーサビリティのギャップ（オーファン）を検出します。
+
+まだの方は先に [共通コンセプトと前提条件](concepts.qmd) を読むと、各スキルの理解が速くなります。
+
+## 連鎖の全体図
+
+```{mermaid}
+flowchart TB
+  subgraph Cond[" "]
+    E["<b>ea-delivery</b><br/>薄い司令塔：順序・ゲート・進捗台帳"]
+  end
+
+  subgraph Chain["設計〜サービス化の鎖（ea-model.yaml を通す）"]
+    direction LR
+    A["<b>archimate-ea</b><br/>要求分析・設計<br/>（新規/YAML）"]
+    T["<b>tech-selector</b><br/>技術選定<br/>＋ADR＋書き戻し"]
+    I["<b>archimate-to-impl</b><br/>実装への橋渡し<br/>トレーサビリティ/OpenAPI"]
+    D["<b>開発スキル群</b><br/>web-api-dev ほか"]
+    S["<b>サービス化</b><br/>project-manager /<br/>github-issues"]
+    A --> T --> I --> D --> S
+    I -. "back-edge：新NFR発覚" .-> T
+  end
+
+  R["<b>requirements-stories</b><br/>要求定義・ユーザーストーリー<br/>（backlog.yaml）"]
+  N["<b>archimate-native</b><br/>既存 .archimate の<br/>その場編集（往復）"]
+
+  E -. 委譲 .-> A
+  E -. 委譲 .-> T
+  E -. 委譲 .-> I
+  E -. 委譲 .-> D
+  A -->|EA要求を分解| R
+  R -->|shared requirement id| I
+  N -. 往復 .-> A
+
+  classDef hub fill:#eaf3ff,stroke:#4a90d9,stroke-width:2px;
+  class E hub;
+```
+
+## フェーズと担当スキル
+
+| フェーズ | 担当スキル | 主な入力 | 主な出力 | 次に渡すゲート |
+|---|---|---|---|---|
+| 要求分析・設計 | [archimate-ea](archimate-ea.qmd) | ブリーフ（頭の中） | `ea-model.yaml`, PlantUML, Archi用XML | メタモデル検証がクリーン |
+| 要求定義・ストーリー | [requirements-stories](requirements-stories.qmd) | `ea-model.yaml`（任意） | `backlog.yaml`, Markdown, Gherkin | INVEST/EARS検証＋トレース |
+| 技術選定 | [tech-selector](tech-selector.qmd) | `ea-model.yaml`（Tech層の空欄） | ADR, 評価表, モデルへ書き戻し | 全空欄が製品を持ちADR紐付け |
+| 実装への橋渡し | [archimate-to-impl](archimate-to-impl.qmd) | `ea-model.yaml`（App層） | トレーサビリティ, OpenAPI, タスク | オーファン無し（or 対象外判断） |
+| 実装 | 開発スキル群 | OpenAPI skeleton, タスク | 実装コード | 各タスクに担当・コミット |
+| （既存モデル編集） | [archimate-native](archimate-native.qmd) | 既存 `.archimate` | その場編集, レポート | — |
+| 一気通貫の指揮 | [ea-delivery](ea-delivery.qmd) | `delivery-ledger.yaml` | 進捗台帳, ゲート記録 | 各フェーズを委譲で駆動 |
+
+## 2つの入口 — 新規 or 既存
+
+- **新規（greenfield）**：頭の中の構想から始める → [archimate-ea](archimate-ea.qmd) が
+  `ea-model.yaml` を対話設計し、図と Archi 用 XML を生成。
+- **既存（brownfield）**：すでに Archi で作った `.archimate` がある → [archimate-native](archimate-native.qmd)
+  が、id・座標・スタイルを保ったまま**その場で**読解・レビュー・編集。
+
+## 引き回す「真実の源」ファイル
+
+| ファイル | 所有スキル | 役割 |
+|---|---|---|
+| `ea-model.yaml` | archimate-ea | EA設計の主軸。tech-selector が書き戻し、下流は読み取り専用で参照 |
+| `backlog.yaml` | requirements-stories | 開発バックログの真実。ea-delivery では第2の through-line |
+| `criteria.yaml` | tech-selector | 技術選定の評価軸・重み（その決定専用の作業ファイル） |
+| `delivery-ledger.yaml` | ea-delivery | 進捗・back-edge の制御台帳（真実ではなく制御状態） |
+
+## 単体でも使える
+
+各スキルは鎖の一部としても、単体としても使えます。たとえば
+[requirements-stories](requirements-stories.qmd) は EAモデルが無くてもアジャイルの
+要求定義・ストーリー作成だけに使えますし、[tech-selector](tech-selector.qmd) だけを
+技術選定に使うこともできます。全体を一気通貫で回したいときは
+[ea-delivery](ea-delivery.qmd) が指揮します。

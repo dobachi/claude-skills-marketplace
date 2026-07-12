@@ -1,0 +1,65 @@
+---
+title: "dobachi-skills ドキュメント"
+description: "Claude Code とコーディングエージェント向けスキルマーケットプレイス"
+toc: false
+---
+
+`dobachi-skills` は、[Claude Code](https://claude.com/claude-code) や、同じ
+[Agent Skills](https://agentskills.io) 形式の `SKILL.md` を読む他のコーディングエージェント
+（OpenAI Codex CLI、Gemini CLI、Google Antigravity）向けの、個人用スキルマーケットプレイスです。
+
+このサイトは、その中でも **エンタープライズアーキテクチャ（EA）駆動デリバリ** のスキル群を
+中心に、使い方をまとめたドキュメントです。
+
+## どこから読むか
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-4}
+### 🏛️ [EAスキル](ea/index.qmd)
+要求分析から設計・技術選定・実装・サービス化までを一気通貫でつなぐ 6 つのスキル。
+まずは [全体像](ea/index.qmd) と [共通コンセプト](ea/concepts.qmd) から。
+:::
+
+::: {.g-col-12 .g-col-md-4}
+### 📚 [全スキル一覧](skills/index.qmd)
+このマーケットプレイスに含まれる全プラグインのカタログ（自動生成）。
+:::
+
+::: {.g-col-12 .g-col-md-4}
+### 🛠️ [開発ガイド](contributing.qmd)
+スキルの追加・更新手順と、オーサリングのベストプラクティス。
+:::
+
+:::
+
+## EA駆動デリバリの一枚絵
+
+EAスキルは、1 本の running model（`ea-model.yaml`）を真実の源として引き回しながら、
+上流の設計を下流の実装へ「生成しながら前進（generate-forward）」させます。
+
+```{mermaid}
+flowchart LR
+  A[archimate-ea<br/>要求分析・設計] --> R[requirements-stories<br/>要求定義・ストーリー]
+  A --> T[tech-selector<br/>技術選定]
+  R --> I[archimate-to-impl<br/>実装への橋渡し]
+  T --> I
+  I --> D[開発スキル群<br/>web-api-dev / web-frontend-dev ほか]
+  N[archimate-native<br/>既存モデルの編集] -. 往復 .-> A
+  E[ea-delivery] === |一気通貫で指揮| A
+
+  classDef hub fill:#eaf3ff,stroke:#4a90d9;
+  class E hub;
+```
+
+詳しくは [EAスキルの全体像](ea/index.qmd) を参照してください。
+
+::: {.callout-tip}
+## インストール
+```bash
+/plugin marketplace add dobachi/claude-skills-marketplace
+/plugin install requirements-stories@dobachi-skills
+```
+Claude Code 以外のエージェント（Codex CLI / Gemini CLI / Antigravity）へは、
+リポジトリ同梱の `install.sh` で導入できます。
+:::

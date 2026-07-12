@@ -1,0 +1,61 @@
+project:
+  type: website
+  output-dir: _site
+  pre-render: scripts/gen_catalog.py
+
+lang: ja
+
+website:
+  title: "dobachi-skills"
+  description: "Claude Code / コーディングエージェント向けスキルマーケットプレイスのドキュメント"
+  repo-url: https://github.com/dobachi/claude-skills-marketplace
+  repo-branch: master
+  repo-subdir: site
+  repo-actions: [source, issue]
+  navbar:
+    left:
+      - href: index.qmd
+        text: ホーム
+      - href: ea/index.qmd
+        text: EAスキル
+      - href: skills/index.qmd
+        text: 全スキル一覧
+      - href: contributing.qmd
+        text: 開発ガイド
+    right:
+      - icon: github
+        href: https://github.com/dobachi/claude-skills-marketplace
+        aria-label: GitHub
+  sidebar:
+    - id: ea
+      title: "EA駆動デリバリのスキル"
+      style: docked
+      contents:
+        - ea/index.qmd
+        - ea/concepts.qmd
+        - section: "個別スキル"
+          contents:
+            - text: "archimate-ea（要求分析・設計）"
+              href: ea/archimate-ea.qmd
+            - text: "requirements-stories（要求定義・ストーリー）"
+              href: ea/requirements-stories.qmd
+            - text: "tech-selector（技術選定）"
+              href: ea/tech-selector.qmd
+            - text: "archimate-to-impl（実装橋渡し）"
+              href: ea/archimate-to-impl.qmd
+            - text: "archimate-native（既存モデル編集）"
+              href: ea/archimate-native.qmd
+            - text: "ea-delivery（一気通貫の指揮）"
+              href: ea/ea-delivery.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-title: 目次
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+    number-sections: false
+    mermaid:
+      theme: neutral

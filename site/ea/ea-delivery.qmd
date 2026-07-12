@@ -1,0 +1,89 @@
+---
+title: "ea-delivery — 一気通貫の指揮"
+description: "要求からサービス化までの全鎖を、専門スキルへ委譲して順序立てて回す司令塔"
+---
+
+## コンセプト
+
+要求 → 設計 → 技術選定 → 実装 → サービス化の**全鎖を一気通貫**で回す
+オーケストレーターです。**薄い司令塔（thin conductor）**であることが要点で、
+自分は順序・through-line モデル・ゲート・進捗台帳だけを持ち、**各フェーズの作業は
+所有スキルへ委譲**します（自分でフェーズ作業を始めてしまったら、止めてそのスキルを呼びます）。
+`ea-model.yaml` をフェーズ間の through-line として運びます。
+
+## 位置づけ・前後の連携
+
+鎖の**エントリポイント**であり、全フェーズの上に薄く被さります。既存モデルがあれば
+任意のフェーズから開始できます（adaptive entry）。
+
+- **委譲先**：要求・設計→[archimate-ea](archimate-ea.qmd)、技術選定→[tech-selector](tech-selector.qmd)、
+  実装橋渡し→[archimate-to-impl](archimate-to-impl.qmd)、開発→開発スキル群、
+  サービス化→`project-manager` / `github-issues` / `commit-and-report`。
+- [requirements-stories](requirements-stories.qmd) からは `backlog.yaml` を、
+  `ea-model.yaml` と並ぶ**第2の through-line** として受け取ります。
+
+## 前提条件
+
+- 特別なツール依存は**なし**（ソフトなオーケストレーション。コードで強制はしません）。
+- `delivery-ledger.yaml`（自分で作成・初期化します）。
+- 各フェーズのスキルとその依存（Python 等）は、委譲するタイミングで必要になります。
+
+## 全体像
+
+フェーズは状態機械として進みます。前進は**通過したゲート経由でのみ**許されます。
+下流で新しい非機能要求が判明したら、tech-selection へ **back-edge** で戻します。
+
+```{mermaid}
+stateDiagram-v2
+  direction LR
+  [*] --> requirements
+  requirements --> design
+  design --> tech_selection
+  tech_selection --> bridge
+  bridge --> implementation
+  implementation --> service
+  service --> [*]
+  bridge --> tech_selection: back-edge（新NFR）
+```
+
+## 流れ
+
+1. **LOCATE**：`delivery-ledger.yaml` を読む／初期化し、現フェーズを判定。
+2. **DELEGATE**：そのフェーズの所有スキルを呼ぶ（自分は作業しない）。
+3. **GATE**：ハンドオフのゲートを実行し、結果を台帳に記録。
+4. **ADVANCE or BACK-EDGE**：合格なら次フェーズ、新NFR なら tech-selection へ戻す。
+   毎回台帳を更新。
+5. `service` が `done` かつ未解決の back-edge が無くなるまで繰り返す。
+
+**ゲートの例**：要求→設計（メタモデル検証クリーン）、技術選定→橋渡し（全空欄が製品を持ち
+各決定が ADR、書き戻し後も検証クリーン）、橋渡し→実装（`trace_check.py` がオーファン無し
+or 対象外判断済み）、実装→サービス化（全タスクに担当・コミット済み）。
+
+## 使い方（プロンプト例）
+
+```text
+この新規事業を EA 駆動で一気通貫にサービス化まで進めたい。今どのフェーズにいるか判定して、
+次にやるべきことを指揮して。
+```
+
+```text
+実装中に「監査ログの保持は7年」という新しい非機能要求が出てきた。
+back-edge の手順に沿って、モデルへの要求追加と技術選定のやり直しを段取りして。
+```
+
+```text
+delivery-ledger の状態を見せて。次のフェーズに進むためのゲートは満たされている？
+```
+
+## 結果として得られるもの
+
+- `delivery-ledger.yaml` — 現フェーズ・成果物の所在・未解決 back-edge を記録する制御台帳。
+- 各ハンドオフのゲート判定の記録。
+- （各フェーズの実成果物は、委譲先スキルが `ea-model.yaml` などに生成します。）
+
+## スコープ外（やらないこと）
+
+- モデリング・スコアリング・コード生成そのもの（すべて所有スキルへ委譲）。
+- コードによる強制（規律はゲートのチェックリスト。ソフトなオーケストレーション）。
+- 決定的な無人・反復のマルチエージェント実行（それは Workflow ツールの領域）。
+- `ea-model.yaml` を所有・編集すること（共有の真実として各ゲートで検証するのみ）。

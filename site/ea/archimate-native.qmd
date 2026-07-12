@@ -1,0 +1,78 @@
+---
+title: "archimate-native — 既存モデルのその場編集"
+description: "Archiで作った既存の .archimate ファイルを真実として読解・レビュー・編集"
+---
+
+## コンセプト
+
+Archi ツールで生まれた**既存の `.archimate` ファイルそのものを真実**とし、
+**その場で（in place）** 読解・レビュー・解釈・外科的編集するスキルです。
+round-trip-safe＝id・座標（`bounds`/`bendpoint`）・フォルダ・スタイルを保ち、
+未編集でロードして保存すればバイト同一になります。version-aware な語彙ブリッジで
+Archi の native 型を ArchiMate 3.2 の正規語彙に対応づけます。
+
+## 位置づけ・前後の連携
+
+[archimate-ea](archimate-ea.qmd) の**ブラウンフィールド（既存）版の対**です。
+
+- **上流**：既に存在する `.archimate` ファイル（Archi プロジェクト）。
+- **対になるスキル**：[archimate-ea](archimate-ea.qmd)（新規設計・YAML が真実）。
+- 新規にゼロから設計するなら archimate-ea、既存ファイルを触るなら本スキル、と使い分けます。
+
+## 前提条件
+
+- **既存の `.archimate` ファイル**が必須。
+- Python 3、`pip install -r scripts/requirements.txt`（**lxml のみ**）。
+- 図をPNG化する場合のみ PlantUML + Graphviz（best-effort）。
+
+## 全体像
+
+コンセプト／関係の id 空間と、ダイアグラム上のオブジェクト／接続の id 空間という
+**2 つの id 空間**を区別して扱います。読み取り系（review/interpret）と書き込み系（edit）で
+スクリプトが分かれ、編集は必ず dry-run で差分を見てから適用します。
+
+```{mermaid}
+flowchart LR
+  F[(MODEL.archimate<br/>既存・その場編集)] --> RV[review_native.py<br/>summary/violations/orphans]
+  F --> ED[edit_native.py<br/>add/rename/delete（dry-run→適用）]
+  F --> RP[report_native.py / PlantUML]
+```
+
+## 流れ
+
+1. **LOAD & SUMMARIZE**：`review_native.py summary`（時代・レイヤー別カウント・red flags）。
+2. **意図で分岐**：
+   - REVIEW → `violations` / `orphans`
+   - INTERPRET → `trace` / `interpret-view`
+   - EDIT → 提案 → `edit_native.py … --dry-run` で差分 → 確認 → 適用
+3. **RE-SUMMARIZE**：編集後の新しい状態を提示。
+
+## 使い方（プロンプト例）
+
+```text
+この既存の model.archimate を読み込んで、レイヤー別の構成と、メタモデル違反・
+孤立要素（orphans）があれば教えて。
+```
+
+```text
+この顧客ポータル・コンポーネントから出ている依存関係を追って（trace）、
+どのサービスを使っているか解釈して。
+```
+
+```text
+「通知サービス」コンポーネントを追加して、注文サービスから Serving 関係を張りたい。
+まず dry-run で差分を見せて。問題なければ適用して。
+```
+
+## 結果として得られるもの
+
+- その場編集された `MODEL.archimate`（id・座標・スタイル保持）。
+- Markdown レビューレポート（`-o report.md`）。
+- レビュー用の PlantUML 図（実際の座標はファイル内に残る）。
+
+## スコープ外（やらないこと）
+
+- ファイル全体の再生成・未編集領域の再整形。
+- パーサを介さない手 XML 編集、メタモデルチェック無しの関係追加、cascade しない要素削除。
+- 既存ダイアグラムオブジェクトの移動・リサイズ、語彙の時代（legacy↔modern）昇格、カタログ外の型の発明。
+- 新規ゼロ設計 → [archimate-ea](archimate-ea.qmd) へ。

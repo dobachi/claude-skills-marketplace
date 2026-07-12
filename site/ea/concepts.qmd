@@ -1,0 +1,77 @@
+---
+title: "共通コンセプトと前提条件"
+description: "EAスキル群に共通する設計思想・用語・前提条件"
+---
+
+EAスキル群は個別に使えますが、いくつかの共通した設計思想の上に成り立っています。
+各スキルのページを読む前に、ここで共通の考え方・用語・前提条件を押さえておくと理解が速くなります。
+
+## 5つの共通コンセプト
+
+### 1. running model は真実の源（single source of truth）
+
+設計情報は 1 本の running model ファイルに集約します。EAレベルでは
+`ea-model.yaml`、開発バックログでは `backlog.yaml` がそれにあたります。図・XML・
+スケルトンなどはすべてこのファイルから**生成される下流成果物**であり、手で書き換えません。
+直したいときは running model を編集して**再生成**します。
+
+### 2. 生成しながら前進する（generate-forward）
+
+上流（要求・設計）から下流（図・XML・API・タスク）へ、モデルを起点に成果物を
+生成して前進します。逆向きの手作業同期を避けることで、成果物がモデルからズレません。
+
+### 3. 上流は読み取り専用（read-only upstream）
+
+下流のスキルは上流のモデルを**書き換えません**。たとえば `archimate-to-impl` や
+`requirements-stories` は `ea-model.yaml` を読むだけで、変更が必要なら
+「上流（`archimate-ea`）に差し戻す問い」として提示します。責務の混線を防ぎます。
+
+### 4. トレーサビリティと「オーファンこそ成果物」
+
+要求 → 設計 → 実装 → 検証を ID でつなぎます。最も価値ある出力は、
+鎖の切れ目＝**オーファン**の一覧です。
+
+- どの実装にもつながらない要求 → 実装漏れ、または対象外の判断
+- どの要求にもつながらない部品／ストーリー → スコープクリープ、またはモデルに昇格すべき新要求
+
+これらを隠さず「次の問い」として突き出します。
+
+### 5. 対話で設計する（facilitate, don't dictate）
+
+一括生成ではなく、モデルの断片を提案し、ユーザーに赤入れしてもらいながら育てます。
+ユーザーの「そこは違う」が最も価値あるシグナルです。
+
+## 往復（round-trip）— greenfield と brownfield
+
+EAモデルには 2 つの入口があります。
+
+- **greenfield**：`archimate-ea` でゼロから `ea-model.yaml` を対話設計し、PlantUML と
+  Archi 用 XML を生成する。
+- **brownfield**：すでに Archi で作った `.archimate` ファイルがある場合は
+  `archimate-native` で、その場で（id・座標・フォルダ・スタイルを保ったまま）読解・
+  レビュー・編集する。
+
+## 前提条件（共通）
+
+| 項目 | 要否 | 補足 |
+|---|---|---|
+| Python 3 | スクリプトを使う各スキルで必要 | 検証・生成スクリプトの実行に使用 |
+| PyYAML | 同上 | `pip install -r scripts/requirements.txt`（多くは PyYAML のみ） |
+| PlantUML（+ Java） | 図をPNG/SVGにする場合のみ | `.puml` テキストの生成自体には不要 |
+| Archi ツール | Open Exchange XML を読み込む場合 | 生成した XML を GUI で開く・往復編集する用途 |
+| 既存の running model | 下流スキルで必要 | `ea-model.yaml`（`tech-selector`/`archimate-to-impl`）や `.archimate`（`archimate-native`） |
+
+各スキルの「前提条件」節に、そのスキル固有の要否をまとめています。
+
+## 用語集
+
+| 用語 | 意味 |
+|---|---|
+| ArchiMate 3.2 | The Open Group によるEAモデリング言語。動機・ビジネス・アプリ・技術などの層を持つ |
+| running model | 真実の源となる編集対象ファイル（`ea-model.yaml` / `backlog.yaml`） |
+| Motivation層 | ArchiMateの動機層。Stakeholder / Goal / Requirement / Constraint などを含む |
+| Open Exchange XML | The Open Group標準の交換形式。Archiツールが読み書きできる |
+| traceability | 要求→設計→実装→検証を ID で結ぶ追跡可能性 |
+| オーファン | どちらか片側にしかつながっていない要素（鎖の切れ目） |
+| INVEST / EARS | 良いユーザーストーリー／要求文の品質基準（[requirements-stories](requirements-stories.qmd) 参照） |
+| ADR | Architecture Decision Record。技術選定などの意思決定の記録 |

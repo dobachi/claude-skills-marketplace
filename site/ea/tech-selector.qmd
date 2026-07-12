@@ -1,0 +1,88 @@
+---
+title: "tech-selector — 技術選定"
+description: "EAモデルの非機能要求から、重み付け評価でミドルウェア/ランタイムを選定"
+---
+
+## コンセプト
+
+EAモデルの非機能要求をもとに、具体的なミドルウェア／ランタイムを
+**重み付き・感度分析つき**で選定するスキルです。根拠は ADR（意思決定記録）に残し、
+決定を running model の Technology 層要素に**書き戻し（write-back）** ます。
+「Relational DB」「Message broker」といった汎用名のプレースホルダを、
+具体的な製品名＋ADR参照で埋めます。`ea-model.yaml` が唯一の真実であり続けます。
+
+## 位置づけ・前後の連携
+
+[archimate-ea](archimate-ea.qmd) と [archimate-to-impl](archimate-to-impl.qmd) の**間**に位置します。
+
+- **上流**：`ea-model.yaml`（Technology 層に未選定プレースホルダがある状態）。
+- **下流へ**：[archimate-to-impl](archimate-to-impl.qmd)（決定済みモデルを実装へ）。
+- **委譲**：候補製品のファクト収集は `competitive-analysis` や Web 調査に任せ、
+  本スキルは評価・意思決定・書き戻しに集中します。
+
+## 前提条件
+
+- 既存 `ea-model.yaml`（`SystemSoftware` / `Node` / `TechnologyService` に汎用名の空欄があること）。
+- Python 3、`pip install -r scripts/requirements.txt`（PyYAML / ruamel.yaml）。
+- 候補調査のための `competitive-analysis` または Web 検索（別途）。
+
+## 全体像
+
+選定の作業ファイルは `criteria.yaml`（評価軸・重み・要求へのマッピング）。
+スコアリングは軸ごとに min-max 正規化（`direction: max|min` を尊重）して加重合計し、
+ランキングと感度分析を出します。決定は ADR に記述し、モデルへ 3 つのプロパティ
+（`selected-product` / `decision-adr` / `evaluated-on`）として書き戻します。
+
+```{mermaid}
+flowchart LR
+  M[(ea-model.yaml<br/>Tech層の空欄)] --> C[(criteria.yaml<br/>評価軸・重み)]
+  C --> SC[score.py<br/>加重評価＋感度分析]
+  SC --> ADR[ADR（意思決定記録）]
+  ADR --> WB[writeback.py]
+  WB --> M
+```
+
+## 流れ
+
+Technology プレースホルダごとに、次のループを回します。
+
+1. **FRAME**：対象要素と、効いてくる要求／制約を列挙。`criteria.yaml` を起こす。
+2. **CRITERIA**：評価軸を各要求へマップし重みを提案、ユーザーが赤入れ。
+3. **CANDIDATES**：候補を 2〜4 個に絞る（ファクト収集は competitive-analysis へ委譲）。
+4. **SCORE**：`score.py` で加重評価・ランキング・感度分析。
+5. **DECIDE + ADR**：`docs/adr/` に ADR を記述。
+6. **WRITE BACK**：`writeback.py` でモデルへ書き戻し、再検証。重み ±50% で 1 位が
+   入れ替わる脆弱なランキングは ADR に注意書きを残す。
+
+**完了条件**：未選定の全 Technology 要素が `selected-product` を持ち、各決定が ADR に
+紐づき、各 ADR が最低 1 つの要求／制約へトレースできること。
+
+## 使い方（プロンプト例）
+
+```text
+この ea-model.yaml の技術層に「Relational DB」「Message broker」の空欄がある。
+効いてくる非機能要求を洗い出して、評価軸と重みを一緒に決めたい。
+```
+
+```text
+候補を PostgreSQL / MySQL / Aurora の3つに絞った。素点を入れるので加重評価と
+感度分析をして、勝者と、重みに対する頑健性を教えて。
+```
+
+```text
+決定を ADR に書いて、ea-model.yaml の該当要素に書き戻して。書き戻し後にメタモデル検証もかけて。
+```
+
+## 結果として得られるもの
+
+- `criteria.yaml` — 評価軸・重み・要求マッピングの作業ファイル。
+- 評価マトリクス（Markdown、`out/tech-selection/`）と感度分析。
+- ADR（`docs/adr/NNNN-*.md`、MADR 形式：文脈／決定／根拠／却下案／結果）。
+- `ea-model.yaml` への書き戻し（3 プロパティ、コメント保持の round-trip マージ）。
+
+## スコープ外（やらないこと）
+
+- 候補製品のリサーチ（→ competitive-analysis / Web 検索）。
+- 要求モデリング（→ [archimate-ea](archimate-ea.qmd)）。
+- 実装（→ [archimate-to-impl](archimate-to-impl.qmd) と開発スキル群）。
+- デプロイ／プロビジョニング（ADR と書き戻しのみ）。要求が正当化しない製品は選ばない。

@@ -1,0 +1,90 @@
+---
+title: "requirements-stories — 要求定義・ユーザーストーリー"
+description: "要求を定義し、アジャイルのプロダクトバックログを1つのYAMLに育てる"
+---
+
+## コンセプト
+
+要求定義とアジャイルのユーザーストーリー作成を**対話で**行い、**1 本の `backlog.yaml`** を
+プロダクトバックログ（ペルソナ・エピック・受入基準つきユーザーストーリー・EARS表記の
+非機能要求・ストーリーマップ・MoSCoW/WSJF 優先順位）として育てるスキルです。
+Markdown バックログや Gherkin `.feature` はそこから生成されます。最も価値ある出力は
+**オーファン**（どの要求にもつながらないストーリー、どのストーリーもカバーしない要求）で、
+隠さず「次の問い」として提示します。
+
+## 位置づけ・前後の連携
+
+[archimate-ea](archimate-ea.qmd)（EAレベルの要求）と [archimate-to-impl](archimate-to-impl.qmd)
+（実装）の**間にあるアジャイル・プロダクトディスカバリ層**です。粗いEA要求を、
+受入基準つきのエピック／ストーリーへ分解します。
+
+- **上流**：`ea-model.yaml`（読み取り専用）。Motivation層から `backlog.goal`・ペルソナ・
+  エピックを種として取り込みます。
+- **下流へ**：[archimate-to-impl](archimate-to-impl.qmd) と**同じ要求 id** で照合。
+  タスク追跡は `github-issues` / `project-manager` へ。
+- **EAモデルが無くても単体で動作**します（純粋なアジャイル要求定義ツールとして）。
+
+```{mermaid}
+flowchart LR
+  EA[(ea-model.yaml<br/>read-only)] -->|要求/ペルソナを種に| B[(backlog.yaml)]
+  B --> MD[Markdownバックログ]
+  B --> G[Gherkin .feature]
+  B -->|shared requirement id| IMPL[archimate-to-impl]
+```
+
+## 前提条件
+
+- Python 3、`pip install -r scripts/requirements.txt`（**PyYAML のみ**）。
+- EA連携する場合のみ `ea-model.yaml`（読み取り専用）。無くても可。
+- 作業ディレクトリ `works/<product>/backlog.yaml`（`assets/backlog.example.yaml` が雛形）。
+
+## 全体像
+
+`backlog.yaml` は kebab-case の id（`epic-portal`, `story-self-register`）で、
+ペルソナ・エピック・ストーリー・受入基準・非機能要求・ストーリーマップを保持します。
+ストーリーは「As a … / I want … / so that …」形式か、Job Story 形式のどちらでも書けます。
+各要素は `traces_to` でEA要素 id に紐づけられます。
+
+## 流れ
+
+1エピック／1バックボーンステップずつ、次のループを回します。
+
+1. **FRAME**：ゴール・ペルソナ・変えたい行動を定義（EA連携なら Motivation 層から種取り）。
+2. **DRAFT**：ストーリーを起草（役割-目的-便益 or Job Story）。
+3. **REFINE（INVEST）**：Small/Estimable に反したら SPIDR で**垂直分割**。
+4. **CONFIRM**：受入基準を書く（ルールは箇条書き、非自明は Given-When-Then）。
+5. **CAPTURE NFRs**：非機能要求を EARS 表記＋測定可能な `metric` で。
+6. **PRIORITIZE & MAP**：MoSCoW / WSJF、ストーリーマップに配置（初回リリース＝walking skeleton）。
+7. **VALIDATE**：`validate_backlog.py`（構造ERROR＋INVEST/EARS の WARN）。
+8. **TRACE**：`trace_check.py`（EA連携時、双方向カバレッジ。未連携なら no-op）。
+9. **EMIT**：`emit_backlog_md.py` / `emit_gherkin.py`。
+
+## 使い方（プロンプト例）
+
+```text
+この新機能の要求定義をしたい。まずペルソナとゴールを整理して、
+ユーザーストーリーと受入基準（Given-When-Then）を backlog.yaml に起こして。
+```
+
+```text
+このストーリーが大きすぎる気がする。INVEST で見て、必要なら SPIDR で分割案を出して。
+```
+
+```text
+backlog.yaml を検証して、INVEST/EARS の観点で弱いストーリーを指摘して。
+そのあと ea-model.yaml と突き合わせて、カバーできていない要求があれば教えて。
+```
+
+## 結果として得られるもの
+
+- `backlog.yaml` — バックログの真実の源。
+- Markdown バックログ（エピック→ストーリー、受入基準、MoSCoW ビュー、WSJF ランキング、ストーリーマップ）。
+- Gherkin `.feature` スケルトン（エピック毎、受入基準毎に 1 シナリオ）。
+- 双方向トレーサビリティのオーファン一覧（EA連携時）。
+
+## スコープ外（やらないこと）
+
+- 生成した Markdown / Gherkin を手で書くこと。
+- **ここから `ea-model.yaml` を編集すること**（新要求は上流 [archimate-ea](archimate-ea.qmd) へ差し戻す）。
+- EAモデリング → archimate-ea / [archimate-native](archimate-native.qmd)、
+  実装への橋渡し → [archimate-to-impl](archimate-to-impl.qmd)、実装そのもの → 開発スキル群へ。

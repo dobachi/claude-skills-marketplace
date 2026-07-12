@@ -1,0 +1,86 @@
+---
+title: "archimate-to-impl — 実装への橋渡し"
+description: "EAモデルのApplication層から、トレーサビリティ・API・タスクを生成"
+---
+
+## コンセプト
+
+設計済みEAモデルの Application 層を読み、**`要求 → コンポーネント → サービス → API → タスク`**
+のトレーサビリティマトリクス、ApplicationService ごとの OpenAPI スケルトン、
+DataObject のエンティティスタブ、コンポーネントごとのタスクリストを生成するスキルです。
+最も価値ある出力は鎖の断絶＝**オーファン**の一覧（「オーファンこそ成果物」）。
+`ea-model.yaml` は読み取り専用の上流として扱い、派生物は使い捨てです。
+
+## 位置づけ・前後の連携
+
+- **上流**：[archimate-ea](archimate-ea.qmd)（モデル著者）＋ [tech-selector](tech-selector.qmd)
+  （Technology 層を埋めた後）。[requirements-stories](requirements-stories.qmd) とは
+  **同じ要求 id** で照合します。
+- **下流へ**：開発スキル（`web-api-dev` / `python-expert` / `cli-tool-dev` / `tauri-dev`）へ
+  スケルトンを渡し、`github-issues` / `project-manager` でタスク追跡。
+
+## 前提条件
+
+- 既存 `ea-model.yaml`（Application 層が設計済み、理想的には tech-selector の後）。
+- Python 3、`pip install -r scripts/requirements.txt`（**PyYAML**）。
+
+## 全体像
+
+トレースは ArchiMate の関係を辿って構築します（例：ApplicationService —Realization→
+Requirement、ApplicationComponent —Assignment→ ApplicationFunction、
+ApplicationFunction —Access→ DataObject など）。各成果物には由来する要素 id が明記され、
+実装作業から要求へ辿り返せます。
+
+```{mermaid}
+flowchart LR
+  M[(ea-model.yaml<br/>App層・read-only)] --> DR[derive.py]
+  DR --> TR[traceability.yaml/.md]
+  DR --> API[OpenAPI skeleton]
+  DR --> EN[entity stub]
+  DR --> TK[tasks.md]
+  M --> TC[trace_check.py] --> O[オーファン一覧]
+```
+
+## 流れ
+
+1. **DERIVE**：`derive.py` でトレーサビリティグラフ＋ApplicationService 毎の OpenAPI 3.0
+   スケルトン（アクセスされる DataObject の `accessType` から CRUD パスを導出）＋
+   DataObject 毎のエンティティスタブ＋コンポーネント毎のタスクを生成。
+2. **CHECK**：`trace_check.py` でオーファンを「決定」として提示。実ギャップは
+   [archimate-ea](archimate-ea.qmd) に戻して再 derive。
+3. **HAND OFF**：タスクごとに推奨スキルを呼ぶ（サービス／インターフェースを露出するなら
+   web-api-dev、他は python-expert）。github-issues / project-manager で追跡。
+4. **RE-DERIVE**：モデルが変わったら派生物は編集せず再生成。
+
+**完了条件**：全要求が最低 1 つの実装タスクへトレースし、全 ApplicationService が API
+スケルトンを持ち、`trace_check.py` がオーファン無し（or 各残存オーファンに「対象外」判断が記録済み）。
+
+## 使い方（プロンプト例）
+
+```text
+この ea-model.yaml のアプリ層から、要求→コンポーネント→サービス→API→タスクの
+トレーサビリティと、サービス毎の OpenAPI スケルトンを生成して。
+```
+
+```text
+trace_check をかけて、実装につながっていない要求（オーファン）を一覧にして。
+それぞれ「対象外」か「エッジの張り忘れ」かを一緒に判断したい。
+```
+
+```text
+この注文サービスのタスクを web-api-dev に渡して実装に入りたい。スケルトンを入力として整えて。
+```
+
+## 結果として得られるもの
+
+- `out/traceability.yaml` / `traceability.md` — 要求から実装への追跡マトリクス。
+- `out/openapi/<service>.yaml` — サービス毎の OpenAPI 3.0 スケルトン（契約の形のみ）。
+- `out/entities/<dataobject>.yaml` — エンティティスタブ。
+- `out/tasks.md` — コンポーネント毎の実装タスク。
+- オーファン一覧（`unimplemented-requirement` など）。
+
+## スコープ外（やらないこと）
+
+- モデリング（→ [archimate-ea](archimate-ea.qmd)）、技術選定（→ [tech-selector](tech-selector.qmd)）。
+- 実装そのもの（スケルトンの中身は開発スキルへ）。
+- `ea-model.yaml` の編集（出力ディレクトリのみ書き込む）。

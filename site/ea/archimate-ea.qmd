@@ -1,0 +1,86 @@
+---
+title: "archimate-ea — 要求分析・設計（新規）"
+description: "ArchiMate 3.2 でEAを対話設計し、1つのYAMLモデルに育てる"
+---
+
+## コンセプト
+
+ArchiMate 3.2 で、ステークホルダー・ゴール・要求からレイヤー全体の設計までを
+**対話的に**行い、**1 本の running model（`ea-model.yaml`）** に育てるスキルです。
+このYAMLが唯一の真実の源であり、PlantUML 図や Archi 用の Open Exchange XML は
+そこから**生成される使い捨て成果物**です。ブリーフから一括生成するのではなく、
+モデルの断片を提案してユーザーに赤入れしてもらいながら育てる「対話（facilitate）」が
+中心思想です。
+
+## 位置づけ・前後の連携
+
+鎖の**起点**（新規／グリーンフィールド）です。
+
+- **上流**：なし。ユーザーの構想から始めます。
+- **下流へ**：[tech-selector](tech-selector.qmd)（Technology層の空欄を埋める）、
+  [archimate-to-impl](archimate-to-impl.qmd)（Application層を実装へ）、
+  [requirements-stories](requirements-stories.qmd)（EA要求をアジャイルバックログへ分解）。
+- **対になるスキル**：[archimate-native](archimate-native.qmd)（既存 `.archimate` を扱う既存モデル版）。
+- requirements-stories から「新しく判明した要求」を差し戻される受け口でもあります。
+
+## 前提条件
+
+- 既存ファイルは**不要**（新規に `ea-model.yaml` を育てます）。
+- Python 3、`pip install -r scripts/requirements.txt`（PyYAML / lxml / ruamel.yaml）。
+- 図をPNG化する場合のみ PlantUML + Graphviz（`.puml` テキスト生成自体には不要）。
+- Archi と往復編集する場合は Archi ツール。
+
+## 全体像
+
+`ea-model.yaml` は `model` ヘッダ・`elements`・`relationships`・`organizations`（フォルダ）・
+`views` などを持ち、名前や説明は多言語マップで書けます。ArchiMate の各層を上から下へ
+（Motivation → Strategy → Business → Application → Technology → Physical → Implementation）
+適応的トップダウンで設計します。
+
+```{mermaid}
+flowchart LR
+  U[ユーザーとの対話] --> Y[(ea-model.yaml<br/>真実の源)]
+  Y --> P[.puml 図（view毎）]
+  Y --> X[Open Exchange XML<br/>（Archi用）]
+  X -. Archiで編集→取り込み .-> Y
+```
+
+## 流れ
+
+レイヤーごとに次のループを回します。
+
+1. **ELICIT**：レイヤー別の質問バンクで要点をまとめて質問（リスクの高い点は1問ずつ）。
+2. **PROPOSE**：YAML断片＋一行要約を提示し、赤入れを依頼。
+3. **VALIDATE**：`validate_model.py` でメタモデル適合を検証（不正なら生成しない）。
+4. **CHECKPOINT**：`trace_coverage.py` で「上流の意図が下位レイヤーに届いているか」を
+   声に出して照合してから次の層へ下ります。
+
+## 使い方（プロンプト例）
+
+```text
+新しい顧客ポータル事業のエンタープライズアーキテクチャを一緒に設計したい。
+まずステークホルダーとゴールから ArchiMate で整理して、ea-model.yaml に起こして。
+```
+
+```text
+この ea-model.yaml のアプリケーション層まで設計できた。メタモデル検証をかけて、
+ゴールに届いていない要求（ギャップ）があれば教えて。
+```
+
+```text
+設計が固まったので、Archi で開ける Open Exchange XML と、レビュー用の PlantUML 図を出力して。
+```
+
+## 結果として得られるもの
+
+- `ea-model.yaml` — レイヤードEA設計の真実の源。
+- `out/*.puml` — view ごとの PlantUML 図（必要ならPNG化）。
+- `out/model.xml` — Archi で開ける Open Exchange XML（既定でレイヤーバンド配置）。
+- メタモデル検証結果と、ゴール別の到達（reach）マトリクス。
+
+## スコープ外（やらないこと）
+
+- 生成した `.puml` / `.xml` を手で編集すること（正規の編集路は Archi → `ingest_archi_xml.py` の取り込み）。
+- レイアウト・色・美観をYAMLに持たせること。
+- 既存 `.archimate` の読解・編集 → [archimate-native](archimate-native.qmd) へ。
+- 技術製品の選定 → [tech-selector](tech-selector.qmd)、実装への分解 → [archimate-to-impl](archimate-to-impl.qmd) へ。
