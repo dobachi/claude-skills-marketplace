@@ -8,7 +8,7 @@ EAスキルはどれも同じ設計方針を共有しています。個別ペー
 
 ## 5つの共通コンセプト
 
-### 1. モデルが真実の源（single source of truth）
+### 1. モデルが大元（single source of truth）
 
 設計情報は 1 本のファイルに集めます。EA設計なら `ea-model.yaml`、開発バックログなら
 `backlog.yaml` です。図・XML・スケルトンはこのファイルから生成する副産物で、直接は編集
@@ -25,10 +25,10 @@ EAスキルはどれも同じ設計方針を共有しています。個別ペー
 は `ea-model.yaml` を読むだけです。モデル自体を変える必要が出たら、上流の `archimate-ea`
 に戻す問いとして示します。こうして責務の混線を防ぎます。
 
-### 4. オーファンこそ成果物
+### 4. いちばん役立つのはオーファン
 
-要求 → 設計 → 実装 → 検証を ID でつなぎます。ここで一番役立つ出力は、鎖が切れている箇所
-（オーファン）の一覧です。
+要求 → 設計 → 実装 → 検証を ID でつなぎます。このとき最も役立つ出力は、つながりが切れて
+いる箇所（オーファン）の一覧です。
 
 - どの実装にもつながらない要求 → 実装漏れ、または対象外の判断
 - どの要求にもつながらない部品／ストーリー → スコープクリープ、またはモデルに昇格すべき新要求
@@ -66,10 +66,10 @@ EAモデルには 2 つの入口があります。
 | 用語 | 意味 |
 |---|---|
 | ArchiMate 3.2 | The Open Group によるEAモデリング言語。動機・ビジネス・アプリ・技術などの層を持つ |
-| running model | 真実の源となる編集対象ファイル（`ea-model.yaml` / `backlog.yaml`） |
+| running model | 設計の大元となる、編集していくファイル（`ea-model.yaml` / `backlog.yaml`） |
 | Motivation層 | ArchiMateの動機層。Stakeholder / Goal / Requirement / Constraint などを含む |
 | Open Exchange XML | The Open Group標準の交換形式。Archiツールが読み書きできる |
 | traceability | 要求→設計→実装→検証を ID で結ぶ追跡可能性 |
-| オーファン | どちらか片側にしかつながっていない要素（鎖の切れ目） |
+| オーファン | どちらか片側にしかつながっていない要素（つながりの切れ目） |
 | INVEST / EARS | 良いユーザーストーリー／要求文の品質基準（[requirements-stories](requirements-stories.qmd) 参照） |
 | ADR | Architecture Decision Record。技術選定などの意思決定の記録 |

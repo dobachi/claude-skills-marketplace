@@ -9,7 +9,7 @@ EAモデルの非機能要求をもとに、ミドルウェアやランタイム
 重みを揺らしても順位が変わらないか（感度分析）まで確認します。決定の根拠は ADR（意思決定
 記録）に残し、結果をモデルの Technology 層に書き戻します（write-back）。「Relational DB」
 「Message broker」のような汎用名のプレースホルダを、具体的な製品名と ADR 参照で置き換える
-イメージです。書き戻しても `ea-model.yaml` が唯一の真実であり続けます。
+イメージです。書き戻しても `ea-model.yaml` が唯一の大元であり続けます。
 
 ## 位置づけ・前後の連携
 
@@ -51,8 +51,7 @@ Technology プレースホルダごとに、次のループを回します。
 3. CANDIDATES：候補を 2〜4 個に絞る（ファクト収集は competitive-analysis へ委譲）。
 4. SCORE：`score.py` で加重評価・ランキング・感度分析。
 5. DECIDE + ADR：`docs/adr/` に ADR を記述。
-6. WRITE BACK：`writeback.py` でモデルへ書き戻し、再検証。重み ±50% で 1 位が
-   入れ替わる脆弱なランキングは ADR に注意書きを残す。
+6. WRITE BACK：`writeback.py` でモデルへ書き戻し、再検証。重みを ±50% 動かすと 1 位が入れ替わってしまう場合は、その不安定さを ADR に書き添える。
 
 完了条件：未選定の全 Technology 要素が `selected-product` を持ち、各決定が ADR に
 紐づき、各 ADR が最低 1 つの要求／制約へトレースできること。

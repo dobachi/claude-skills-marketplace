@@ -1,11 +1,11 @@
 ---
 title: "archimate-native — 既存モデルのその場編集"
-description: "Archiで作った既存の .archimate ファイルを真実として読解・レビュー・編集"
+description: "Archiで作った既存の .archimate ファイルを原本として読解・レビュー・編集"
 ---
 
 ## コンセプト
 
-Archi で作った既存の `.archimate` ファイルを、それ自体を真実として、その場で読解・レビュー・
+Archi で作った既存の `.archimate` ファイルを、それ自体を原本として、その場で読解・レビュー・
 編集します。id・座標（`bounds`/`bendpoint`）・フォルダ・スタイルを保つので、編集せずに開いて
 保存すればバイト単位で同一のままです（round-trip-safe）。Archi 独自の型名は、語彙ブリッジで
 ArchiMate 3.2 の正規の型に対応づけます。
@@ -15,7 +15,7 @@ ArchiMate 3.2 の正規の型に対応づけます。
 [archimate-ea](archimate-ea.qmd) のブラウンフィールド（既存）版の対です。
 
 - 上流：既に存在する `.archimate` ファイル（Archi プロジェクト）。
-- 対になるスキル：[archimate-ea](archimate-ea.qmd)（新規設計・YAML が真実）。
+- 対になるスキル：[archimate-ea](archimate-ea.qmd)（新規設計・YAML が大元）。
 - 新規にゼロから設計するなら archimate-ea、既存ファイルを触るなら本スキル、と使い分けます。
 
 ## 前提条件
@@ -73,5 +73,5 @@ flowchart LR
 
 - ファイル全体の再生成・未編集領域の再整形。
 - パーサを介さない手 XML 編集、メタモデルチェック無しの関係追加、cascade しない要素削除。
-- 既存ダイアグラムオブジェクトの移動・リサイズ、語彙の時代（legacy↔modern）昇格、カタログ外の型の発明。
+- 既存の図の要素を動かす・大きさを変えること、型名を古い／新しい世代へ勝手に付け替えること、カタログにない型を勝手に作ること。
 - 新規ゼロ設計 → [archimate-ea](archimate-ea.qmd) へ。

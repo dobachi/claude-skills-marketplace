@@ -10,15 +10,15 @@ EAスキルは 6 つあり、要求分析・設計・技術選定・実装・サ
 
 前提となる考え方は [共通コンセプトと前提条件](concepts.qmd) にまとめています。
 
-## 連鎖の全体図
+## 全体の流れ
 
 ```{mermaid}
 flowchart TB
   subgraph Cond[" "]
-    E["<b>ea-delivery</b><br/>薄い司令塔：順序・ゲート・進捗台帳"]
+    E["<b>ea-delivery</b><br/>司令役：順序・ゲート・進捗台帳"]
   end
 
-  subgraph Chain["設計〜サービス化の鎖（ea-model.yaml を通す）"]
+  subgraph Chain["設計〜サービス化の流れ（ea-model.yaml を通す）"]
     direction LR
     A["<b>archimate-ea</b><br/>要求分析・設計<br/>（新規/YAML）"]
     T["<b>tech-selector</b><br/>技術選定<br/>＋ADR＋書き戻し"]
@@ -69,13 +69,13 @@ flowchart TB
 | ファイル | 所有スキル | 役割 |
 |---|---|---|
 | `ea-model.yaml` | archimate-ea | EA設計の主軸。tech-selector が書き戻し、下流は読み取り専用で参照 |
-| `backlog.yaml` | requirements-stories | 開発バックログの真実。ea-delivery では第2の through-line |
+| `backlog.yaml` | requirements-stories | 開発バックログの大元。ea-delivery では 2 本目の通し役 |
 | `criteria.yaml` | tech-selector | 技術選定の評価軸・重み（その決定専用の作業ファイル） |
-| `delivery-ledger.yaml` | ea-delivery | 進捗・back-edge の制御台帳（真実ではなく制御状態） |
+| `delivery-ledger.yaml` | ea-delivery | 進捗・back-edge の台帳（設計の大元ではなく進行管理用） |
 
 ## 単体でも使える
 
-各スキルは、鎖の一部としても単体でも使えます。たとえば
+各スキルは、一連の流れの一部としても、単体でも使えます。たとえば
 [requirements-stories](requirements-stories.qmd) は、EAモデルが無くても要求定義とストーリー
 作成に使えます。[tech-selector](tech-selector.qmd) を技術選定だけに使うこともできます。
 全体をまとめて回すときは [ea-delivery](ea-delivery.qmd) が指揮します。

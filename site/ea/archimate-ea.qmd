@@ -6,13 +6,13 @@ description: "ArchiMate 3.2 でEAを対話設計し、1つのYAMLモデルにま
 ## コンセプト
 
 ArchiMate 3.2 で、ステークホルダーやゴール、要求からレイヤー全体の設計までを対話で
-組み立て、`ea-model.yaml` という 1 本のモデルにまとめます。このモデルが唯一の真実の源で、
+組み立て、`ea-model.yaml` という 1 本のモデルにまとめます。このモデルが唯一の大元で、
 PlantUML 図や Archi 用の Open Exchange XML はそこから生成します。ブリーフを渡して一括生成
 させるのではなく、モデルの断片を出してはユーザーに赤入れしてもらい、少しずつ固めていきます。
 
 ## 位置づけ・前後の連携
 
-鎖の起点です（新規／グリーンフィールド）。
+一連の流れの出発点です（新規／グリーンフィールド）。
 
 - 上流：なし。ユーザーの構想から始めます。
 - 下流へ：[tech-selector](tech-selector.qmd)（Technology層の空欄を埋める）、
@@ -31,13 +31,13 @@ PlantUML 図や Archi 用の Open Exchange XML はそこから生成します。
 ## 全体像
 
 `ea-model.yaml` は `model` ヘッダ・`elements`・`relationships`・`organizations`（フォルダ）・
-`views` などを持ち、名前や説明は多言語マップで書けます。ArchiMate の各層を上から下へ
+`views` などを持ち、名前や説明は多言語マップで書けます。ArchiMate の各層は、上から下へ
 （Motivation → Strategy → Business → Application → Technology → Physical → Implementation）
-適応的トップダウンで設計します。
+順に設計します。ただし手がかりのある層から始めて、上位へつなぎ直すこともあります。
 
 ```{mermaid}
 flowchart LR
-  U[ユーザーとの対話] --> Y[(ea-model.yaml<br/>真実の源)]
+  U[ユーザーとの対話] --> Y[(ea-model.yaml<br/>大元)]
   Y --> P[.puml 図（view毎）]
   Y --> X[Open Exchange XML<br/>（Archi用）]
   X -. Archiで編集→取り込み .-> Y
@@ -50,7 +50,7 @@ flowchart LR
 1. ELICIT：レイヤー別の質問バンクで要点をまとめて質問（リスクの高い点は1問ずつ）。
 2. PROPOSE：YAML断片＋一行要約を提示し、赤入れを依頼。
 3. VALIDATE：`validate_model.py` でメタモデル適合を検証（不正なら生成しない）。
-4. CHECKPOINT：`trace_coverage.py` で「上流の意図が下位レイヤーに届いているか」を
+4. CHECKPOINT：`trace_coverage.py` で、上位の狙いが下の層まで反映されているかを
    声に出して照合してから次の層へ下ります。
 
 ## 使い方（プロンプト例）
@@ -71,7 +71,7 @@ flowchart LR
 
 ## 結果として得られるもの
 
-- `ea-model.yaml` — レイヤードEA設計の真実の源。
+- `ea-model.yaml` — 各層をそろえたEA設計の大元。
 - `out/*.puml` — view ごとの PlantUML 図（必要ならPNG化）。
 - `out/model.xml` — Archi で開ける Open Exchange XML（既定でレイヤーバンド配置）。
 - メタモデル検証結果と、ゴール別の到達（reach）マトリクス。
