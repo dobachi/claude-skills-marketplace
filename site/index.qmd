@@ -37,7 +37,8 @@ toc: false
 
 EAスキルは `ea-model.yaml` という 1 本のモデルを共通の入力として、設計から実装へ向けて
 成果物を生成していきます（generate-forward）。モデルが唯一の入力なので、図やコードが
-モデルからズレません。
+モデルからズレません。流れは一方向に見えますが、下流で気づいたことは前の段階へ戻せます。
+差し戻し、フェーズ間の back-edge、Archi との往復といった経路が用意されています（下図の点線）。
 
 ```{mermaid}
 flowchart LR
@@ -46,6 +47,7 @@ flowchart LR
   R --> I[archimate-to-impl<br/>実装への橋渡し]
   T --> I
   I --> D[開発スキル群<br/>web-api-dev / web-frontend-dev ほか]
+  I -. 差し戻し・back-edge .-> A
   N[archimate-native<br/>既存モデルの編集] -. 往復 .-> A
   E[ea-delivery] === |全体を指揮| A
 
