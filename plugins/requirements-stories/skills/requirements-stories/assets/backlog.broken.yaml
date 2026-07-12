@@ -1,0 +1,61 @@
+# Deliberately broken backlog — every entry trips a specific check in validate_backlog.py.
+# Run:  python scripts/validate_backlog.py backlog.broken.yaml
+# Use it to see what the validator catches; it is NOT a template to copy.
+
+backlog:
+  id: backlog-broken
+  name: { ja: 壊れたバックログ, en: Broken backlog }
+
+personas:
+  - id: persona-user            # generic-persona: named "user"
+    name: { ja: ユーザー, en: user }
+
+epics:
+  - id: epic-one
+    name: { en: First epic }
+    priority: Critical          # bad-priority: not MoSCoW
+
+stories:
+  # invest-valuable (no so_that) + invest-testable (no acceptance_criteria) + generic-persona
+  - id: story-vague
+    epic: epic-one
+    persona: persona-user
+    i_want: { en: to do something useful }
+    priority: Must
+
+  # dangling-epic + task-not-story (technical i_want, no benefit) + story-no-persona
+  - id: story-task
+    epic: epic-missing
+    i_want: { en: refactor the database schema }
+
+  # invest-small (estimate too big) + ac-no-then (GWT criterion missing 'then')
+  - id: story-huge
+    epic: epic-one
+    persona: persona-user
+    i_want: { en: to migrate everything at once }
+    so_that: { en: it is done }
+    estimate: 21
+    acceptance_criteria:
+      - id: ac-broken
+        given: some context
+        when: I do the thing
+        # no 'then'
+
+nfrs:
+  # bad-ears-pattern + ears-no-shall + nfr-unmeasurable
+  - id: nfr-vague
+    pattern: fast
+    text: { en: The system is user-friendly and quick }
+
+  # ears-keyword: declared event-driven but no "when"; also dangling applies_to
+  - id: nfr-mislabelled
+    pattern: event-driven
+    text: { en: The system shall always be available }
+    applies_to: [story-nonexistent]
+
+story_map:
+  backbone:
+    - activity: { en: Do things }
+      steps:
+        - step: { en: Step one }
+          stories: [story-ghost]   # dangling-map-story

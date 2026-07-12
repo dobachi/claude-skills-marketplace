@@ -1,0 +1,155 @@
+# Example product backlog for the "digital sales" EA model shipped with archimate-ea.
+# It traces into that model's Motivation layer by id (req-portal, constraint-gdpr,
+# actor-customer, role-salesrep, goal-revenue). req-mobile is intentionally left
+# uncovered so `trace_check.py` demonstrates a forward-coverage gap.
+#
+# Run from the skill root (…/skills/requirements-stories):
+# Validate:   python scripts/validate_backlog.py assets/backlog.example.yaml   # clean
+# EA trace:   python scripts/trace_check.py       assets/backlog.example.yaml   # uses ea_model below;
+#             #   intentionally WARNs on req-mobile (gap) + outcome-retention (no story pursues it)
+# Emit:       python scripts/emit_backlog_md.py   assets/backlog.example.yaml
+#             python scripts/emit_gherkin.py      assets/backlog.example.yaml --out /tmp/features
+
+backlog:
+  id: backlog-digital-sales
+  name: { ja: デジタル営業バックログ, en: Digital sales backlog }
+  ea_model: ../../../../archimate-ea/skills/archimate-ea/assets/ea-model.example.yaml
+  goal: { ja: 顧客が自分でオンライン購入を完結できる, en: Customers self-serve their purchases online }
+
+personas:
+  - id: persona-customer
+    name: { ja: 顧客, en: Customer }
+    description: { ja: 自分で登録し注文したいエンドユーザー, en: End user who wants to register and order themselves }
+    traces_to: [actor-customer]
+  - id: persona-salesrep
+    name: { ja: 営業担当, en: Sales representative }
+    description: { ja: 注文状況を確認しフォローする社内ユーザー, en: Internal user who tracks orders and follows up }
+    traces_to: [role-salesrep]
+
+epics:
+  - id: epic-portal
+    name: { ja: 顧客セルフサービスポータル, en: Customer self-service portal }
+    description: { ja: 顧客が登録・注文・状況確認を自分で行える, en: Customers register, order, and track status themselves }
+    priority: Must
+    traces_to: [req-portal]
+  - id: epic-privacy
+    name: { ja: プライバシー準拠, en: Privacy compliance }
+    description: { ja: 個人データの取り扱いをGDPRに準拠させる, en: Handle personal data in line with GDPR }
+    priority: Must
+    traces_to: [constraint-gdpr]
+
+stories:
+  - id: story-self-register
+    epic: epic-portal
+    persona: persona-customer
+    i_want: { ja: メールアドレスで自分のアカウントを登録したい, en: to register my own account with an email address }
+    so_that: { ja: 営業担当を待たずに購入を始められる, en: I can start buying without waiting for a sales rep }
+    priority: Must
+    estimate: 3
+    status: ready
+    traces_to: [req-portal]
+    wsjf: { business_value: 8, time_criticality: 5, risk_reduction: 3, job_size: 5 }
+    acceptance_criteria:
+      - id: ac-happy
+        scenario: New email registers successfully
+        given: I am on the registration page and my email is not yet registered
+        when: I submit a valid email and password
+        then:
+          - my account is created
+          - I receive a verification email
+      - id: ac-duplicate
+        rule: The system rejects registration with an email that already exists.
+
+  - id: story-place-order
+    epic: epic-portal
+    persona: persona-customer
+    i_want: { ja: カートの商品を注文したい, en: to place an order for the items in my cart }
+    so_that: { ja: 欲しい商品を購入できる, en: I can buy the products I want }
+    priority: Must
+    estimate: 5
+    status: ready
+    traces_to: [req-portal]
+    acceptance_criteria:
+      - id: ac-submit
+        scenario: Authenticated user submits a non-empty cart
+        given: I am signed in and my cart has at least one item
+        when: I confirm the order
+        then:
+          - an order is created with status "placed"
+          - my cart is emptied
+
+  - id: story-track-order
+    epic: epic-portal
+    persona: persona-salesrep
+    i_want: { ja: 担当顧客の注文状況を一覧で確認したい, en: to see the status of my customers' orders in one list }
+    so_that: { ja: 遅延に気づいてフォローできる, en: I can spot delays and follow up }
+    priority: Should
+    estimate: 3
+    status: draft
+    traces_to: [req-portal]
+    acceptance_criteria:
+      - id: ac-list
+        rule: Only orders belonging to the signed-in rep's customers are shown.
+
+  - id: story-consent
+    epic: epic-privacy
+    persona: persona-customer
+    i_want: { ja: データ利用への同意を登録時に選べるようにしたい, en: to choose my data-usage consent at registration }
+    so_that: { ja: 自分の個人データの使われ方を管理できる, en: I stay in control of how my personal data is used }
+    priority: Must
+    estimate: 2
+    status: ready
+    traces_to: [constraint-gdpr]
+    acceptance_criteria:
+      - id: ac-consent
+        rule: Registration cannot complete until an explicit consent choice is recorded.
+
+nfrs:
+  - id: nfr-register-latency
+    pattern: event-driven
+    quality: PerformanceEfficiency
+    text:
+      ja: 登録が送信されたとき、システムは3秒以内に確認画面を返さなければならない。
+      en: When a registration is submitted, the system shall return a confirmation within 3 seconds.
+    metric: "p95 < 3 s @ 500 concurrent registrations"
+    applies_to: [story-self-register]
+    traces_to: [req-portal]
+  - id: nfr-data-at-rest
+    pattern: ubiquitous
+    quality: Security
+    text:
+      ja: システムは保存されるすべての個人データを暗号化しなければならない。
+      en: The system shall encrypt all personal data at rest.
+    metric: "AES-256; verified by security scan in Definition of Done"
+    traces_to: [constraint-gdpr]
+
+story_map:
+  backbone:
+    - activity: { ja: アカウントを持つ, en: Get an account }
+      steps:
+        - step: { ja: 登録する, en: Register }
+          stories: [story-self-register]
+        - step: { ja: 同意を選ぶ, en: Give consent }
+          stories: [story-consent]
+    - activity: { ja: 買う, en: Buy }
+      steps:
+        - step: { ja: 注文する, en: Place an order }
+          stories: [story-place-order]
+    - activity: { ja: 追う, en: Follow up }
+      steps:
+        - step: { ja: 状況を確認する, en: Track status }
+          stories: [story-track-order]
+  releases:
+    - name: "Walking skeleton (MVP)"
+      stories: [story-self-register, story-consent, story-place-order]
+    - name: "Release 2"
+      stories: [story-track-order]
+
+definition_of_ready:
+  - "Follows INVEST; persona, goal, and benefit are clear."
+  - "At least one acceptance criterion is written and testable."
+  - "Dependencies are known; no blocking unknowns (else split off a spike)."
+definition_of_done:
+  - "Acceptance criteria pass; code reviewed; CI green."
+  - "Security scan passes (covers nfr-data-at-rest)."
+  - "User-facing docs updated."

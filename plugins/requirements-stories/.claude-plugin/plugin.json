@@ -1,0 +1,6 @@
+{
+  "name": "requirements-stories",
+  "description": "Conversational requirements-definition and user-story facilitator. Elicits requirements and grows an agile product backlog (personas, epics, user stories with acceptance criteria, EARS-worded NFRs, a story map, and prioritization) into one backlog.yaml source of truth, validated for INVEST/EARS/structure quality, then generate-forwards a Markdown backlog and Gherkin feature files. Traces every story back to an ArchiMate ea-model.yaml (read-only upstream) and checks bidirectional requirement coverage, bridging archimate-ea to archimate-to-impl. Works standalone without an EA model.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}

@@ -71,6 +71,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 |---|---|
 | **archimate-ea** | 対話型 ArchiMate 3.2 EA ファシリテーター（グリーンフィールド）。要求を引き出し、レイヤ全体を単一のYAML真実源として設計、メタモデル検証の上、PlantUMLビューと Open Group Exchange XML（Archi用）を生成。 |
 | **archimate-native** | ブラウンフィールド ArchiMate：既存の `.archimate` ファイルを真実源として読解・レビュー・解釈・その場で外科的に編集（往復安全。id/座標/フォルダ/スタイル保持）。archimate-ea の対。 |
+| **requirements-stories** | 対話型の要求定義・ユーザーストーリー ファシリテーター。プロダクトバックログ（ペルソナ、エピック、Given-When-Then／ルール形式の受入基準を伴うユーザーストーリー、EARS記法の非機能要求、ストーリーマップ、MoSCoW／WSJF 優先順位づけ）を単一の `backlog.yaml` 真実源として育て、INVEST/EARS/構造の品質を検証し、Markdownバックログと Gherkin フィーチャーファイルを生成。各ストーリーを ArchiMate の `ea-model.yaml`（読み取り専用の上流）へ双方向カバレッジ検証付きでトレースし、archimate-ea と archimate-to-impl を橋渡し。EAモデルなしの単独利用も可能。 |
 | **tech-selector** | EAモデルの非機能要求から具体的なミドルウェア／ランタイムを選定：重み付き・感度分析付き評価、根拠のADR、決定のTechnology層への書き戻し。 |
 | **archimate-to-impl** | EAモデルのApplication層を実装へ橋渡し：要求→コンポーネント→サービス→api→タスクのトレーサビリティ、サービス別OpenAPIスケルトン、DataObjectスタブ、コンポーネント別タスク、孤児チェック。 |
 | **ea-delivery** | EA駆動デリバリの一気通貫コンダクター：要求→設計→ミドルウェア選定→実装→サービス化を専門スキル間で順序づけ、`ea-model.yaml` を軸に各ハンドオフをゲート。 |
