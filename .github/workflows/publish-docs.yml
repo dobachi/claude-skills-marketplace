@@ -1,8 +1,9 @@
 name: Publish docs
 
-# Renders the Quarto site in site/ and publishes it to the gh-pages branch.
-# One-time setup after the first successful run: repo Settings → Pages →
-# "Deploy from a branch" → branch `gh-pages` / root.
+# Renders the Quarto site in site/ and deploys it to GitHub Pages via the
+# Pages Actions pipeline (no gh-pages branch needed). Enable once with:
+#   gh api -X POST repos/OWNER/REPO/pages -f build_type=workflow
+# or Settings -> Pages -> Source: GitHub Actions.
 
 on:
   push:
@@ -15,10 +16,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  build-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,15 +34,31 @@ jobs:
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Setup Python (for the catalog pre-render step)
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Render and publish to gh-pages
-        uses: quarto-dev/quarto-actions/publish@v2
+      # Generate the catalog BEFORE render: Quarto expands {{< include >}} while
+      # scanning inputs, which happens before the pre-render step runs.
+      - name: Generate skill catalog
+        run: python3 site/scripts/gen_catalog.py
+
+      - name: Render site
+        run: quarto render site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          target: gh-pages
-          path: site
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: site/_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
