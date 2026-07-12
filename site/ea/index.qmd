@@ -1,14 +1,14 @@
 ---
 title: "EAスキルの全体像"
-description: "要求分析から実装・サービス化までを一気通貫でつなぐEAスキル群"
+description: "要求分析から実装・サービス化までを順につなぐEAスキル群"
 ---
 
-エンタープライズアーキテクチャ（EA）スキル群は、**要求分析 → 設計 → 技術選定 → 実装への橋渡し
-→ サービス化** を、1 本の running model（`ea-model.yaml`）を真実の源として引き回しながら
-つなぐスキルの集まりです。設計はモデルを起点に生成しながら前進し（generate-forward）、
-各ハンドオフでトレーサビリティのギャップ（オーファン）を検出します。
+EAスキルは 6 つあり、要求分析・設計・技術選定・実装・サービス化の各段階を分担します。
+共通の入力は `ea-model.yaml` という 1 本のモデルです。各スキルはこのモデルを読み、
+次の段階の成果物を生成します（generate-forward）。段階の受け渡しごとに、要求と実装の
+つながりが切れていないか（オーファンが残っていないか）を確認します。
 
-まだの方は先に [共通コンセプトと前提条件](concepts.qmd) を読むと、各スキルの理解が速くなります。
+前提となる考え方は [共通コンセプトと前提条件](concepts.qmd) にまとめています。
 
 ## 連鎖の全体図
 
@@ -54,16 +54,17 @@ flowchart TB
 | 実装への橋渡し | [archimate-to-impl](archimate-to-impl.qmd) | `ea-model.yaml`（App層） | トレーサビリティ, OpenAPI, タスク | オーファン無し（or 対象外判断） |
 | 実装 | 開発スキル群 | OpenAPI skeleton, タスク | 実装コード | 各タスクに担当・コミット |
 | （既存モデル編集） | [archimate-native](archimate-native.qmd) | 既存 `.archimate` | その場編集, レポート | — |
-| 一気通貫の指揮 | [ea-delivery](ea-delivery.qmd) | `delivery-ledger.yaml` | 進捗台帳, ゲート記録 | 各フェーズを委譲で駆動 |
+| 全体の指揮 | [ea-delivery](ea-delivery.qmd) | `delivery-ledger.yaml` | 進捗台帳, ゲート記録 | 各フェーズを委譲で駆動 |
 
-## 2つの入口 — 新規 or 既存
+## 2つの入口：新規と既存
 
-- **新規（greenfield）**：頭の中の構想から始める → [archimate-ea](archimate-ea.qmd) が
-  `ea-model.yaml` を対話設計し、図と Archi 用 XML を生成。
-- **既存（brownfield）**：すでに Archi で作った `.archimate` がある → [archimate-native](archimate-native.qmd)
-  が、id・座標・スタイルを保ったまま**その場で**読解・レビュー・編集。
+- 新規（greenfield）：構想から始める場合は [archimate-ea](archimate-ea.qmd) が
+  `ea-model.yaml` を対話で設計し、図と Archi 用 XML を生成します。
+- 既存（brownfield）：すでに Archi で作った `.archimate` がある場合は
+  [archimate-native](archimate-native.qmd) が、id・座標・スタイルを保ったまま、その場で
+  読解・編集します。
 
-## 引き回す「真実の源」ファイル
+## スキル間で共有するファイル
 
 | ファイル | 所有スキル | 役割 |
 |---|---|---|
@@ -74,8 +75,7 @@ flowchart TB
 
 ## 単体でも使える
 
-各スキルは鎖の一部としても、単体としても使えます。たとえば
-[requirements-stories](requirements-stories.qmd) は EAモデルが無くてもアジャイルの
-要求定義・ストーリー作成だけに使えますし、[tech-selector](tech-selector.qmd) だけを
-技術選定に使うこともできます。全体を一気通貫で回したいときは
-[ea-delivery](ea-delivery.qmd) が指揮します。
+各スキルは、鎖の一部としても単体でも使えます。たとえば
+[requirements-stories](requirements-stories.qmd) は、EAモデルが無くても要求定義とストーリー
+作成に使えます。[tech-selector](tech-selector.qmd) を技術選定だけに使うこともできます。
+全体をまとめて回すときは [ea-delivery](ea-delivery.qmd) が指揮します。

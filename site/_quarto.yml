@@ -45,7 +45,7 @@ website:
               href: ea/archimate-to-impl.qmd
             - text: "archimate-native（既存モデル編集）"
               href: ea/archimate-native.qmd
-            - text: "ea-delivery（一気通貫の指揮）"
+            - text: "ea-delivery（全体の指揮）"
               href: ea/ea-delivery.qmd
 
 format:

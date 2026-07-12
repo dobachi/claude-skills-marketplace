@@ -1,31 +1,29 @@
 ---
 title: "archimate-ea — 要求分析・設計（新規）"
-description: "ArchiMate 3.2 でEAを対話設計し、1つのYAMLモデルに育てる"
+description: "ArchiMate 3.2 でEAを対話設計し、1つのYAMLモデルにまとめる"
 ---
 
 ## コンセプト
 
-ArchiMate 3.2 で、ステークホルダー・ゴール・要求からレイヤー全体の設計までを
-**対話的に**行い、**1 本の running model（`ea-model.yaml`）** に育てるスキルです。
-このYAMLが唯一の真実の源であり、PlantUML 図や Archi 用の Open Exchange XML は
-そこから**生成される使い捨て成果物**です。ブリーフから一括生成するのではなく、
-モデルの断片を提案してユーザーに赤入れしてもらいながら育てる「対話（facilitate）」が
-中心思想です。
+ArchiMate 3.2 で、ステークホルダーやゴール、要求からレイヤー全体の設計までを対話で
+組み立て、`ea-model.yaml` という 1 本のモデルにまとめます。このモデルが唯一の真実の源で、
+PlantUML 図や Archi 用の Open Exchange XML はそこから生成します。ブリーフを渡して一括生成
+させるのではなく、モデルの断片を出してはユーザーに赤入れしてもらい、少しずつ固めていきます。
 
 ## 位置づけ・前後の連携
 
-鎖の**起点**（新規／グリーンフィールド）です。
+鎖の起点です（新規／グリーンフィールド）。
 
-- **上流**：なし。ユーザーの構想から始めます。
-- **下流へ**：[tech-selector](tech-selector.qmd)（Technology層の空欄を埋める）、
+- 上流：なし。ユーザーの構想から始めます。
+- 下流へ：[tech-selector](tech-selector.qmd)（Technology層の空欄を埋める）、
   [archimate-to-impl](archimate-to-impl.qmd)（Application層を実装へ）、
   [requirements-stories](requirements-stories.qmd)（EA要求をアジャイルバックログへ分解）。
-- **対になるスキル**：[archimate-native](archimate-native.qmd)（既存 `.archimate` を扱う既存モデル版）。
+- 対になるスキル：[archimate-native](archimate-native.qmd)（既存 `.archimate` を扱う既存モデル版）。
 - requirements-stories から「新しく判明した要求」を差し戻される受け口でもあります。
 
 ## 前提条件
 
-- 既存ファイルは**不要**（新規に `ea-model.yaml` を育てます）。
+- 既存ファイルは不要（新規に `ea-model.yaml` を作ります）。
 - Python 3、`pip install -r scripts/requirements.txt`（PyYAML / lxml / ruamel.yaml）。
 - 図をPNG化する場合のみ PlantUML + Graphviz（`.puml` テキスト生成自体には不要）。
 - Archi と往復編集する場合は Archi ツール。
@@ -49,10 +47,10 @@ flowchart LR
 
 レイヤーごとに次のループを回します。
 
-1. **ELICIT**：レイヤー別の質問バンクで要点をまとめて質問（リスクの高い点は1問ずつ）。
-2. **PROPOSE**：YAML断片＋一行要約を提示し、赤入れを依頼。
-3. **VALIDATE**：`validate_model.py` でメタモデル適合を検証（不正なら生成しない）。
-4. **CHECKPOINT**：`trace_coverage.py` で「上流の意図が下位レイヤーに届いているか」を
+1. ELICIT：レイヤー別の質問バンクで要点をまとめて質問（リスクの高い点は1問ずつ）。
+2. PROPOSE：YAML断片＋一行要約を提示し、赤入れを依頼。
+3. VALIDATE：`validate_model.py` でメタモデル適合を検証（不正なら生成しない）。
+4. CHECKPOINT：`trace_coverage.py` で「上流の意図が下位レイヤーに届いているか」を
    声に出して照合してから次の層へ下ります。
 
 ## 使い方（プロンプト例）

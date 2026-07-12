@@ -1,37 +1,36 @@
 ---
-title: "ea-delivery — 一気通貫の指揮"
+title: "ea-delivery — 全体の指揮"
 description: "要求からサービス化までの全鎖を、専門スキルへ委譲して順序立てて回す司令塔"
 ---
 
 ## コンセプト
 
-要求 → 設計 → 技術選定 → 実装 → サービス化の**全鎖を一気通貫**で回す
-オーケストレーターです。**薄い司令塔（thin conductor）**であることが要点で、
-自分は順序・through-line モデル・ゲート・進捗台帳だけを持ち、**各フェーズの作業は
-所有スキルへ委譲**します（自分でフェーズ作業を始めてしまったら、止めてそのスキルを呼びます）。
-`ea-model.yaml` をフェーズ間の through-line として運びます。
+要求から設計、技術選定、実装、サービス化までの全体を通しで回す指揮役です。自分は薄い司令塔に
+徹します。持つのは進行の順序、フェーズをまたぐモデル、ハンドオフのゲート、進捗台帳だけで、
+各フェーズの実作業は担当スキルに任せます（うっかり自分で作業を始めたら、止めてそのスキルを
+呼びます）。フェーズ間では `ea-model.yaml` を持ち回ります。
 
 ## 位置づけ・前後の連携
 
-鎖の**エントリポイント**であり、全フェーズの上に薄く被さります。既存モデルがあれば
+鎖のエントリポイントであり、全フェーズの上に薄く被さります。既存モデルがあれば
 任意のフェーズから開始できます（adaptive entry）。
 
-- **委譲先**：要求・設計→[archimate-ea](archimate-ea.qmd)、技術選定→[tech-selector](tech-selector.qmd)、
+- 委譲先：要求・設計→[archimate-ea](archimate-ea.qmd)、技術選定→[tech-selector](tech-selector.qmd)、
   実装橋渡し→[archimate-to-impl](archimate-to-impl.qmd)、開発→開発スキル群、
   サービス化→`project-manager` / `github-issues` / `commit-and-report`。
 - [requirements-stories](requirements-stories.qmd) からは `backlog.yaml` を、
-  `ea-model.yaml` と並ぶ**第2の through-line** として受け取ります。
+  `ea-model.yaml` と並ぶ第2の through-line として受け取ります。
 
 ## 前提条件
 
-- 特別なツール依存は**なし**（ソフトなオーケストレーション。コードで強制はしません）。
+- 特別なツール依存はなし（ソフトなオーケストレーション。コードで強制はしません）。
 - `delivery-ledger.yaml`（自分で作成・初期化します）。
 - 各フェーズのスキルとその依存（Python 等）は、委譲するタイミングで必要になります。
 
 ## 全体像
 
-フェーズは状態機械として進みます。前進は**通過したゲート経由でのみ**許されます。
-下流で新しい非機能要求が判明したら、tech-selection へ **back-edge** で戻します。
+フェーズは状態機械として進みます。前進は通過したゲート経由でのみ許されます。
+下流で新しい非機能要求が判明したら、tech-selection へ back-edge で戻します。
 
 ```{mermaid}
 stateDiagram-v2
@@ -48,14 +47,14 @@ stateDiagram-v2
 
 ## 流れ
 
-1. **LOCATE**：`delivery-ledger.yaml` を読む／初期化し、現フェーズを判定。
-2. **DELEGATE**：そのフェーズの所有スキルを呼ぶ（自分は作業しない）。
-3. **GATE**：ハンドオフのゲートを実行し、結果を台帳に記録。
-4. **ADVANCE or BACK-EDGE**：合格なら次フェーズ、新NFR なら tech-selection へ戻す。
+1. LOCATE：`delivery-ledger.yaml` を読む／初期化し、現フェーズを判定。
+2. DELEGATE：そのフェーズの所有スキルを呼ぶ（自分は作業しない）。
+3. GATE：ハンドオフのゲートを実行し、結果を台帳に記録。
+4. ADVANCE or BACK-EDGE：合格なら次フェーズ、新NFR なら tech-selection へ戻す。
    毎回台帳を更新。
 5. `service` が `done` かつ未解決の back-edge が無くなるまで繰り返す。
 
-**ゲートの例**：要求→設計（メタモデル検証クリーン）、技術選定→橋渡し（全空欄が製品を持ち
+ゲートの例：要求→設計（メタモデル検証クリーン）、技術選定→橋渡し（全空欄が製品を持ち
 各決定が ADR、書き戻し後も検証クリーン）、橋渡し→実装（`trace_check.py` がオーファン無し
 or 対象外判断済み）、実装→サービス化（全タスクに担当・コミット済み）。
 
