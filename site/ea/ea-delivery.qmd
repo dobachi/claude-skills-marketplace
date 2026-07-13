@@ -30,7 +30,8 @@ description: "要求からサービス化までの全体の流れを、専門ス
 ## 全体像
 
 フェーズは状態機械として進みます。前進できるのは、ゲートを通過したときだけです。
-下流で新しい非機能要求が見つかったら、tech-selection へ back-edge で戻します。
+下流で新しい要求が見つかったら back-edge で前段へ戻します。機能要求・設計の抜けは設計へ、
+非機能要求は技術選定へ戻します。
 
 ```{mermaid}
 stateDiagram-v2
@@ -43,6 +44,7 @@ stateDiagram-v2
   implementation --> service
   service --> [*]
   bridge --> tech_selection: back-edge（新NFR）
+  implementation --> design: back-edge（機能要求/設計の抜け）
 ```
 
 ## 流れ
@@ -50,13 +52,14 @@ stateDiagram-v2
 1. LOCATE：`delivery-ledger.yaml` を読む／初期化し、現フェーズを判定。
 2. DELEGATE：そのフェーズの所有スキルを呼ぶ（自分は作業しない）。
 3. GATE：ハンドオフのゲートを実行し、結果を台帳に記録。
-4. ADVANCE or BACK-EDGE：合格なら次フェーズ、新NFR なら tech-selection へ戻す。
-   毎回台帳を更新。
+4. ADVANCE or BACK-EDGE：合格なら次フェーズ。新要求なら前段へ戻す（機能要求・設計の抜け→設計、
+   非機能要求→技術選定）。毎回台帳を更新。
 5. `service` が `done` かつ未解決の back-edge が無くなるまで繰り返す。
 
 ゲートの例：要求→設計（メタモデル検証クリーン）、技術選定→橋渡し（全空欄が製品を持ち
-各決定が ADR、書き戻し後も検証クリーン）、橋渡し→実装（`trace_check.py` がオーファン無し
-or 対象外判断済み）、実装→サービス化（全タスクに担当・コミット済み）。
+各決定が ADR、書き戻し後も検証クリーン）、橋渡し→実装（`trace_check.py --gaps gaps.yaml
+--require-disposition` が exit 0＝全リンク切れが解消 or 処置済み）、実装→サービス化（全タスクに
+担当・コミット済み）。
 
 ## 使い方（プロンプト例）
 

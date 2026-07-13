@@ -5,9 +5,9 @@ description: "要求分析から実装・サービス化までを順につなぐ
 
 EAスキルは 6 つあり、要求分析・設計・技術選定・実装・サービス化の各段階を分担します。
 共通の入力は `ea-model.yaml` という 1 本のモデルです。各スキルはこのモデルを読み、
-次の段階の成果物を生成します（generate-forward）。段階の受け渡しごとに、要求と実装の
-つながりが切れていないか（オーファンが残っていないか）を確認し、切れ目が見つかれば前の段階へ
-戻します。前へ進むだけでなく、戻りも仕組みで担保された一つのループです。
+次の段階の成果物を生成します（generate-forward）。段階の受け渡しごとに、リンク切れ（要求と
+実装のつながりが切れている箇所）が残っていないか確認し、見つかれば前の段階へ戻します。
+前へ進むだけでなく、戻りも仕組みで担保された一つのループです。
 
 前提となる考え方は [共通コンセプトと前提条件](concepts.qmd) にまとめています。
 
@@ -27,7 +27,8 @@ flowchart TB
     D["<b>開発スキル群</b><br/>web-api-dev ほか"]
     S["<b>サービス化</b><br/>project-manager /<br/>github-issues"]
     A --> T --> I --> D --> S
-    I -. "back-edge：新NFR発覚" .-> T
+    I -. "back-edge：新NFR" .-> T
+    I -. "back-edge：機能要求・設計の抜け" .-> A
   end
 
   R["<b>requirements-stories</b><br/>要求定義・ユーザーストーリー<br/>（backlog.yaml）"]
@@ -52,7 +53,7 @@ flowchart TB
 | 要求分析・設計 | [archimate-ea](archimate-ea.qmd) | ブリーフ（頭の中） | `ea-model.yaml`, PlantUML, Archi用XML | メタモデル検証がクリーン |
 | 要求定義・ストーリー | [requirements-stories](requirements-stories.qmd) | `ea-model.yaml`（任意） | `backlog.yaml`, Markdown, Gherkin | INVEST/EARS検証＋トレース |
 | 技術選定 | [tech-selector](tech-selector.qmd) | `ea-model.yaml`（Tech層の空欄） | ADR, 評価表, モデルへ書き戻し | 全空欄が製品を持ちADR紐付け |
-| 実装への橋渡し | [archimate-to-impl](archimate-to-impl.qmd) | `ea-model.yaml`（App層） | トレーサビリティ, OpenAPI, タスク | オーファン無し（or 対象外判断） |
+| 実装への橋渡し | [archimate-to-impl](archimate-to-impl.qmd) | `ea-model.yaml`（App層） | トレーサビリティ, OpenAPI, タスク, `gaps.yaml` | リンク切れが解消 or 処置済み |
 | 実装 | 開発スキル群 | OpenAPI skeleton, タスク | 実装コード | 各タスクに担当・コミット |
 | （既存モデル編集） | [archimate-native](archimate-native.qmd) | 既存 `.archimate` | その場編集, レポート | — |
 | 全体の指揮 | [ea-delivery](ea-delivery.qmd) | `delivery-ledger.yaml` | 進捗台帳, ゲート記録 | 各フェーズを委譲で駆動 |
