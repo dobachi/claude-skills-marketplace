@@ -72,8 +72,10 @@ for the question flow and `references/methodology.md` for the grounded technique
    onto the `story_map`; mark the walking skeleton as the first release.
 7. **VALIDATE** — `python scripts/validate_backlog.py works/<product>/backlog.yaml`.
    Fix ERRORs; talk through WARNs with the user.
-8. **TRACE (if linked)** — `python scripts/trace_check.py works/<product>/backlog.yaml`.
-   Walk the orphans together.
+8. **TRACE (if linked)** — `python scripts/trace_check.py works/<product>/backlog.yaml
+   --gaps works/<product>/gaps.yaml`. Walk the orphans together and record each in the
+   ledger: `out-of-scope`, `promoted` (a new requirement to push up into the EA model),
+   or resolve it. An `open` orphan is undecided.
 9. **EMIT** for humans/tools when a milestone is reached (below). Re-emit after changes.
 
 ## Scripts
@@ -86,7 +88,12 @@ python scripts/validate_backlog.py BACKLOG.yaml [--format text|json] [--strict]
     smells. Exit 0 clean · 1 warnings · 2 errors (or warnings with --strict).
 
 python scripts/trace_check.py BACKLOG.yaml [--ea EA-MODEL.yaml] [--strict]
+                             [--gaps FILE] [--require-disposition]
     Bidirectional backlog↔EA coverage. No-op (exit 0) when no EA model is linked.
+    --gaps FILE records each orphan's disposition (open | out-of-scope | promoted |
+    fixed) in a gaps.yaml ledger, preserving decisions across runs; --require-disposition
+    exits 0 only when every detected orphan is dispositioned (the gate mode). A `promoted`
+    orphan is the differ-back signal to add a requirement upstream in archimate-ea.
 
 python scripts/emit_backlog_md.py BACKLOG.yaml [--lang en|ja] [--out FILE]
     Markdown backlog: epics→stories with AC & NFRs, MoSCoW view, WSJF ranking, story map.

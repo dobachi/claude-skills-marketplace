@@ -35,15 +35,15 @@ Fail → a placeholder is unfilled or a decision has no rationale; return to
 
 ## `no-orphans` — bridge → implementation
 
-- Run `archimate-to-impl`'s `trace_check.py MODEL.yaml`.
-- **Pass = exit 0** (no orphans), **or** every reported orphan has a recorded
-  "out of scope" decision (note it in the ledger gate record and, ideally, in the
-  model documentation).
+- Run `archimate-to-impl`'s `trace_check.py MODEL.yaml --gaps gaps.yaml --require-disposition`.
+- **Pass = exit 0**: every orphan is either resolved (no longer detected) or carries a
+  recorded disposition (`out-of-scope` / `promoted`) in `gaps.yaml`. An `open` orphan
+  fails the gate. The disposition is now a machine-checkable record, not a prose note.
 - Every `ApplicationService` has an emitted API skeleton (`derive.py` output present).
 
-Fail → an `unimplemented-requirement` or `component-no-requirement` remains without a
-decision. Either add the missing Realization/service in `archimate-ea`, or record the
-scope decision — do not silently proceed.
+Fail → an orphan is still `open` in `gaps.yaml`. Either add the missing Realization/
+service in `archimate-ea`, mark it `out-of-scope`, or mark it `promoted` (a new
+requirement to add upstream — this opens a back-edge to `design`). Do not silently proceed.
 
 ## `tasks-tracked` — implementation → service
 
@@ -56,7 +56,16 @@ Fail → untracked work or an open back-edge; resolve before declaring the servi
 
 ## Back-edge trigger (any downstream phase)
 
-Not a handoff gate but a rule the conductor enforces continuously: if a phase surfaces
-a **new non-functional requirement**, open a back-edge to `tech-selection`
-(`references/delivery-ledger.md`), add the requirement to the model via `archimate-ea`,
-and re-run the affected gates. Close the back-edge when the re-selection lands.
+Not a handoff gate but a rule the conductor enforces continuously. A downstream phase
+often discovers something that belongs upstream; route it by kind, record it as a
+back-edge (`references/delivery-ledger.md`), re-run the affected gates, and close the
+back-edge once the change lands.
+
+| Discovery | back-edge `to` | Owning skill |
+|-----------|----------------|--------------|
+| New non-functional requirement | `tech-selection` | `tech-selector` (re-select) |
+| New functional requirement / design gap | `design` | `archimate-ea` (extend the model) |
+| Orphan marked `promoted` in a `gaps.yaml` | `design` | `archimate-ea` (add the requirement) |
+
+The chain is a loop, not a one-way pipe: these back-edges are the sanctioned return
+path. An open back-edge of any kind blocks the `service` gate (see `tasks-tracked`).

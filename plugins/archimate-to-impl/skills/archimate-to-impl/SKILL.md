@@ -51,9 +51,11 @@ Full schema of the emitted `traceability.yaml`: `references/traceability-schema.
 1. **DERIVE** — run `derive.py`; it writes the traceability graph, one OpenAPI 3.0
    skeleton per ApplicationService (CRUD paths derived from each accessed DataObject's
    `accessType`), an entity stub per DataObject, and a per-component task list.
-2. **CHECK** — run `trace_check.py`; present the orphans as decisions: is the
-   uncovered requirement out of scope, or is a Realization edge missing? Feed real
-   gaps back to `archimate-ea`; re-derive after the model changes.
+2. **CHECK** — run `trace_check.py --gaps out/gaps.yaml`; present the orphans as
+   decisions and record each in the ledger: `out-of-scope` (with a note), `promoted`
+   (a new requirement to add upstream — feed back to `archimate-ea`), or resolve it by
+   fixing the model. An `open` orphan is undecided. Re-derive after the model changes;
+   a resolved orphan flips to `fixed` automatically.
 3. **HAND OFF** — for each component task, invoke the recommended skill
    (`web-api-dev` when it exposes a service/interface, else `python-expert`) with the
    skeleton as its input. Track tasks via `github-issues` / `project-manager`.
@@ -61,8 +63,8 @@ Full schema of the emitted `traceability.yaml`: `references/traceability-schema.
    moves, regenerate rather than edit.
 
 **Done when** every Requirement traces to at least one implementation task, every
-ApplicationService has an API skeleton, and `trace_check.py` reports no orphans
-(or each remaining orphan has a recorded "out of scope" decision).
+ApplicationService has an API skeleton, and `trace_check.py --gaps out/gaps.yaml
+--require-disposition` exits 0 (every orphan resolved, `out-of-scope`, or `promoted`).
 
 ## Running the scripts
 
@@ -79,12 +81,26 @@ python3 scripts/derive.py ea-model.yaml -o out/
 python3 scripts/trace_check.py ea-model.yaml            # text; exit 1 if warnings
 python3 scripts/trace_check.py ea-model.yaml --format json
 python3 scripts/trace_check.py ea-model.yaml --strict   # exit 2 on any warning (for CI/gates)
+
+# disposition ledger: record what was decided about each orphan, and gate on it
+python3 scripts/trace_check.py ea-model.yaml --gaps out/gaps.yaml
+python3 scripts/trace_check.py ea-model.yaml --gaps out/gaps.yaml --require-disposition
+#   exit 0 only when every detected orphan is resolved / out-of-scope / promoted
 ```
 
 `trace_check.py` reports coverage gaps as WARN (the model is still valid ArchiMate —
 these are not metamodel errors). Codes: `unimplemented-requirement`,
 `service-no-requirement`, `service-no-impl`, `component-no-requirement`,
 `service-no-interface`.
+
+**`gaps.yaml` — the orphan disposition ledger.** With `--gaps FILE`, each orphan is
+tracked as `{ id, code, ref, message, status, note }` where `status` ∈
+`open | out-of-scope | promoted | fixed`. Re-running preserves your dispositions, adds
+new orphans as `open`, and flips a resolved one to `fixed`. This gives the differ-back
+loop a machine-checkable home: `ea-delivery`'s `no-orphans` gate runs
+`--require-disposition` and a `promoted` orphan is the signal to open a `design`
+back-edge in the delivery ledger. It works standalone too — the ledger records loop
+closure even without `ea-delivery`.
 
 ## Boundaries
 

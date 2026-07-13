@@ -34,8 +34,9 @@ across phases. For a single phase, invoke that phase's skill directly:
 
 ```
 requirements ─▶ design ─▶ tech-selection ─▶ bridge ─▶ implementation ─▶ service
-                              ▲                 │
-                              └── back-edge ─────┘   (new non-functional requirement)
+                  ▲            ▲                                     │
+                  │            └─ back-edge: new NFR ────────────────┤
+                  └─ back-edge: new functional req / design gap ─────┘
 ```
 
 Track state in `delivery-ledger.yaml` (schema: `references/delivery-ledger.md`).
@@ -58,19 +59,24 @@ gate — turn the failure into the next question for the owning skill. Full defi
 | requirements → design | model valid; no goal/requirement traces to nothing | `archimate-ea` `validate_model.py` clean |
 | design → tech-selection | Technology-layer placeholders identified; model valid | validator clean; list unfilled `SystemSoftware/Node/TechnologyService` |
 | tech-selection → bridge | every placeholder has `selected-product`; each decision has an ADR | `tech-selector` DoD; validator clean after write-back |
-| bridge → implementation | no traceability orphans; every ApplicationService has an API skeleton | `archimate-to-impl` `trace_check.py` (exit 0, or each orphan has a recorded out-of-scope decision) |
+| bridge → implementation | every orphan resolved or dispositioned; every ApplicationService has an API skeleton | `archimate-to-impl` `trace_check.py --gaps gaps.yaml --require-disposition` (exit 0) |
 | implementation → service | every component task has an owner/tracker; code committed | `github-issues` / `commit-and-report` |
 
-## Back-edges (the chain is not purely one-directional)
+## Back-edges (the chain is a loop, not a one-way pipe)
 
-When a downstream phase surfaces a **new non-functional requirement** — e.g. the
-bridge reveals an event-driven service that needs a message broker — do not patch it
-locally. Instead:
+Downstream phases routinely discover something that belongs upstream. That is expected —
+the return path is built in, not an escape hatch. Do not patch it locally; route it:
 
-1. Add the requirement to the model via `archimate-ea` (keep the model the truth).
-2. Reopen `tech-selection` for the affected element (`tech-selector`).
+1. Add the finding to the model via `archimate-ea` (keep the model the truth): a new
+   requirement or constraint, or the missing Realization/service.
+2. Reopen the right phase — `tech-selection` for a new **non-functional** requirement,
+   `design` for a new **functional** requirement or design gap.
 3. Record a `back_edge` in the ledger (from, to, reason, status) and close it when the
-   re-selection lands. An open back-edge blocks the `service` gate.
+   change lands. An open back-edge of any kind blocks the `service` gate.
+
+The orphan `gaps.yaml` ledgers (from `archimate-to-impl` / `requirements-stories`) make
+this mechanical: an orphan the team decides to escalate is marked `promoted`, which is
+the signal to open a `design` back-edge.
 
 ## The conductor loop
 

@@ -60,9 +60,11 @@ Gate `check` names match `references/gates.md`: `model-valid`, `placeholders-ide
 
 ## `back_edges`
 
-A downstream phase that surfaces a new non-functional requirement opens a back-edge
-to `tech-selection`. `status` ∈ `open | closed`. **An open back-edge blocks the
-`service` gate.**
+A downstream phase that discovers something belonging upstream opens a back-edge, routed
+by kind: a new **non-functional** requirement → `tech-selection`; a new **functional**
+requirement or design gap (including an orphan marked `promoted` in a `gaps.yaml`) →
+`design`. `to` ∈ `design | tech-selection`, `status` ∈ `open | closed`. **An open
+back-edge of any kind blocks the `service` gate.**
 
 ```yaml
 back_edges:
@@ -72,6 +74,11 @@ back_edges:
     opened: "2026-07-03"
     status: open
     # closed: "2026-07-04"   # set when the re-selection lands
+  - from: implementation
+    to: design
+    reason: "promoted orphan: retention outcome needs a requirement in the model"
+    opened: "2026-07-05"
+    status: open
 ```
 
 ## Rules

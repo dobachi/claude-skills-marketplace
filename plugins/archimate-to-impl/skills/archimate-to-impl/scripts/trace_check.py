@@ -25,6 +25,8 @@ import argparse
 import json
 import sys
 
+import yaml
+
 from ea_read import (APP_COMPONENT, APP_FUNCTION, APP_SERVICE, APP_INTERFACE,
                      REQ_TYPES, load)
 
@@ -135,20 +137,92 @@ def check(m) -> list:
     return problems
 
 
+# --- gap disposition ledger (closes the feedback loop) --------------------
+
+GAP_STATUSES = ("open", "out-of-scope", "promoted", "fixed")
+
+
+def _gap_key(code, ref):
+    return f"{code}:{ref}"
+
+
+def merge_gaps(problems, path):
+    """Merge detected orphans into a `gaps.yaml` disposition ledger at `path`.
+
+    Each orphan is keyed "<code>:<ref>" and carries a human-controlled status:
+    open | out-of-scope | promoted | fixed (+ a free-text note). Re-running preserves
+    existing dispositions, adds new orphans as `open`, and flips a still-`open` gap to
+    `fixed` once it is no longer detected. `promoted` marks an orphan the team decided
+    to push up into the EA model (the promotion list). Returns (gaps, open_detected):
+    open_detected = currently-detected orphans still `open` — what a gate checks.
+    """
+    import os
+    existing, order = {}, []
+    if os.path.exists(path):
+        raw = yaml.safe_load(open(path, encoding="utf-8")) or {}
+        for g in (raw.get("gaps") or []):
+            if isinstance(g, dict) and g.get("id"):
+                existing[g["id"]] = g
+                order.append(g["id"])
+    current = {_gap_key(p.code, p.ref): p for p in problems}
+
+    merged, new_order = {}, []
+    for key in order:                          # preserve existing entries & order
+        g = existing[key]
+        if key in current:
+            g["message"] = current[key].message
+            g.setdefault("status", "open")
+            g.setdefault("note", "")
+        elif g.get("status", "open") == "open":
+            g["status"] = "fixed"              # was open, now gone → resolved
+        merged[key] = g
+        new_order.append(key)
+    for key, p in current.items():             # add newly-detected orphans
+        if key not in merged:
+            merged[key] = {"id": key, "code": p.code, "ref": p.ref,
+                           "message": p.message, "status": "open", "note": ""}
+            new_order.append(key)
+
+    gaps = [merged[k] for k in new_order]
+    with open(path, "w", encoding="utf-8") as fh:
+        yaml.safe_dump({"gaps": gaps}, fh, allow_unicode=True, sort_keys=False)
+    open_detected = sum(1 for k in current if merged[k].get("status", "open") == "open")
+    return gaps, open_detected
+
+
+def _gap_counts(gaps):
+    counts = {s: 0 for s in GAP_STATUSES}
+    for g in gaps:
+        st = g.get("status", "open")
+        counts[st] = counts.get(st, 0) + 1
+    return counts
+
+
 def main():
     ap = argparse.ArgumentParser(description="Check EA model for traceability orphans.")
     ap.add_argument("model", help="path to ea-model.yaml")
     ap.add_argument("--format", choices=["text", "json"], default="text")
     ap.add_argument("--strict", action="store_true", help="exit non-zero on warnings")
+    ap.add_argument("--gaps", metavar="FILE",
+                    help="read/write a gaps.yaml disposition ledger for the orphans")
+    ap.add_argument("--require-disposition", action="store_true",
+                    help="with --gaps: exit non-zero if any detected orphan is still 'open'")
     args = ap.parse_args()
 
     m = load(args.model)
     problems = check(m)
 
+    gaps, gap_open = ([], 0)
+    if args.gaps:
+        gaps, gap_open = merge_gaps(problems, args.gaps)
+
     if args.format == "json":
-        print(json.dumps({"problems": [p.as_dict() for p in problems],
-                          "summary": {"warnings": len(problems)}},
-                         ensure_ascii=False, indent=2))
+        out = {"problems": [p.as_dict() for p in problems],
+               "summary": {"warnings": len(problems)}}
+        if args.gaps:
+            out["gaps"] = gaps
+            out["summary"]["open_undispositioned"] = gap_open
+        print(json.dumps(out, ensure_ascii=False, indent=2))
     else:
         print(f"{args.model} — traceability check (archimate-to-impl)")
         if not problems:
@@ -157,7 +231,16 @@ def main():
             for p in problems:
                 print(f"  [{p.severity}] {p.code}: {p.ref}\n      {p.message}")
             print(f"  Summary: {len(problems)} warning(s).")
+        if args.gaps:
+            c = _gap_counts(gaps)
+            print(f"  Gaps ledger: {args.gaps} — open {c['open']}, out-of-scope "
+                  f"{c['out-of-scope']}, promoted {c['promoted']}, fixed {c['fixed']}")
+            if gap_open:
+                print(f"  {gap_open} orphan(s) still undispositioned (status: open) — "
+                      f"decide out-of-scope / promoted, or resolve.")
 
+    if args.require_disposition:               # gate mode: pass iff every orphan is dispositioned
+        sys.exit(2 if gap_open else 0)
     if problems and args.strict:
         sys.exit(2)
     sys.exit(1 if problems else 0)
