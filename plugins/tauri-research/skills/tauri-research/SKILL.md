@@ -35,10 +35,16 @@ Clearly state what needs to be investigated before searching. Break vague questi
 
 ### Step 3: Validate Findings
 
+- **Open what you cite**: A search-result snippet is not a source — snippets are generated text and often paraphrase the page wrongly. Fetch the page before citing it.
+- **Quote the deciding words**: For every load-bearing finding, keep the verbatim sentence from the source that establishes it. A source that is merely *about* the topic supports nothing. Link validity and topical relevance are not verification.
 - **Version check**: Confirm the information applies to Tauri v2 (not v1)
 - **Date check**: Prefer sources from October 2024 or later (v2 stable release)
-- **Cross-reference**: Verify critical findings against at least two sources
+- **Cross-reference**: Verify critical findings against at least two sources. Two blogs restating the same release note is one source, not two.
+- **Trace up**: If a blog or Stack Overflow answer restates the docs or the source code, go get the original and cite that. A restatement's error is invisible from the restatement.
 - **Test feasibility**: Note if the solution is untested or has known caveats
+- **Say what you didn't find**: "No official documentation covers this; the answer below rests on one maintainer comment" is a finding. Silence reads as completeness.
+
+For a deep or high-stakes investigation — where being wrong is expensive and the answer will be quoted back — hand off to `grounded-research`, which runs parallel retrieval subagents, a source ledger, and blind per-claim verification.
 
 ### Step 4: Report Results
 
@@ -89,14 +95,17 @@ When reporting research results, use this template:
 **Answer:**
 [Clear, concise answer]
 
-**Sources:**
-- [Source 1 title](URL) — [brief note]
-- [Source 2 title](URL) — [brief note]
+**Evidence:**
+- [Source 1 title](URL) — opened [date]; v2 docs — > "[verbatim sentence that establishes the answer]"
+- [Source 2 title](URL) — opened [date]; GitHub issue — > "[verbatim sentence]"
 
-**Confidence:** [High/Medium/Low] — [reason]
+**Confidence:** [High/Medium/Low] — [reason]. High requires a verbatim span from official docs or source code, not an inference from them.
 
 **Caveats:**
 - [Any limitations or version constraints]
+
+**Not established:**
+- [What the docs don't cover; what couldn't be confirmed; where sources disagree — quote both sides and say it's unresolved rather than picking one silently]
 
 **Suggested Next Steps:**
 - [Action items if applicable]

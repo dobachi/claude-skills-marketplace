@@ -106,11 +106,31 @@ When analyzing the competitive landscape as a whole, assess:
 
 ## Research Guidelines
 
-1. **Source quality**: Prioritize official websites, analyst reports, press releases, and credible tech publications
-2. **Recency**: Note the date of each data point; flag information older than 12 months
-3. **Verification**: Cross-reference pricing and feature claims across multiple sources
-4. **Objectivity**: Present facts and data, not opinions; clearly label any inferences
-5. **Gaps**: Explicitly note when information is unavailable or unverifiable
+Competitive analysis is unusually hallucination-prone: every fact is contested, every primary source is an interested party, and the aggregators that rank well are restating each other. Ground it or don't ship it.
+
+1. **Evidence Ledger (required)**: Every cell in the comparison matrix that asserts a fact — a price, a feature, a customer, a limit — carries a ledger row with a **verbatim quote** from the source that establishes it. A matrix cell with no ledger row is an inference, and gets marked as one.
+2. **Open what you cite**: A search-result snippet is not a source. Fetch the page. Snippets are generated text and routinely paraphrase pricing pages wrongly.
+3. **Quote the deciding words**: The quote must contain the fact, not merely discuss the topic. Link validity and topical relevance are not verification — cited sources that resolve, are on-topic, and don't support the claim are the dominant failure mode here.
+4. **Source quality**: Prioritize official websites, analyst reports, press releases, and credible tech publications — but rate them:
+   - **Vendor's own pricing/docs**: authoritative about themselves, unreliable about rivals.
+   - **A vendor's benchmark or comparison of a competitor**: never a fact. Register it as *a claim the vendor makes*, attributed, and go verify it against the competitor's own source.
+   - **Aggregators, listicles, "X vs Y" SEO pages, AI-written roundups**: never terminal. Use them to find the primary, then cite the primary.
+5. **Trace up**: If a source restates another, cite the original. Restated pricing drifts — tiers get stale, regional prices get flattened, annual gets reported as monthly.
+6. **Corroboration means independent origin**: Three articles restating one press release is one source with three URLs. Say "one source" when it is one source.
+7. **Recency**: Record an access date per data point; flag anything older than 12 months. Pricing and feature claims decay fastest.
+8. **Objectivity**: Present facts and data, not opinions; clearly label any inferences. Keep strategic implications visibly separate from the evidence they rest on — that separation is where the reader's judgement enters.
+9. **Disagreement**: When sources conflict on a price or capability, report both with attribution and mark it unresolved. Do not average, split the difference, or silently prefer the newer one. Most conflicts are definitional (list vs. street price, per-seat vs. per-user, a feature gated behind a tier) and dissolve once stated.
+10. **Gaps**: Explicitly note when information is unavailable or unverifiable. Enterprise pricing is usually "not published" — say that, never estimate it into the matrix as though it were found.
+
+```markdown
+| ID   | Claim                          | Competitor | Source (URL)      | Tier            | Accessed   | Verbatim quote           |
+|------|--------------------------------|------------|-------------------|-----------------|------------|--------------------------|
+| E-01 | Starts at $49/seat/month       | Vendor A   | https://…/pricing | vendor-primary  | 2026-07-17 | "$49 per seat per month" |
+| E-02 | No SSO below Enterprise tier   | Vendor A   | https://…/pricing | vendor-primary  | 2026-07-17 | "SSO available on Enterprise" |
+| E-03 | "2× faster than Vendor A"      | Vendor B   | https://…/compare | vendor-on-rival | 2026-07-17 | "2× faster than Vendor A" — B's claim about A; unverified |
+```
+
+For a high-stakes analysis — an investment decision, a market-entry call, anything that will be quoted back at you — run the research through `grounded-research` first (parallel retrieval subagents, source ledger, blind per-claim verification) and build the matrix from its ledger. To audit a competitive report someone already wrote, use `fact-checker`.
 
 ## Output Formats
 

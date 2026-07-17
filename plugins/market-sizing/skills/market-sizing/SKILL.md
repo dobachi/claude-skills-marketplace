@@ -172,13 +172,31 @@ Test key assumptions:
 
 ## Quality Standards
 
-1. **Cite every number**: No unsourced statistics. If estimated, state the method
-2. **Date all data**: Market data decays quickly; note the year of each figure
-3. **Show your math**: Every calculation should be reproducible
-4. **Cross-validate**: Compare top-down and bottom-up; explain divergences
-5. **State assumptions explicitly**: Each assumption should be separately identifiable
-6. **Use ranges, not points**: Prefer "$200M-$400M" over "$300M" when uncertainty is high
-7. **Flag stale data**: Warn when using data older than 2 years
+A market size is a number built from other numbers. Every input error propagates through the arithmetic and comes out wearing a dollar sign and a false air of precision — so the inputs, not the model, are where the integrity work goes.
+
+1. **Input Ledger (required)**: Every *input* figure — not the derived ones — gets a row with a **verbatim quote** from the source. If you cannot quote the number, you did not find the number. The math is reproducible from the ledger or the estimate does not ship.
+2. **Open what you cite**: A search-result snippet is not a source. Fetch the page and quote it. Snippets are generated text, and market figures are exactly what they garble.
+3. **Never quote a paywalled figure you did not read**: Analyst headline numbers (Gartner, IDC, Forrester, MarketsandMarkets) are the single most fabricated class of figure in AI-written market research — the press release exists, the number in it is often not the number reported. If you only reached the abstract or a press summary, mark it `secondhand` and quote the summary verbatim, attributed to the summary, not to the report. If you cannot reach either, write "not accessible" and size it bottom-up instead.
+4. **Cite every number**: No unsourced statistics. If estimated, state the method and mark it derived, not found.
+5. **Date all data**: Market data decays quickly; note the year of each figure and the date you accessed it
+6. **Show your math**: Every calculation should be reproducible from the Input Ledger alone
+7. **Cross-validate**: Compare top-down and bottom-up; explain divergences. Two estimates drawing on the same analyst figure are not independent — triangulation requires independent origin, or it is one estimate computed twice.
+8. **State assumptions explicitly**: Each assumption should be separately identifiable
+9. **Use ranges, not points**: Prefer "$200M-$400M" over "$300M" when uncertainty is high
+10. **Flag stale data**: Warn when using data older than 2 years
+11. **Disagreement is a finding**: When two credible sources give different market sizes, report both with attribution and say why they differ — almost always a definitional gap (market boundary, geography, revenue vs. bookings, hardware included or not). Do not average them into a fake consensus. The definitional gap is usually more decision-relevant than either number.
+12. **Say what you could not find**: A named gap ("no public data on segment X after 2024") is worth more than an interpolation presented as data.
+
+```markdown
+| ID   | Input                       | Value      | Source (URL)        | Kind       | Accessed   | Verbatim quote                        |
+|------|-----------------------------|------------|---------------------|------------|------------|---------------------------------------|
+| M-01 | US establishments in NAICS X| 48,200     | census.gov/…        | primary    | 2026-07-17 | "48,200 establishments"               |
+| M-02 | Avg annual spend per site   | $12,000    | vendor 10-K p.34    | primary    | 2026-07-17 | "average contract value of $12,000"   |
+| M-03 | Segment growth rate         | 9% CAGR    | analyst PR          | secondhand | 2026-07-17 | "9% CAGR" — press release; full report paywalled |
+| M-04 | Attach rate                 | 30%        | —                   | assumption | —          | not found; see Assumptions            |
+```
+
+For a high-stakes sizing — a board deck, an investment memo, a market-entry decision — run the research through `grounded-research` (parallel retrieval subagents, source ledger, blind per-claim verification) and build the model from its ledger. To audit a sizing report someone already wrote, use `fact-checker`.
 
 ## Common Pitfalls
 

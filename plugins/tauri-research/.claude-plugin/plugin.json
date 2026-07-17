@@ -1,6 +1,8 @@
 {
   "name": "tauri-research",
   "description": "Research assistant for investigating Tauri-related questions via web search and official documentation.",
-  "version": "1.0.0",
-  "author": {"name": "dobachi"}
+  "version": "1.1.0",
+  "author": {
+    "name": "dobachi"
+  }
 }
