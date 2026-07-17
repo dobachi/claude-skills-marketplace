@@ -161,6 +161,11 @@
       "description": "Document and literature summarization skill with Executive and Professional modes, mandatory source-grounded Claim Ledger, and explicit Source vs Inference separation to prevent hallucinated content."
     },
     {
+      "name": "grounded-research",
+      "source": "./plugins/grounded-research",
+      "description": "Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged."
+    },
+    {
       "name": "literature-search",
       "source": "./plugins/literature-search",
       "description": "Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services."

@@ -85,6 +85,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 
 | Plugin | Description |
 |---|---|
+| **grounded-research** | Runs multi-source web research with hallucination control built into the architecture: parallel retrieval subagents that return only verbatim quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged. Deliberately does *not* use debate or majority voting. |
 | **literature-search** | Literature search, citation chasing, snowballing (Wohlin), author profile + h-index, BibTeX export, and retraction screening using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services. Requires Node.js 18+. |
 
 ### Quality

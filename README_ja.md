@@ -85,6 +85,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 
 | Plugin | Description |
 |---|---|
+| **grounded-research** | ハルシネーション対策を設計そのものに組み込んだ複数ソース調査。収集サブエージェントは逐語引用スパンのみを返し、追記専用のソース台帳に行がない主張は本文に書けない。各主張はドラフトを見せない目隠し検証にかけ、出典間の食い違いは平均せずそのまま提示する。討論や多数決は意図的に使わない。 |
 | **literature-search** | 文献検索・引用チェイス・スノーボーリング(Wohlin法)・著者プロファイル+h-index・BibTeX 出力・撤回論文チェックを、無料公式API(Semantic Scholar + OpenAlex + CrossRef)のみで実現。スクレイピングや有料サービスを使わない誠実な Google Scholar 代替。Node.js 18+ が必要。 |
 
 ### 品質管理 (Quality)

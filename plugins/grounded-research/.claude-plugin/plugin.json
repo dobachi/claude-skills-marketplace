@@ -1,0 +1,8 @@
+{
+  "name": "grounded-research",
+  "description": "Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged.",
+  "version": "1.1.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

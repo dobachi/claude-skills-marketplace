@@ -1,4 +1,4 @@
-*51 プラグイン（`marketplace.json` から自動生成）*
+*52 プラグイン（`marketplace.json` から自動生成）*
 
 | プラグイン | 説明 |
 |---|---|
@@ -29,6 +29,7 @@
 | **fact-checker** | Automated fact-checking for AI-generated documents. Extracts claims, verifies via web search and headless browser (Puppeteer), and generates a Markdown report. |
 | **faithful-translation** | Faithful translation skill that produces source-faithful translations across any language pair, with a parallel sentence ledger for verification, terminology preservation, and translator's notes. |
 | **github-issues** | Fetches GitHub Issues, aggregates by label, analyzes priorities, and organizes tasks with actionable suggestions. |
+| **grounded-research** | Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged. |
 | **humanize-prose** | Rewrite AI-generated or AI-assisted text to read as human-authored. Reduces common AI tells (em-dash overuse, 'delve'/'leverage', tricolons, reflex bullet lists, 'いかがでしたでしょうか', generic openers/closers) while preserving meaning, register, and facts. Bilingual (English / Japanese), reader-experience focused — not detector evasion. |
 | **literature-search** | Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services. |
 | **market-sizing** | Market sizing skill that estimates TAM/SAM/SOM using top-down and bottom-up approaches with evidence-backed reports. |
