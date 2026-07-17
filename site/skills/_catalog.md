@@ -1,4 +1,4 @@
-*52 プラグイン（`marketplace.json` から自動生成）*
+*53 プラグイン（`marketplace.json` から自動生成）*
 
 | プラグイン | 説明 |
 |---|---|
@@ -24,6 +24,7 @@
 | **document-figures** | Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary. |
 | **document-summary** | Document and literature summarization skill with Executive and Professional modes, mandatory source-grounded Claim Ledger, and explicit Source vs Inference separation to prevent hallucinated content. |
 | [**ea-delivery**](../ea/ea-delivery.qmd) | Thin conductor for end-to-end EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills (archimate-ea, tech-selector, archimate-to-impl, dev skills), carries ea-model.yaml as the through-line, gates each handoff, and tracks progress and back-edges in a delivery ledger. Delegates all phase work. |
+| **essence-distiller** | Find the essence of an artifact and strip away what is inessential — the via-negativa counterpart to doc-refactor, across prose/docs, specs & requirements, source code, and diagrams. Separates what is load-bearing for the artifact's ONE purpose and audience from redundancy, gold-plating, decoration, filler, speculative generality, premature detail, and scope creep, then proposes cuts with rationale and a 'what would be lost' note. Deliberately meaning-changing (unlike doc-refactor, which only rearranges): diagnose-first, non-destructive, propose-then-confirm. Anchors every cut to a stated purpose + audience, respects Chesterton's Fence, and preserves correctness/behavior. Hands off the code edit to /simplify or /code-review, the redraw to document-figures, a short derivative to document-summary. Bilingual JA/EN. |
 | **event-driven-service** | Design event-driven, asynchronous, and real-time services beyond request/response REST: messaging (queues/streams), async workers, scheduled/round-based jobs, and WebSocket/SSE push, with correctness under concurrency — idempotency, ordering, delivery guarantees, and backpressure. |
 | **evidence-check** | Verifies references and citations in reports and papers, performing evidence-based fact-checking. |
 | **fact-checker** | Automated fact-checking for AI-generated documents. Extracts claims, verifies via web search and headless browser (Puppeteer), and generates a Markdown report. |

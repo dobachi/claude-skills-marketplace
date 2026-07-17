@@ -1,0 +1,6 @@
+{
+  "name": "essence-distiller",
+  "description": "Find the essence of an artifact and strip away what is inessential — the via-negativa counterpart to doc-refactor, across prose/docs, specs & requirements, source code, and diagrams. Separates what is load-bearing for the artifact's ONE purpose and audience from redundancy, gold-plating, decoration, filler, speculative generality, premature detail, and scope creep, then PROPOSES cuts with rationale and a 'what would be lost' note. Deliberately meaning-changing (unlike doc-refactor, which only rearranges): diagnose-first, non-destructive, propose-then-confirm. Anchors every cut to a stated purpose + audience, respects Chesterton's Fence (flag, don't cut, what you don't understand), and preserves correctness/behavior. Hands off the code edit to /simplify or /code-review, the redraw to document-figures, a separate short derivative to document-summary, pure rearrange to doc-refactor. Bilingual JA/EN.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
