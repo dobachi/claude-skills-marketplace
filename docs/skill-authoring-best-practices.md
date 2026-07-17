@@ -21,7 +21,29 @@ description: One-line description of what this skill does
 ### Frontmatter Rules
 
 - **name**: Lowercase, hyphenated, matches the directory name
-- **description**: Under 200 characters. Use an active, direct tone describing what the skill does (e.g., "Expert assistant for designing production-ready REST APIs")
+- **description**: The primary triggering mechanism — Claude reads it to decide whether to load the skill. Write it in **third person**, and include both *what the skill does* and *when to use it* (trigger phrases, in Japanese and English if the skill is bilingual), plus what it does **not** do and which sibling skill to hand off to.
+
+  **Length.** Two different limits apply, and they are not the same thing:
+
+  | Limit | Applies to | Source |
+  |---|---|---|
+  | **1,024 characters** max, non-empty, no XML tags | The `description` field, per the Claude **API** Agent Skills docs | [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices) |
+  | **1,536 characters** | `description` + `when_to_use` **combined**, truncated *in the skill listing* — a display cap, not a field limit. Configurable via `skillListingMaxDescChars` | [Extend Claude with skills](https://code.claude.com/docs/en/skills) |
+
+  Claude Code does not appear to enforce the 1,024 cap: Anthropic's own `claude-api` skill ships a
+  1,068-character description and loads fine. Treat 1,024 as the portable ceiling anyway, and stay
+  under it unless you have a reason.
+
+  **Practical target: roughly 200–900 characters.** Longer than one line is normal and correct —
+  all 17 skills Anthropic ships under `anthropics/skills` exceed 200 characters (shortest: 204;
+  longest: 1,068). Anthropic's own `skill-creator` advises making descriptions "a little bit
+  *pushy*", because "Claude has a tendency to *undertrigger* skills — to not use them when they'd
+  be useful."
+
+  > A previous version of this document specified "Under 200 characters". That rule had no basis in
+  > any official source and was contradicted by both Anthropic's practice and this repo's own
+  > skills. See [grounded-research-design.md](./grounded-research-design.md#validation-the-skill-was-dogfooded-on-a-live-question)
+  > for the investigation. Short, one-line descriptions in older skills here are legacy, not the target.
 
 ### Body Structure
 
