@@ -7,3 +7,6 @@ node_modules/
 
 # OS / editor cruft
 .DS_Store
+
+# Build artifacts (Desktop skill zips, etc.)
+/dist/

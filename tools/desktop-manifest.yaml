@@ -1,0 +1,108 @@
+# Which skills to package for Claude Desktop / claude.ai, and why.
+#
+# "Does this skill work on Claude Desktop?" is a JUDGEMENT, not a computed
+# property, so it is written down here rather than auto-detected. pack-desktop.py
+# packages exactly what this file lists under `viable` and (with --experimental)
+# `experimental`. Everything in `excluded` is documented so the reasoning
+# survives.
+#
+# Constraints that drive these choices (verified against platform.claude.com
+# Agent Skills docs, 2026-07):
+#   - claude.ai runs skills in a sandbox; network access is settings-dependent,
+#     so Node/Puppeteer-based scripts may not work.
+#   - There is no Task/Agent tool on claude.ai, so skills that fan out to
+#     subagents lose that capability.
+#   - Skills that shell out to a CLI (claude/agy/codex) cannot work — those
+#     binaries are not in the sandbox.
+#   - Upload is manual, one zip per skill, so the list should be intentional.
+
+# Ship these: prose / reasoning skills with no runtime dependency on scripts,
+# subagents, or external CLIs. They degrade to pure-instruction skills, which is
+# exactly what they already are.
+viable:
+  - ai-tell-reducer
+  - doc-review
+  - humanize-prose
+  - faithful-translation
+  - document-summary
+  - strategy-memo
+  - technical-writer
+  - business-consultant
+  - business-model-canvas
+  - competitive-analysis
+  - market-sizing
+  - startup-advisor
+  - project-manager
+  - code-reviewer
+  - python-expert
+  - cli-tool-dev
+  - web-api-dev
+  - web-frontend-dev
+  - marp-slides
+  - pptx-design         # design guidance, prose only — no scripts
+  - verify-content
+  - evidence-check
+  - math-paper
+  - academic-researcher
+  - data-analyst
+  - optimization-modeling
+  - plugin-platform
+  - event-driven-service
+  - simulation-harness
+  - tauri-dev
+  - tauri-research
+  - grounded-research   # subagent fan-out is optional; the ledger discipline stands alone
+
+# Package only with --experimental. These bundle scripts or assume tools that
+# may not exist on claude.ai. Upload to verify empirically before trusting.
+experimental:
+  - fact-checker        # Node + Puppeteer + Task tool: the open question — does the sandbox run it?
+  - literature-search   # Node scripts hitting external APIs; network is settings-dependent
+  - document-figures    # Puppeteer + poppler; heavy external deps
+  - doc-refactor        # ships diagnose.py; skill works without it, but verify
+  - essence-distiller   # ships distill_scan.py; same
+  - pptx-build          # ships build_deck.py needing python-pptx; generator won't run without the package
+
+# Never package. Documented so the decision is not re-litigated.
+excluded:
+  # CLI-delegation skills: they shell out to claude/agy/codex, which are not in
+  # the claude.ai sandbox. Meaningless on Desktop by construction.
+  - name: claude-code-delegate
+    reason: "shells out to `claude -p`; not in sandbox. Also: reserved word 'claude' in name — claude.ai/API would reject it anyway."
+  - name: agy-delegate
+    reason: "shells out to `agy`; not in sandbox."
+  - name: codex-delegate
+    reason: "shells out to `codex`; not in sandbox."
+  # Repo/environment-management skills: they act on a local git repo or the
+  # Claude Code install, which the Desktop sandbox does not have.
+  - name: build
+    reason: "runs a project's build; no local project in the sandbox."
+  - name: commit-safe
+    reason: "operates on a local git repo; bundles commit.sh."
+  - name: commit-and-report
+    reason: "git + GitHub side effects on a local repo."
+  - name: github-issues
+    reason: "gh CLI against a local repo."
+  - name: checkpoint
+    reason: "manages the AI instruction system's on-disk state."
+  - name: reload-instructions
+    reason: "updates git submodules in a local checkout."
+  - name: reload-and-reset
+    reason: "updates the local instruction install."
+  # EA delivery chain: heavy Python toolchains (requirements.txt) and multi-skill
+  # orchestration that assumes a filesystem model file. Out of scope for a first
+  # Desktop cut; revisit if there's demand.
+  - name: archimate-ea
+    reason: "Python toolchain + ea-model.yaml on disk; revisit later."
+  - name: archimate-native
+    reason: "edits a local .archimate file in place."
+  - name: archimate-to-impl
+    reason: "Python toolchain over a local model."
+  - name: tech-selector
+    reason: "Python scoring + write-back into a local model."
+  - name: requirements-stories
+    reason: "Python backlog toolchain on disk."
+  - name: ea-delivery
+    reason: "orchestrates the EA skills sequentially; no value without them."
+  - name: doc-coauthoring
+    reason: "interactive local-file co-authoring workflow; revisit."
