@@ -87,9 +87,13 @@ def run_validator(names: list[str]) -> tuple[bool, str]:
             [sys.executable, str(VALIDATOR), "--strict", "--only", n, "--quiet"],
             capture_output=True, text=True,
         )
-        out_lines.append(r.stdout.strip())
         if r.returncode != 0:
             ok = False
+            # Only surface output from skills that actually failed; a clean run
+            # of 38 skills should not print 38 "0 errors" lines.
+            out_lines.append(r.stdout.strip())
+    if ok:
+        return True, f"validated {len(names)} skill(s): all pass (strict)"
     return ok, "\n".join(l for l in out_lines if l)
 
 

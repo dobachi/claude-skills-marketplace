@@ -165,6 +165,24 @@ their runtime present (e.g. `python3` + the packages in the skill's `requirement
 
 After installation, restart Claude Code to activate the plugin.
 
+### Claude Desktop / claude.ai
+
+Custom skills do **not** sync across surfaces — Claude Code, claude.ai, and the Skills
+API are separate stores — and there is no bulk-upload path, so getting skills into the
+Claude Desktop app means uploading one `.zip` per skill by hand. Two helpers automate the
+part that can be automated (packaging and validation); upload stays manual.
+
+```bash
+python3 tools/pack-desktop.py                 # zip the 'viable' skills → dist/desktop/
+python3 tools/pack-desktop.py --experimental  # also the script-bearing ones
+python3 tools/pack-desktop.py --only doc-review --out "$(wslpath /mnt/c/Users/you/Downloads)"
+```
+
+Output lands in `dist/desktop/` (git-ignored): one `<skill>.zip` each, an ordered
+`UPLOAD.md` checklist, and a hash ledger so a re-pack flags only what changed. Then upload
+each zip in the app's skill settings. Full guide, including which skills are packaged and
+what to verify on first upload: [docs/claude-desktop-packaging.md](./docs/claude-desktop-packaging.md).
+
 ## Usage
 
 After installation, you can use it in Claude Code like this:
@@ -271,7 +289,8 @@ The document-figures plugin requires:
 2. Write metadata in `.claude-plugin/plugin.json`
 3. Place the skill body in `skills/<skill-name>/SKILL.md`
 4. Add an entry to the `plugins` array in `.claude-plugin/marketplace.json`
-5. Commit & push
+5. Validate: `python3 tools/validate_skills.py` (CI runs the same check)
+6. Commit & push
 
 For the full step-by-step procedure (importing a packaged `.skill` file, updating an
 existing plugin, validation, and installation), see

@@ -165,6 +165,24 @@ curl -fsSL https://raw.githubusercontent.com/dobachi/claude-skills-marketplace/m
 
 インストール後、Claude Codeを再起動すると有効になります。
 
+### Claude Desktop / claude.ai
+
+カスタムスキルは各サーフェス間で**同期しません**（Claude Code・claude.ai・Skills API は
+別々のストア）。一括アップロード経路も無いため、Claude Desktop アプリに入れるにはスキル
+ごとに `.zip` を1つずつ手動アップロードします。自動化できる部分（梱包と検証）は2つの
+支援ツールが担い、アップロードは手動のままです。
+
+```bash
+python3 tools/pack-desktop.py                 # viable なスキルを zip 化 → dist/desktop/
+python3 tools/pack-desktop.py --experimental  # スクリプト同梱のものも含める
+python3 tools/pack-desktop.py --only doc-review --out "$(wslpath /mnt/c/Users/you/Downloads)"
+```
+
+出力は `dist/desktop/`（git 管理外）に、`<skill>.zip` 群・順序付きチェックリスト
+`UPLOAD.md`・ハッシュ台帳（再梱包時に変更分だけを表示）としてまとまります。あとはアプリの
+スキル設定で各 zip をアップロードするだけです。梱包対象の一覧や初回アップロード時に確認す
+べき点を含む詳細は [docs/claude-desktop-packaging.md](./docs/claude-desktop-packaging.md)。
+
 ## Usage
 
 インストール後、Claude Codeで以下のように使えます。
@@ -271,7 +289,8 @@ document-figures プラグインは以下を必要とします：
 2. `.claude-plugin/plugin.json` にメタデータを記述
 3. `skills/<skill-name>/SKILL.md` にスキル本体を配置
 4. `.claude-plugin/marketplace.json` の `plugins` 配列にエントリを追加
-5. コミット & プッシュ
+5. 検証: `python3 tools/validate_skills.py`（CI も同じチェックを実行）
+6. コミット & プッシュ
 
 パッケージ済み `.skill` ファイルの取り込み、既存プラグインの更新、検証、インストールまでの
 詳細な手順は [docs/adding-or-updating-a-skill.md](docs/adding-or-updating-a-skill.md) を参照してください。
