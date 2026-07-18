@@ -1,0 +1,8 @@
+{
+  "name": "knowledge-base",
+  "description": "A minimal, portable, cross-agent persistent knowledge base. Stores knowledge as plain Markdown — one KB is one directory that works by copying the folder: no server, no database, syncable via Git or OneDrive. Supports multiple KBs, each declaring its own format (prose / entities, with room for more). Cross-agent adapters verified on Claude Code, Codex, and Antigravity (agy); bundles a stdlib-only validator.",
+  "version": "0.1.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

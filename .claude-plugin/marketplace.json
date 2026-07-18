@@ -269,6 +269,11 @@
       "name": "agent-delegate",
       "source": "./plugins/agent-delegate",
       "description": "Delegate a task to another CLI coding agent — Codex (codex-delegate), Antigravity/agy (agy-delegate), or Claude Code (claude-code-delegate) — from within your current agent. Explicit-invocation only, read-first routing, and a preview→confirm→apply gate for any write. Bundles three skills."
+    },
+    {
+      "name": "knowledge-base",
+      "source": "./plugins/knowledge-base",
+      "description": "A persistent knowledge base any agent can use across sessions — plain Markdown, one KB per directory, no server and no database, so it travels by copying the folder and syncs via Git or OneDrive. Supports multiple KBs (prose and entities formats), curated-index-then-grep recall, and cross-agent adapters verified on Claude Code, Codex, and Antigravity (agy). Bundles a stdlib-only validator."
     }
   ]
 }
