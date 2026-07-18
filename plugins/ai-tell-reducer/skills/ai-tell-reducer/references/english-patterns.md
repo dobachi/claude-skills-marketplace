@@ -18,6 +18,7 @@ Each entry: symptom → why it reads as AI → fix. Before/after examples are il
 11. Formatting residue (bold lists, unicode)
 12. Formulaic structure and dead endings
 13. Localization defaults (spelling, Oxford comma)
+14. Self-certifying meta-claims (asserting your own honesty/value)
 
 ---
 
@@ -128,3 +129,17 @@ After: Most data-governance projects stall on a single question: who is authoriz
 **Symptom:** American spelling (organize, color) and the Oxford comma appear by default because most models default to US English.
 **Why:** not wrong — but a mismatch if the author writes British/other English, and the sudden consistency can itself read as machine-set.
 **Fix:** match the author's established convention. If they write "organise" and "colour," keep it throughout. This is a consistency fix, not a correctness one.
+
+## 14. Self-certifying meta-claims (asserting your own honesty/value)
+
+**Symptom**: the prose vouches for itself — "to be honest," "we'll be objective here," "I'll give you the unvarnished truth," "this is the most important section," "let me be transparent," "no fluff, just facts," "I won't sugarcoat this."
+**Why it reads as AI**: credibility is something a reader grants based on the content; asserting it is a substitute for earning it. Worse, it invites the opposite inference — if this part is honest, what about the rest? Models produce it when optimizing for "sound trustworthy" at the sentence level instead of at the evidence level. It is most jarring in reports, technical docs, and anything where claims are supposed to rest on sources.
+**Fix**: cut the claim; keep only what enacts it. Instead of announcing balance, present the counter-evidence. Instead of promising no fluff, remove the fluff. Instead of labelling a section important, state the consequence that makes it important.
+
+Before: This is the section that determines the report's value. I'll be honest here and avoid turning it into a sales pitch.
+After: [delete and continue] X is a poor fit in three situations. Each one follows from a property of its design.
+
+Before: To be transparent, I'll list every limitation I know of.
+After: [just list them] Known limitations: ...
+
+**Test**: delete the sentence. If no information is lost, it was a claim about the writing rather than the writing itself.

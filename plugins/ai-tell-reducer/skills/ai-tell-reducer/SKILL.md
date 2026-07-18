@@ -74,7 +74,7 @@ When the user *does* ask for LinkedIn/blog register, the casual tools come back 
    - *Fabrication check:* re-scan the rewrite against the source. Every fact, number, and name must trace back. Delete anything that crept in.
 5. **Report** (see Output). Lead with the result the user asked for; keep the process notes short; surface the flags.
 
-## The five root causes
+## The six root causes
 
 **1. Uniform rhythm (the most visible tell).**
 AI writing clusters toward the average: every sentence medium-length, every paragraph three-to-four lines, the same subject-verb-object shape repeating. Human prose is uneven — a long winding sentence, then a short one that lands, then a medium one to breathe. *Fix:* vary sentence length and opening structure deliberately. Break at least one long sentence into a short punch; let at least one run longer. Vary how paragraphs start.
@@ -90,6 +90,9 @@ The intro announces itself ("本記事では…," "In this article…"), every s
 
 **5. Inflated diction.**
 Simple copulas become "serves as / stands as / represents"; plain verbs become "utilize / leverage / harness"; ordinary nouns get dressed up ("tapestry," "landscape," 「〜化」「情報設計」). It reads thesaurus-run. *Fix:* plainest accurate word wins. "is" over "serves as," "use" over "utilize," 「〜を使う」over「〜を活用していく」— unless the fancier word is genuinely the precise one.
+
+**6. Meta-claims about the writing's own quality.**
+The text asserts its own honesty, balance, or importance instead of demonstrating them: "正直に書きます," "誠実に検証しました," "we'll be objective here," "this is the most important section," "隠さず列挙します," "重要なので強調しておきます." This is the model satisfying "be trustworthy" as a *statement* rather than as a property of the content — and it backfires: a reader who is told the author is being honest starts wondering which parts weren't. It reads worst in reports and technical documents, where credibility is supposed to come from evidence. *Fix:* delete the claim and keep only what enacts it. Don't announce neutrality — present the counter-evidence. Don't say you'll list things openly — list them. Don't call a section valuable — show why the distinction matters. **Test:** if deleting the sentence removes no information, it was a claim, not content.
 
 The two language catalogs turn each cause into specific, checkable before/after fixes for that language's particular tics (Japanese sentence-ending monotony, 読点 overuse, 英語直訳 metaphors; English vocab blacklist, "It's not X, it's Y," em-dash and bold-list overuse). Read the relevant one before rewriting.
 
