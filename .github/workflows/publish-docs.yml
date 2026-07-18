@@ -30,6 +30,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history: gen_catalog.py derives each plugin's last-updated date
+          # from git log; a shallow clone would render every date as "—".
+          fetch-depth: 0
 
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2

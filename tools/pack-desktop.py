@@ -141,6 +141,27 @@ def content_hash(name: str) -> str:
     return h.hexdigest()
 
 
+def last_updated(name: str) -> str:
+    """Author date (YYYY-MM-DD) of the last commit touching this skill's plugin, or '—'."""
+    plugin = plugin_dir_for_name(name)
+    if plugin is None:
+        return "—"
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(REPO), "log", "-1", "--format=%cs", "--",
+             str(plugin.relative_to(REPO))],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "—"
+    return out.stdout.strip() or "—"
+
+
+def plugin_dir_for_name(name: str):
+    sd = skill_dir(name)
+    return sd.parent.parent  # plugins/<plugin>/skills/<skill> -> plugins/<plugin>
+
+
 def write_checklist(dest_dir: Path, packed: list[dict], prev: dict) -> None:
     lines = [
         "# Claude Desktop — skill upload checklist",
@@ -172,7 +193,8 @@ def write_checklist(dest_dir: Path, packed: list[dict], prev: dict) -> None:
         else:
             tag = "unchanged since last pack"
         flag = "  *(experimental — verify it runs)*" if item["experimental"] else ""
-        lines.append(f"- [ ] **{n}** — `{n}.zip`  ·  {tag}{flag}")
+        upd = item.get("updated", "—")
+        lines.append(f"- [ ] **{n}** — `{n}.zip`  ·  updated {upd}  ·  {tag}{flag}")
     lines += [
         "",
         "## After uploading",
@@ -249,6 +271,7 @@ def main() -> int:
             "content": chash,
             "zip_sha256": zhash,
             "experimental": n in exp_set,
+            "updated": last_updated(n),
         })
         print(f"packed {n} -> {zpath.relative_to(REPO)}")
 
