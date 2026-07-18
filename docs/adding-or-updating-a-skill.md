@@ -87,15 +87,22 @@ These three registration steps are what make the plugin discoverable and install
 
 ## Validate
 
-Run before committing. All JSON must parse and the four `name` occurrences must match.
+Run before committing. The validator checks YAML frontmatter, the `name`
+rules, and marketplace registration for every skill at once — this is the same
+check CI runs, so passing it locally means CI passes too:
 
 ```bash
-# JSON parses and the plugin is registered
-python3 -c "import json; d=json.load(open('.claude-plugin/marketplace.json')); \
-  assert any(p['name']=='<name>' for p in d['plugins']); print('marketplace OK', len(d['plugins']))"
-python3 -c "import json; json.load(open('plugins/<name>/.claude-plugin/plugin.json')); print('plugin.json OK')"
+# Contract check for all skills (or one, with --only <name>)
+python3 tools/validate_skills.py
 
-# Files are in place
+# Add --strict to also flag what claude.ai / the Skills API would reject
+# (reserved words, description > 1024 chars). See docs/claude-desktop-packaging.md.
+python3 tools/validate_skills.py --strict
+```
+
+Then confirm the files are in place:
+
+```bash
 find plugins/<name> -type f | sort
 ```
 

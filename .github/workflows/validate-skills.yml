@@ -1,0 +1,39 @@
+name: Validate skills
+
+# Guards the skill contract: every SKILL.md must have valid YAML frontmatter,
+# a name that matches its directory and is registered, and a non-empty
+# description. Runs on any change under plugins/ or to the marketplace/registry.
+# This is the automated form of the manual checks in
+# docs/adding-or-updating-a-skill.md — nothing shipped without it before.
+
+on:
+  push:
+    paths:
+      - "plugins/**"
+      - ".claude-plugin/marketplace.json"
+      - "tools/validate_skills.py"
+      - ".github/workflows/validate-skills.yml"
+  pull_request:
+    paths:
+      - "plugins/**"
+      - ".claude-plugin/marketplace.json"
+      - "tools/validate_skills.py"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Validate SKILL.md files
+        run: python3 tools/validate_skills.py
