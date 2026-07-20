@@ -26,6 +26,8 @@ Good fits: isolating a big subtask in its own context window, running a step und
   own (absolute paths, exact task, desired output shape, boundaries).
 - **Recursion guard:** give the sub-instance a narrow, terminal task. Never instruct it
   to delegate further. Prefer a distinct `--model` so the second run genuinely differs.
+- For the write/apply step, `bwrap` (bubblewrap) must be on `PATH` — the bundled
+  `scripts/sbx` wrapper uses it to sandbox the write (see "Sandboxing the apply").
 
 ## Read / analyze / search → run in plan mode
 
@@ -47,15 +49,35 @@ the normal Bash permission prompt.
    claude -p "<task>. Produce a plan / diff of the intended changes; do not edit." --permission-mode plan 2>&1
    ```
 2. **Confirm** — show the plan to the user and get an explicit go/no-go.
-3. **Apply** — only on approval:
+3. **Apply** — only on approval, run the write **inside the `sbx` sandbox** (see below).
+   Keep the sub-instance's own Bash sandbox on too (`sandbox.enabled: true`); it survives
+   `--dangerously-skip-permissions`, which only removes the approval prompts:
    ```bash
-   claude -p "<task>" --permission-mode acceptEdits --add-dir <dir> 2>&1
+   SBX_WORK=<dir> SBX_CFG="$HOME/.claude:$HOME/.claude.json" SBX_RO="$HOME/.local:$HOME/.nvm" \
+     <skill-dir>/scripts/sbx claude -p "<task>" --permission-mode acceptEdits --add-dir <dir> --dangerously-skip-permissions 2>&1
    ```
-   `--dangerously-skip-permissions` may be added **only here**, after the user approved
-   the plan — never on an un-planned write.
 
-Two gates protect writes: these instructions (soft) **and** the host's Bash permission
-prompt on the actual command (hard).
+Three gates protect writes: these instructions (soft), the host's Bash permission prompt
+(hard), **and** the `sbx` OS sandbox that confines the write even if the first two are
+bypassed.
+
+### Sandboxing the apply (required)
+
+The apply runs with writes enabled and no interactive approval, so confine it with the
+bundled `scripts/sbx` wrapper (bubblewrap). It makes only `SBX_WORK` writable, mounts the
+system read-only, and masks `$HOME`. This matters doubly here: Claude Code's native
+sandbox wraps only Bash and by default can **read the whole machine** (including
+`~/.ssh` / `~/.aws`) — `sbx`'s masked HOME is what actually hides those secrets. Verified:
+even with permissions skipped, the sub-instance cannot escape it.
+
+- `<skill-dir>/scripts/sbx` — path is relative to **this skill's directory**; invoke with
+  the full path. If `bwrap` is missing, `sbx` refuses (exit 127); install bubblewrap or
+  keep `sandbox.enabled: true` and tell the user the HOME-masking layer is unavailable.
+- `SBX_WORK` = the approved writable dir. `SBX_CFG` = `~/.claude` + `~/.claude.json`
+  (auth/session, read-write). `SBX_RO` = launch dependencies (`~/.local`, node).
+- Network defaults to `SBX_NET=share` so the API is reachable. This protects the
+  filesystem and secrets but does **not** stop exfiltration of the workspace's contents;
+  to bound egress, run an allow-list proxy and set `SBX_NET=none`.
 
 ## Prompt construction
 
@@ -80,8 +102,9 @@ claude -c -p "<follow-up prompt>" 2>&1   # continues the most recent conversatio
 # Read: isolated analysis under a different model
 claude -p "Summarize the architecture of /home/me/proj/src into a bullet list of modules and their responsibilities. Read-only." --permission-mode plan --model claude-sonnet-5 2>&1
 
-# Write: plan then apply
+# Write: plan then apply (apply is sandboxed)
 claude -p "In /home/me/proj, rename function foo() to load_config() everywhere. Show the plan; do not edit." --permission-mode plan 2>&1
 # → show plan, get approval →
-claude -p "In /home/me/proj, rename function foo() to load_config() everywhere." --permission-mode acceptEdits --add-dir /home/me/proj 2>&1
+SBX_WORK=/home/me/proj SBX_CFG="$HOME/.claude:$HOME/.claude.json" SBX_RO="$HOME/.local:$HOME/.nvm" \
+  <skill-dir>/scripts/sbx claude -p "In /home/me/proj, rename function foo() to load_config() everywhere." --permission-mode acceptEdits --add-dir /home/me/proj --dangerously-skip-permissions 2>&1
 ```

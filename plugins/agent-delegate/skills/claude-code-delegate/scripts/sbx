@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# sbx — confine a delegated agent to a writable workspace with a read-only system,
+# a masked HOME (secrets hidden), and WSL2-safe DNS. Linux / bubblewrap only.
+#
+# The OS boundary holds even when the agent runs with its permission prompts
+# disabled: verified that codex and claude, with their OWN sandboxes off, cannot
+# write outside the workspace, read ~/.ssh / ~/.aws, or touch the real filesystem.
+#
+# Usage:
+#   SBX_WORK=<dir>  SBX_CFG=<dir[:dir...]>  SBX_RO=<dir[:dir...]>  SBX_NET=share|none  \
+#     sbx <command> [args...]
+#
+#   SBX_WORK  the ONLY writable real path (default: $PWD)
+#   SBX_CFG   agent config/auth dirs, bound read-WRITE for session state (e.g. ~/.codex)
+#   SBX_RO    extra read-only paths the agent binary needs (install dir, ~/.local, node…)
+#   SBX_NET   share = keep host network so the model API is reachable (default);
+#             none  = no network at all (removes exfil risk, but API-using tasks fail)
+#
+# NOTE: with SBX_NET=share the sandbox protects the filesystem and secrets, but does
+# NOT stop a compromised agent from POSTing the writable workspace's contents out.
+# For that, run an allow-listed egress proxy and set SBX_NET=none + proxy env vars.
+#
+# This script is intentionally duplicated across the three delegate skills so each
+# SKILL stays self-contained after being symlinked/copied into another agent's flat
+# skills/ directory. Keep the three copies identical (see references/delegation-core.md).
+set -euo pipefail
+
+if ! command -v bwrap >/dev/null 2>&1; then
+  echo "sbx: bubblewrap (bwrap) not found — refusing to run the apply step unsandboxed." >&2
+  echo "sbx: install it (e.g. 'sudo apt install bubblewrap'), or run the agent in its own" >&2
+  echo "sbx: native sandbox mode instead (codex -s workspace-write / claude sandbox.enabled)." >&2
+  exit 127
+fi
+
+WORK="${SBX_WORK:-$PWD}"
+NET="${SBX_NET:-share}"
+HOME_DIR="${HOME:?sbx: HOME is not set}"
+RESOLV="$(readlink -f /etc/resolv.conf 2>/dev/null || echo /etc/resolv.conf)"
+
+if [ ! -d "$WORK" ]; then
+  echo "sbx: SBX_WORK '$WORK' is not a directory" >&2
+  exit 2
+fi
+
+args=(
+  --ro-bind-try /usr /usr        --ro-bind-try /etc /etc
+  --ro-bind-try /bin /bin        --ro-bind-try /sbin /sbin
+  --ro-bind-try /lib /lib        --ro-bind-try /lib64 /lib64
+  --ro-bind-try /usr/local /usr/local
+  --ro-bind-try /opt /opt
+  --ro-bind-try "$RESOLV" "$RESOLV"          # WSL2: /etc/resolv.conf -> /mnt/wsl/resolv.conf
+  --proc /proc --dev /dev --tmpfs /tmp
+  --tmpfs "$HOME_DIR"                          # HOME becomes an empty throwaway tmpfs:
+                                               # ~/.ssh, ~/.aws, tokens are GONE from view
+  --bind "$WORK" "$WORK" --chdir "$WORK"       # the one writable real path
+  --setenv HOME "$HOME_DIR"
+  --unshare-user --unshare-pid --unshare-ipc --die-with-parent --new-session
+)
+
+# Re-expose the agent's own config/auth (writable, for session state) over the tmpfs HOME.
+IFS=':' read -r -a _cfgs <<< "${SBX_CFG:-}"
+for d in "${_cfgs[@]}"; do
+  [ -n "$d" ] && [ -e "$d" ] && args+=(--bind "$d" "$d")
+done
+
+# Re-expose extra read-only paths (agent install dir, ~/.local, node runtime, …).
+IFS=':' read -r -a _ros <<< "${SBX_RO:-}"
+for d in "${_ros[@]}"; do
+  [ -n "$d" ] && args+=(--ro-bind-try "$d" "$d")
+done
+
+[ "$NET" = none ] && args+=(--unshare-net)
+
+exec bwrap "${args[@]}" -- "$@"

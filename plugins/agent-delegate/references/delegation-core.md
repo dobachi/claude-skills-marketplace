@@ -55,6 +55,28 @@ Capture stdout (append `2>&1`). Surface the delegate's final deliverable; do not
 its intermediate reasoning. If the delegate emits structured output (JSON), request it
 explicitly and parse it.
 
+### 6. Sandbox the apply step (OS boundary)
+Skipping the approval prompt is **not** the same as removing the OS sandbox — keep the OS
+boundary on regardless. Every write/apply command runs inside the bundled `scripts/sbx`
+wrapper (bubblewrap): only the approved working dir is writable, the system is read-only,
+and `$HOME` is masked so `~/.ssh` / `~/.aws` / tokens are unreadable. This holds even when
+the agent's own guards are off — verified by running real `codex` and `claude` with their
+native sandboxes disabled: neither could write outside the workspace, read the planted
+secret canaries, or touch the real filesystem (0 leaks under an authoritative marker grep).
+
+- **codex / claude** also keep their *own* native sandbox on at apply (double boundary):
+  codex via `-s workspace-write` (never `--dangerously-bypass-approvals-and-sandbox`,
+  which disables it); claude via `sandbox.enabled: true` (survives skip-permissions).
+- **agy** has no proven native sandbox, so `sbx` is the *only* boundary and is mandatory.
+- `sbx` fails closed: if `bwrap` is absent it exits 127 rather than running unsandboxed.
+- Network defaults to `SBX_NET=share` (the model API must be reachable). This protects the
+  filesystem and secrets but does **not** stop exfiltration of the workspace's contents;
+  the hardened option is an allow-list egress proxy with `SBX_NET=none`.
+- `scripts/sbx` is **duplicated identically** in each of the three skills (like the
+  SKILL.md files) so each stays self-contained after symlinking. Keep the copies in sync.
+
+Full rationale, threat model, and the WSL2 caveats: `docs/sandboxed-delegation-design.md`.
+
 ## Per-tool command matrix (verified against installed binaries)
 
 | Concern | codex (`codex-cli` ≥0.144) | agy (Antigravity ≥1.1) | claude (Claude Code ≥2.1) |
@@ -66,6 +88,7 @@ explicitly and parse it.
 | Write apply | `-s workspace-write --add-dir <d>` | `--mode accept-edits --add-dir <d>` | `--permission-mode acceptEdits --add-dir <d>` |
 | Apply prior diff | `codex apply` | (re-run with accept-edits) | (re-run with acceptEdits) |
 | Skip perms (post-approval) | `--dangerously-bypass-approvals-and-sandbox` | `--dangerously-skip-permissions` | `--dangerously-skip-permissions` |
+| Sandboxed apply (`scripts/sbx`) | `SBX_CFG=~/.codex` `SBX_RO=~/.local:~/.nvm` | `SBX_CFG=~/.gemini` `SBX_RO=~/.local:~/Applications` | `SBX_CFG=~/.claude:~/.claude.json` `SBX_RO=~/.local:~/.nvm` |
 | Structured output | `--json` / `-o <file>` | (plain text only) | `--output-format json` |
 | Timeout | OS `timeout <dur> …` | `--print-timeout 5m0s` | OS `timeout <dur> …` |
 | Continue last | `codex exec resume --last` | `-c` | `-c` |

@@ -20,7 +20,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **reload-instructions** | AI指示書サブモジュールを最新版に更新し、ROOT_INSTRUCTIONを再読み込み。 |
 | **reload-and-reset** | AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセット。 |
 | **verify-content** | 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備まで一貫実行。 |
-| **agent-delegate** | 現在のエージェントから別のCLIコーディングエージェント（Codex=`codex-delegate`、Antigravity/agy=`agy-delegate`、Claude Code=`claude-code-delegate`）へタスクを委譲。明示指示のみ・読み取り優先・書き込みは preview→確認→apply ゲートを経由。3スキルを同梱。 |
+| **agent-delegate** | 現在のエージェントから別のCLIコーディングエージェント（Codex=`codex-delegate`、Antigravity/agy=`agy-delegate`、Claude Code=`claude-code-delegate`）へタスクを委譲。明示指示のみ・読み取り優先・書き込みは preview→確認→apply ゲートを経由し、各書き込みを OS サンドボックス（bubblewrap）で隔離。3スキルを同梱。 |
 | **knowledge-base** | セッションをまたいで、どのエージェントからも使える永続ナレッジベース。プレーンMarkdown・1ディレクトリ=1KB・サーバもDBも不要なので、フォルダのコピーで持ち運べGit/OneDriveで同期できる。複数KB（`prose`/`entities` 形式）、索引→grep の想起、Claude Code / Codex / Antigravity(`agy`) で検証済みのエージェント横断アダプタを備える。stdlibのみの検証器を同梱。 |
 
 ### 役割スキル (Role Skills)

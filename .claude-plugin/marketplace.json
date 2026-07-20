@@ -268,7 +268,7 @@
     {
       "name": "agent-delegate",
       "source": "./plugins/agent-delegate",
-      "description": "Delegate a task to another CLI coding agent — Codex (codex-delegate), Antigravity/agy (agy-delegate), or Claude Code (claude-code-delegate) — from within your current agent. Explicit-invocation only, read-first routing, and a preview→confirm→apply gate for any write. Bundles three skills."
+      "description": "Delegate a task to another CLI coding agent — Codex (codex-delegate), Antigravity/agy (agy-delegate), or Claude Code (claude-code-delegate) — from within your current agent. Explicit-invocation only, read-first routing, a preview→confirm→apply gate for any write, and an OS sandbox (bubblewrap) confining every write step. Bundles three skills."
     },
     {
       "name": "knowledge-base",

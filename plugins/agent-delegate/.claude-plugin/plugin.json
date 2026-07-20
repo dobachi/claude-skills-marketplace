@@ -1,6 +1,6 @@
 {
   "name": "agent-delegate",
-  "description": "Delegate a task to another CLI coding agent (Codex, Antigravity/agy, or Claude Code) from within your current agent. Explicit-invocation only, read-first routing, and a preview→confirm→apply gate for any write.",
-  "version": "1.0.0",
+  "description": "Delegate a task to another CLI coding agent (Codex, Antigravity/agy, or Claude Code) from within your current agent. Explicit-invocation only, read-first routing, a preview→confirm→apply gate for any write, and an OS sandbox (bubblewrap) confining every write step.",
+  "version": "1.1.0",
   "author": {"name": "dobachi"}
 }

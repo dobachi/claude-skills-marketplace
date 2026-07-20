@@ -20,7 +20,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 | **reload-instructions** | Updates AI instruction submodules to the latest version and reloads ROOT_INSTRUCTION. |
 | **reload-and-reset** | Updates the AI instruction system to the latest version and resets AI behavior to follow instructions. |
 | **verify-content** | Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references. |
-| **agent-delegate** | Delegate a task to another CLI coding agent — Codex (`codex-delegate`), Antigravity/agy (`agy-delegate`), or Claude Code (`claude-code-delegate`) — from your current agent. Explicit-invocation only, read-first routing, and a preview→confirm→apply gate for any write. Bundles three skills. |
+| **agent-delegate** | Delegate a task to another CLI coding agent — Codex (`codex-delegate`), Antigravity/agy (`agy-delegate`), or Claude Code (`claude-code-delegate`) — from your current agent. Explicit-invocation only, read-first routing, a preview→confirm→apply gate for any write, and an OS sandbox (bubblewrap) confining every write step. Bundles three skills. |
 | **knowledge-base** | A persistent knowledge base any agent can use across sessions — plain Markdown, one KB per directory, no server and no database, so it travels by copying the folder and syncs via Git or OneDrive. Supports multiple KBs (`prose` and `entities` formats), curated-index-then-grep recall, and cross-agent adapters verified on Claude Code, Codex, and Antigravity (`agy`). Bundles a stdlib-only validator. |
 
 ### Role Skills

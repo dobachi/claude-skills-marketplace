@@ -27,6 +27,8 @@ a task where you specifically want Codex's model/behavior.
   desired output shape, boundaries).
 - `codex exec` expects a git repo by default; add `--skip-git-repo-check` for non-git
   directories.
+- For the write/apply step, `bwrap` (bubblewrap) must be on `PATH` — the bundled
+  `scripts/sbx` wrapper uses it to sandbox the write (see "Sandboxing the apply").
 
 ## Read / analyze / search → run directly (read-only)
 
@@ -49,16 +51,35 @@ Codex in `exec` mode cannot pause to ask you mid-run, so insert the confirmation
    codex exec -s read-only "<task>. Do not write files; output the full unified diff of the change you propose." 2>&1
    ```
 2. **Confirm** — show the diff to the user and get an explicit go/no-go.
-3. **Apply** — only on approval, either:
+3. **Apply** — only on approval, run the write **inside the `sbx` sandbox** (see below).
+   Keep Codex's own `-s workspace-write` sandbox on as well (double boundary); do **not**
+   reach for `--dangerously-bypass-approvals-and-sandbox`, which switches Codex's native
+   sandbox off:
    ```bash
-   codex apply                       # apply the diff Codex just produced, or
-   codex exec -s workspace-write --add-dir <dir> "<task>" 2>&1
+   SBX_WORK=<dir> SBX_CFG="$HOME/.codex" SBX_RO="$HOME/.local:$HOME/.nvm" \
+     <skill-dir>/scripts/sbx codex exec -s workspace-write --skip-git-repo-check "<task>" 2>&1
    ```
-   `--dangerously-bypass-approvals-and-sandbox` may be added **only here**, after the
-   user approved the previewed change — never on an un-previewed write.
+   To apply a diff Codex already produced, wrap `codex apply` the same way.
 
-Two gates protect writes: these instructions (soft) **and** the host's Bash permission
-prompt on the actual command (hard).
+Three gates protect writes: these instructions (soft), the host's Bash permission prompt
+on the actual command (hard), **and** the `sbx` OS sandbox that confines the write even if
+the first two are bypassed.
+
+### Sandboxing the apply (required)
+
+The apply runs with writes enabled and no interactive approval, so confine it with the
+bundled `scripts/sbx` wrapper (bubblewrap). It makes only `SBX_WORK` writable, mounts the
+system read-only, and masks `$HOME` so `~/.ssh` / `~/.aws` / tokens are unreadable.
+Verified: even with its own sandbox off, Codex cannot escape it.
+
+- `<skill-dir>/scripts/sbx` — path is relative to **this skill's directory**; invoke with
+  the full path. If `bwrap` is missing, `sbx` refuses (exit 127); install bubblewrap or
+  fall back to `codex exec -s workspace-write` alone and tell the user.
+- `SBX_WORK` = the approved writable dir. `SBX_CFG="$HOME/.codex"` = auth/session state
+  (read-write). `SBX_RO` = read-only paths Codex needs to launch (`~/.local`, node).
+- Network defaults to `SBX_NET=share` so the API is reachable. This protects the
+  filesystem and secrets but does **not** stop exfiltration of the workspace's contents;
+  to bound egress, run an allow-list proxy and set `SBX_NET=none`.
 
 ## Prompt construction
 
@@ -84,8 +105,9 @@ codex exec resume --last "<follow-up prompt>" 2>&1
 # Read: second-opinion review
 codex exec -s read-only "Review /home/me/proj/src/auth.py for security bugs. List findings as a numbered markdown list; no code changes." 2>&1
 
-# Write: preview then apply
+# Write: preview then apply (apply is sandboxed)
 codex exec -s read-only "In /home/me/proj, add input validation to create_user(). Output the unified diff only; do not write." 2>&1
 # → show diff, get approval →
-codex apply
+SBX_WORK=/home/me/proj SBX_CFG="$HOME/.codex" SBX_RO="$HOME/.local:$HOME/.nvm" \
+  <skill-dir>/scripts/sbx codex apply 2>&1
 ```
