@@ -1,6 +1,6 @@
 ---
 name: backlog
-description: A lightweight, persistent "do it later" inbox — capture a task in one line and review it in a later session. Use whenever the user wants to defer or park work: "これ(タスクに)積んでおいて", "あとでやる", "TODOに入れて", "バックログに追加", "棚卸しして", "put this on the backlog", "add to my todo", "remind me to … later", "what's on my backlog", "clear out the done items". Hybrid storage: inside a git repo it uses <repo>/BACKLOG.md (shared via git); otherwise ~/.claude/backlog.md (personal inbox). Not for tracking the steps of the task in progress right now — that's the session task list.
+description: A lightweight, persistent "do it later" inbox — capture a task in one line and review it in a later session. Use whenever the user wants to defer or park work — "これ(タスクに)積んでおいて", "あとでやる", "TODOに入れて", "バックログに追加", "棚卸しして", "put this on the backlog", "add to my todo", "remind me to … later", "what's on my backlog", "clear out the done items". Hybrid storage — inside a git repo it uses the repo's BACKLOG.md (shared via git); otherwise ~/.claude/backlog.md (personal inbox). Not for tracking the steps of the task in progress right now — that's the session task list.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.

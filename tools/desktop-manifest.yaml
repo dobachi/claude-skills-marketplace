@@ -87,6 +87,8 @@ excluded:
     reason: "manages the AI instruction system's on-disk state."
   - name: knowledge-base
     reason: "reads and writes a knowledge base on the local filesystem (~/.kb, ./kb) with file tools and grep, and depends on adapter files in the user's home config; the sandbox has neither, and nothing persists between sessions."
+  - name: backlog
+    reason: "reads/writes a backlog file on the local filesystem (./BACKLOG.md, ~/.claude/backlog.md), routes by the local git repo, and runs a python helper on disk; the sandbox has none of these, and nothing persists between sessions."
   - name: reload-instructions
     reason: "updates git submodules in a local checkout."
   - name: reload-and-reset
