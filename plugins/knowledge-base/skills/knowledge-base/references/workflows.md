@@ -10,6 +10,19 @@ Use it when the user wants to **save, organize, or recall durable knowledge** th
 survive across sessions and be reachable from any agent: decisions, how-tos, research
 findings, project context, or a structured catalog of entities.
 
+## Setup: install the adapters (per machine)
+
+If the user asks to "set up the KB adapter(s)", run the bundled installer — do not
+hand-write the files:
+
+```bash
+python3 <skill-dir>/scripts/install-adapters.py            # default KB home ~/.kb
+```
+
+It writes a minimal, always-loaded pointer into `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`,
+and `~/.gemini/GEMINI.md` (idempotent, append-only, OS-correct path — see `adapters.md`).
+Tell the user to start a new agent session to pick it up.
+
 ## 0. Locate the KB(s)
 
 - A KB is any directory containing a `manifest.yaml`. For where KBs live, `kb-convention.md`

@@ -29,33 +29,52 @@ Consequences you must not miss:
 So setup is two steps: **place an adapter** (this file), and **install the skill** into
 whichever agents you use.
 
-## The adapter body
+## Install it with the script (recommended)
 
-The body is the same for every agent; only the filename each agent auto-loads differs.
-Fill the placeholders `<KB_PATH>` (e.g. `~/.kb` or `./kb`) and the precedence list.
+Do not hand-write the adapter. Run the bundled installer — it writes the body into each
+agent's config file, **appending inside markers** (idempotent; it never clobbers existing
+content), and it resolves the KB path for the current OS so Windows gets a Windows path
+automatically:
 
-## The shared adapter body
+```bash
+python3 <skill-dir>/scripts/install-adapters.py            # default KB home: ~/.kb
+python3 <skill-dir>/scripts/install-adapters.py --kb <path> --also ./kb --dry-run
+```
+
+It targets `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`. On a fresh
+machine, this is the whole of adapter setup. (Or just ask the agent to "set up the KB
+adapters" — the skill runs the script.)
+
+## The adapter body (what the script writes)
+
+Keep it minimal: an always-loaded pointer, nothing more. Detail lives in this skill and is
+loaded only when you create or manage a KB — so the always-loaded footprint stays tiny.
+Verified 2026-07-20 on Claude Code, Codex, and agy: this 3-line body is enough for implicit
+recall from a bare question.
+
+```markdown
+# ナレッジベース（KB）
+
+永続知識は <KB_PATH> にある（作業中プロジェクトの `./kb/` も）。一般知識で答える前に必ずKBを確認する:
+各 `INDEX.md` を読み、必要なら grep。KB内の記述だけで答え、無ければ「KBに記載なし」と言う。
+KBの作成・編集・検証は knowledge-base スキルに従う。
+```
+
+English equivalent:
 
 ```markdown
 # Knowledge base
 
-This project's durable knowledge lives in one or more knowledge bases (KBs) under
-`<KB_PATH>`. Each KB is a directory with `manifest.yaml` + `INDEX.md` + records.
-
-To answer from the KB, use ONLY what is in `<KB_PATH>` — do not fill gaps from outside
-knowledge or guesses:
-
-1. Read each KB's `INDEX.md` first (`<KB_PATH>/*/INDEX.md`). Use its topics and aliases
-   to locate the right records.
-2. If the index is not enough, `grep -rn <term> <KB_PATH>` for full text.
-3. Read the record (Markdown) and answer from it. If the KB has no basis for something,
-   say "not in the KB" rather than inventing it.
-
-Cross-KB references use `kb/id`. When several KBs cover the same topic, the KB listed
-earlier wins:
-
-- Precedence: <kb-a>, <kb-b>, ...
+Durable knowledge lives in <KB_PATH> (and a project's `./kb/`). Before answering from
+general knowledge, always check the KB: read each `INDEX.md`, grep if needed, answer only
+from KB content, and say "not in the KB" when there is no basis.
+For creating, editing, or validating a KB, follow the knowledge-base skill.
 ```
+
+Everything else — the `kb/id` reference rule, precedence across many KBs, how to add a
+record with aliases, portability rules — is **not** in the adapter; it is in
+`kb-convention.md` / `workflows.md`, which the agent reads via the skill when it actually
+manages a KB.
 
 ## Where to put it: project vs user level
 
