@@ -72,12 +72,16 @@ stores. Prior art does one or the other; doing both is the point of this design.
 
 ### Why an adapter, and why it is not the skill
 
-The skill is a Claude Code plugin, and Codex and `agy` cannot install one. So the skill is
-**not** the mechanism that makes an agent use your KB. An **adapter** is: a few dozen lines
-of text in the file each agent already auto-loads (`CLAUDE.md`, `AGENTS.md`,
-`~/.gemini/GEMINI.md`), naming the KB locations and the procedure. That is what makes KB use
+The skill runs on every agent that scans a skills directory — Claude Code (via its plugin
+marketplace), Codex and Antigravity `agy` (via `~/.agents/skills`), Gemini CLI (via
+`~/.gemini/skills`). But a skill is *trigger-activated*: it fires only when a request
+matches its description. So the skill is **not** the mechanism that makes an agent consult
+your KB on an *ordinary* question. An **adapter** is: a few lines of text in the file each
+agent already auto-loads *every session* (`CLAUDE.md`, `AGENTS.md`, `~/.gemini/GEMINI.md`),
+naming the KB locations and the procedure. That always-loaded pointer is what makes KB use
 implicit, and it is what delivers "works from any agent". The skill supplies the
-conventions, workflows, and validator on top.
+conventions, workflows, and validator on top, and is invoked when you actually create or
+manage a KB.
 
 This split is the single most important thing for a user to understand, so
 `references/adapters.md` states it first.

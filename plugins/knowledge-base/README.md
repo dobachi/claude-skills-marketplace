@@ -74,7 +74,9 @@ Setup is two steps: **place an adapter**, and — on Claude Code — **install t
 
 The adapter is a short text file, placed where your agent already looks, that says where
 the KB is and how to use it. It is what makes the agent consult the KB *without being
-asked*; the skill alone does not do that, and Codex and `agy` cannot install skills at all.
+asked* — which the skill alone does not do, because a skill fires only when a request
+matches its description, whereas the adapter is loaded every session. (The skill itself
+runs on all of these agents, not just Claude Code.)
 
 - **Claude Code** — `CLAUDE.md` (project) or `~/.claude/CLAUDE.md` (all projects). Verified.
 - **Codex** — `AGENTS.md` (project) or `~/.codex/AGENTS.md`. Verified.

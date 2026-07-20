@@ -11,22 +11,23 @@ They are different things, and **the adapter is the load-bearing one**:
 | | Adapter (`CLAUDE.md` / `AGENTS.md` / `GEMINI.md`) | This skill |
 |---|---|---|
 | What it does | Tells the agent the KB exists, where it is, and the basic procedure | Supplies the conventions, workflows, and validator |
-| When it applies | **Every session, automatically** | Only when the request matches the skill's description |
-| Which agents | **All of them** (Claude Code, Codex, agy, …) | **Claude Code only** — it is a plugin |
+| When it applies | **Every session, automatically** | **Only when the request matches the skill's description** (trigger-activated) |
+| Which agents | All of them (Claude Code, Codex, Gemini CLI, agy, …) | All of them too — each scans a skills directory (Claude Code via its plugin marketplace; Codex/agy via `~/.agents/skills`; Gemini CLI via `~/.gemini/skills`) |
 
 Consequences you must not miss:
 
 - **Installing this skill alone does not make an agent use your KB.** Without an adapter,
   an ordinary question never causes the agent to look in the KB. The adapter is what makes
   KB use *implicit*.
-- **Codex and `agy` cannot install this skill at all** (plugins are a Claude Code
-  mechanism). For them the adapter is the only mechanism — which is precisely how the
-  "works from any agent" property is delivered.
+- **The reason is timing, not availability.** The skill is reachable on every agent, but a
+  skill is *trigger-activated* — it fires only when the request matches its description. An
+  adapter is loaded *every session*. So implicit recall on ordinary questions relies on the
+  adapter, on every agent — not on the skill.
 - Recall alone works with just an adapter; the skill mainly earns its keep when *creating
   and validating* KBs.
 
-So setup is two steps: **place an adapter** (this file), and — on Claude Code — install
-the skill.
+So setup is two steps: **place an adapter** (this file), and **install the skill** into
+whichever agents you use.
 
 ## The adapter body
 
