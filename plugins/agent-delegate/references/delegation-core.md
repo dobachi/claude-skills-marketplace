@@ -26,6 +26,12 @@ The decision to reach for another agent is the user's, not the model's.
   run after the normal tool-permission prompt; no extra gate needed.
 - **Write tasks (edits, file creation, commands with side effects)** → never let the
   delegate write on the first shot. Use the preview→confirm→apply gate (policy 3).
+- **Headless read that must touch local files or the KB** → route to a delegate whose
+  read-only mode actually *permits reads*: `codex -s read-only` and `claude
+  --permission-mode plan` allow reads (including the KB) with writes blocked, no bypass
+  flag needed. `agy -p` has **no read-only auto-approve** (its only auto-approve is the
+  nuclear `--dangerously-skip-permissions`), so it is a poor fit here — prefer codex/claude,
+  or make the task self-contained by embedding the material in the prompt.
 
 ### 3. Preview → confirm → apply (for every write)
 Non-interactive mode means the delegate **cannot pause to ask** mid-run (it would hang
@@ -76,6 +82,14 @@ secret canaries, or touch the real filesystem (0 leaks under an authoritative ma
   SKILL.md files) so each stays self-contained after symlinking. Keep the copies in sync.
 
 Full rationale, threat model, and the WSL2 caveats: `docs/sandboxed-delegation-design.md`.
+
+### 7. Never escalate a denied read into a bypass
+If a delegate's sandbox denies a benign, read-only operation (e.g. a headless agent that
+can't read the KB), do **not** add a skip-permissions / bypass flag to force it through —
+that trades a read for full write+network access, and the host's safety classifier will
+(correctly) block such a command anyway. Instead: re-route to a delegate whose read-only
+mode permits the read (policy 2), return the degraded result, or surface the limitation to
+the user.
 
 ## Per-tool command matrix (verified against installed binaries)
 

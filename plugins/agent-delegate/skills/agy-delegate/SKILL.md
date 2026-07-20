@@ -40,6 +40,14 @@ agy -p "<self-contained prompt>" --print-timeout 5m0s 2>&1
 Do **not** pass `--add-dir` and do **not** use an edit mode for read tasks, so agy has
 nothing to write into. Safe after the normal Bash permission prompt.
 
+> **Headless read limitation.** `agy -p` has no read-only auto-approve — its only
+> auto-approve is the nuclear `--dangerously-skip-permissions`. So if a task (or a global
+> "always check the KB" instruction) makes agy try to **read local files or the KB** in
+> headless mode, the read can be denied and agy stalls. Do **not** reach for
+> `--dangerously-skip-permissions` to unblock a read. For headless tasks that must read
+> local files/KB, prefer `codex -s read-only` or `claude --permission-mode plan` (their
+> read-only modes permit reads), or embed the material so the prompt is self-contained.
+
 ## Write (edits / file creation / side effects) → plan → confirm → apply
 
 `agy -p` cannot pause to ask mid-run, so insert the confirmation **before** the write:
