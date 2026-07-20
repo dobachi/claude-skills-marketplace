@@ -274,6 +274,11 @@
       "name": "knowledge-base",
       "source": "./plugins/knowledge-base",
       "description": "A persistent knowledge base any agent can use across sessions — plain Markdown, one KB per directory, no server and no database, so it travels by copying the folder and syncs via Git or OneDrive. Supports multiple KBs (prose and entities formats), curated-index-then-grep recall, and cross-agent adapters verified on Claude Code, Codex, and Antigravity (agy). Bundles a stdlib-only validator."
+    },
+    {
+      "name": "backlog",
+      "source": "./plugins/backlog",
+      "description": "A lightweight, persistent do-it-later inbox. Park a task in one line and pick it up in a later session — hybrid storage (repo BACKLOG.md when inside a git repo, else ~/.claude/backlog.md), a merged list that shows repo + personal at once, and archive/grooming to clear out done items. Invocable as /backlog and on natural phrases like 「これ積んでおいて」 / 「add to backlog」. stdlib-only, cross-agent."
     }
   ]
 }

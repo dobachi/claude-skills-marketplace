@@ -17,6 +17,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **commit-and-report** | 変更のコミット、リモートへのプッシュ、GitHub Issueへの進捗報告を一括実行。 |
 | **commit-safe** | 変更を確認してから選択的にコミット。大きな変更ではファイル指定を提案し、`git add -A` を防止。AI署名を防ぐ自己完結の commit.sh を同梱。 |
 | **github-issues** | GitHub Issueの一覧取得、ラベル別集計、優先度分析を行い、タスクを整理・提案。 |
+| **backlog** | 軽量で永続する「あとでやる」インボックス。1行で放り込み、別セッションで拾い直す。ハイブリッド保存（gitリポジトリ内は`<repo>/BACKLOG.md`、外は`~/.claude/backlog.md`）、`list`はリポジトリと個人の両方をまとめて表示、`archive`/棚卸しで済み項目を消し込む。`/backlog`や「これ積んでおいて」等の自然文で発火。stdlibのみ・エージェント横断。 |
 | **reload-instructions** | AI指示書サブモジュールを最新版に更新し、ROOT_INSTRUCTIONを再読み込み。 |
 | **reload-and-reset** | AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセット。 |
 | **verify-content** | 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備まで一貫実行。 |

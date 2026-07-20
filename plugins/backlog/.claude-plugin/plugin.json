@@ -1,0 +1,6 @@
+{
+  "name": "backlog",
+  "description": "A lightweight, persistent do-it-later inbox. Park a task in one line and pick it up in a later session — hybrid storage (repo BACKLOG.md when inside a git repo, else ~/.claude/backlog.md), a merged list that shows repo + personal at once, and archive/grooming to clear out done items. Invocable as /backlog and on natural phrases like 「これ積んでおいて」 / 「add to backlog」. stdlib-only, cross-agent.",
+  "version": "0.1.0",
+  "author": {"name": "dobachi"}
+}

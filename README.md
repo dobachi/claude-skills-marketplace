@@ -17,6 +17,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 | **commit-and-report** | Commits changes, pushes to remote, and reports progress to GitHub Issues in one step. |
 | **commit-safe** | Reviews changes before committing them selectively. Suggests file-specific commits for large changesets and prevents blanket `git add -A`. Bundles a self-contained commit.sh that blocks AI-signed commits. |
 | **github-issues** | Lists GitHub Issues, aggregates by label, analyzes priorities, and organizes/suggests tasks. |
+| **backlog** | A lightweight, persistent do-it-later inbox. Park a task in one line and pick it up in a later session — hybrid storage (`<repo>/BACKLOG.md` inside a git repo, else `~/.claude/backlog.md`), a merged `list` showing repo + personal at once, and `archive`/grooming to clear out done items. Invocable as `/backlog` and on natural phrases like 「これ積んでおいて」/"add to backlog". stdlib-only, cross-agent. |
 | **reload-instructions** | Updates AI instruction submodules to the latest version and reloads ROOT_INSTRUCTION. |
 | **reload-and-reset** | Updates the AI instruction system to the latest version and resets AI behavior to follow instructions. |
 | **verify-content** | Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references. |
