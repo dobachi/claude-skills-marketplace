@@ -49,14 +49,21 @@ adapters" — the skill runs the script.)
 
 Keep it minimal: an always-loaded pointer, nothing more. Detail lives in this skill and is
 loaded only when you create or manage a KB — so the always-loaded footprint stays tiny.
-Verified 2026-07-20 on Claude Code, Codex, and agy: this 3-line body is enough for implicit
+Verified 2026-07-20 on Claude Code, Codex, and agy: this minimal body is enough for implicit
 recall from a bare question.
+
+Two clauses keep it from misfiring: **skip** the KB when the task already carries the
+material it needs (or is unrelated to stored knowledge), and **fail open** — if the KB is
+unreadable or access is denied (e.g. a headless agent with no file permission), the agent
+says so and continues instead of halting. Without the fail-open clause an agent that dutifully
+tries to read the KB and is denied will stop mid-task.
 
 ```markdown
 # ナレッジベース（KB）
 
 永続知識は <KB_PATH> にある（作業中プロジェクトの `./kb/` も）。一般知識で答える前に必ずKBを確認する:
 各 `INDEX.md` を読み、必要なら grep。KB内の記述だけで答え、無ければ「KBに記載なし」と言う。
+ただし、課題に必要な資料が既に与えられている・KBと無関係な作業ならKB参照は不要。KBが読めない/アクセス拒否のときは、その旨を一言添えて停止せず作業を続ける。
 KBの作成・編集・検証は knowledge-base スキルに従う。
 ```
 
@@ -68,6 +75,8 @@ English equivalent:
 Durable knowledge lives in <KB_PATH> (and a project's `./kb/`). Before answering from
 general knowledge, always check the KB: read each `INDEX.md`, grep if needed, answer only
 from KB content, and say "not in the KB" when there is no basis.
+Skip the KB when the task already includes the material it needs or is unrelated to stored
+knowledge. If the KB is unreadable or access is denied, say so briefly and continue — do not stop.
 For creating, editing, or validating a KB, follow the knowledge-base skill.
 ```
 
