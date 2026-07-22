@@ -349,8 +349,13 @@ fi
 
 # ---- install / update every plugin -----------------------------------------
 info "Installing / updating plugins from '$MARKET_NAME'"
-INSTALLED_LIST="$(claude plugin list 2>/dev/null || true)"
-is_installed() { printf '%s\n' "$INSTALLED_LIST" | grep -Fq "$1@$MARKET_NAME"; }
+# `claude plugin list` prints one "  ❯ <name>@<marketplace>" line per plugin (plus
+# indented Version/Scope/Status lines). Reduce it to bare <name>@<marketplace> ids and
+# match them WHOLE: a substring match would treat `build` as installed because
+# `pptx-build@dobachi-skills` contains it, then run `update` on a plugin that was never
+# installed and fail.
+INSTALLED_IDS="$(claude plugin list 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i ~ /@/) {print $i; break}}' || true)"
+is_installed() { printf '%s\n' "$INSTALLED_IDS" | grep -Fxq "$1@$MARKET_NAME"; }
 get_names() { for d in "$SRC_DIR"/plugins/*/; do [ -f "$d/.claude-plugin/plugin.json" ] && basename "$d"; done; }
 
 installed=0; updated=0; failed=0
