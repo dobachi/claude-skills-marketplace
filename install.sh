@@ -48,7 +48,20 @@
 # Flags:
 #   --status        show what every agent currently points at, then exit (no changes)
 #   --force         switch all agents to THIS run's SRC_DIR, overriding a different
-#                   existing source; clean up stale .bak clones and stale symlinks
+#                   existing source; clean up stale .bak clones and stale symlinks;
+#                   also re-run `claude plugin update` for every plugin, including ones
+#                   already at the marketplace's version (see SPEED below)
+#
+# SPEED
+# -----
+# Each `claude plugin install|update` spawns the CLI (~1s), so updating ~55 plugins one
+# by one costs ~55s — almost all of it spent printing "already at the latest version".
+# This script instead reads every installed version once from `claude plugin list` and
+# only shells out for plugins whose version differs from the source's plugin.json.
+# `claude plugin update` on a matching version is already a no-op, so nothing changes
+# but the wall clock (~55s -> ~3s for a run where one plugin was bumped). Plugin
+# directories missing from marketplace.json are skipped with a warning rather than
+# failing an install call every run. `--force` restores the update-everything behaviour.
 #   --no-agents     only (re)register the Claude Code marketplace; skip other agents
 #   --extra-dir DIR link the skills into an ADDITIONAL discovery dir too (repeatable).
 #                   For agents not covered by the defaults, e.g. the Antigravity IDE:
@@ -349,25 +362,93 @@ fi
 
 # ---- install / update every plugin -----------------------------------------
 info "Installing / updating plugins from '$MARKET_NAME'"
-# `claude plugin list` prints one "  ❯ <name>@<marketplace>" line per plugin (plus
-# indented Version/Scope/Status lines). Reduce it to bare <name>@<marketplace> ids and
-# match them WHOLE: a substring match would treat `build` as installed because
+# `claude plugin list` prints one "  ❯ <name>@<marketplace>" line per plugin followed by
+# indented "Version:/Scope:/Status:" lines. Reduce it to <id>\t<version> pairs and match
+# ids WHOLE: a substring match would treat `build` as installed because
 # `pptx-build@dobachi-skills` contains it, then run `update` on a plugin that was never
 # installed and fail.
-INSTALLED_IDS="$(claude plugin list 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i ~ /@/) {print $i; break}}' || true)"
-is_installed() { printf '%s\n' "$INSTALLED_IDS" | grep -Fxq "$1@$MARKET_NAME"; }
+#
+# Each `claude plugin install|update` spawns the CLI (~1s), so a naive loop over ~55
+# plugins costs ~55s and spends almost all of it printing "already at the latest
+# version". So: read every installed version ONCE from `claude plugin list`, compare
+# with the version in the source's plugin.json, and only shell out for plugins that
+# actually differ. `claude plugin update` on a matching version is already a no-op —
+# skipping it changes nothing but the wall clock. `--force` updates everything anyway.
+INSTALLED_VERSIONS="$(claude plugin list 2>/dev/null | awk '
+  { for (i=1;i<=NF;i++) if ($i ~ /^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$/) { id=$i; break } }
+  $1=="Version:" && id!="" { print id "\t" $2; id="" }' || true)"
+
+# Echo the installed version of $1, or return 1 if it is not installed.
+# Pure bash (no fork per plugin, and no bash-4 associative arrays — macOS ships 3.2).
+installed_version_of() {
+  local id ver
+  while IFS=$'\t' read -r id ver; do
+    [ "$id" = "$1@$MARKET_NAME" ] && { printf '%s' "$ver"; return 0; }
+  done <<< "$INSTALLED_VERSIONS"
+  return 1
+}
+
+# Echo the "version" field of a plugin.json without forking.
+plugin_version() {
+  local content; content="$(<"$1")"
+  [[ "$content" =~ \"version\"[[:space:]]*:[[:space:]]*\"([^\"]+)\" ]] && printf '%s' "${BASH_REMATCH[1]}"
+}
+
+# Names registered in marketplace.json. A plugin directory that is NOT registered
+# cannot be installed — `claude plugin install` fails on it every single run — so it is
+# skipped with a warning instead of burning a CLI call to fail. Needs python3 or jq;
+# without them we do not filter (old behaviour).
+marketplace_names() {
+  local mj="$SRC_DIR/.claude-plugin/marketplace.json"
+  [ -f "$mj" ] || return 1
+  if have python3; then
+    python3 - "$mj" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+for p in d.get("plugins", []):
+    n = p.get("name")
+    if n:
+        print(n)
+PY
+  elif have jq; then
+    jq -r '.plugins[]?.name // empty' "$mj" 2>/dev/null
+  else
+    return 1
+  fi
+}
+
+MARKET_NAMES="$(marketplace_names || true)"
+is_registered() {
+  [ -z "$MARKET_NAMES" ] && return 0          # could not read it -> do not filter
+  printf '%s\n' "$MARKET_NAMES" | grep -Fxq "$1"
+}
+
 get_names() { for d in "$SRC_DIR"/plugins/*/; do [ -f "$d/.claude-plugin/plugin.json" ] && basename "$d"; done; }
 
-installed=0; updated=0; failed=0
+installed=0; updated=0; uptodate=0; skipped=0; failed=0
 while IFS= read -r name; do
   [ -n "$name" ] || continue
-  if is_installed "$name"; then
+  if ! is_registered "$name"; then
+    warn "not in marketplace.json, skipping: $name"; skipped=$((skipped+1)); continue
+  fi
+  have_ver="$(installed_version_of "$name")" || have_ver=""
+  want_ver="$(plugin_version "$SRC_DIR/plugins/$name/.claude-plugin/plugin.json")"
+  if [ -n "$have_ver" ]; then
+    if [ "$FORCE" = 0 ] && [ -n "$want_ver" ] && [ "$have_ver" = "$want_ver" ]; then
+      uptodate=$((uptodate+1)); continue
+    fi
     if claude plugin update "$name@$MARKET_NAME"; then updated=$((updated+1)); else warn "update failed: $name"; failed=$((failed+1)); fi
   else
     if claude plugin install "$name@$MARKET_NAME"; then installed=$((installed+1)); else warn "install failed: $name"; failed=$((failed+1)); fi
   fi
 done < <(get_names)
-log "Claude Code: $installed installed, $updated updated, $failed failed."
+log "Claude Code: $installed installed, $updated updated, $uptodate already current, $skipped skipped, $failed failed."
+if [ "$uptodate" -gt 0 ] && [ "$FORCE" = 0 ]; then
+  log "  ${c_dim}(version-matched plugins were not re-run; use --force to update them anyway)${c_off}"
+fi
 
 # ---- link SRC_DIR into the other agents ------------------------------------
 # Non-destructive: only ever creates/repoints symlinks we manage; never touches real
