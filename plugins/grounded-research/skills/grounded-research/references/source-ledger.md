@@ -79,6 +79,7 @@ The span is the load-bearing part of the whole apparatus. Get it wrong and every
 - **Source language.** Do not translate inside the span. Translate in the Claim column; keep the original in the span so a reader fluent in either can audit.
 - **One claim per row.** A body sentence bundling two claims gets two rows.
 - **Numbers demand exactness.** A numeric claim standing on a paraphrase rather than a verbatim span does not ship. Preserve confidence intervals, denominators, base rates, and the units.
+- **Machine-checkable.** "Verbatim" is not a promise, it is a testable property: `scripts/check_spans.py` re-fetches the source and string-matches the span. A span that only a human's charity would call verbatim fails. Body quotes are copied from this column, character for character — see `quotation.md`.
 
 ### Kind
 

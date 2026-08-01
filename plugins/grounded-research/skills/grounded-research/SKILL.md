@@ -22,6 +22,7 @@ The central empirical fact this skill is designed around: frontier models keep l
 5. **Breadth belongs in parallel isolated contexts, never in one long one.** Cap searches per sub-question and discard sources you did not quote. Piling retrieved text into one context degrades accuracy — more searching produces worse grounding, not better.
 6. **Source quality is upstream of everything.** A well-cited content farm passes every citation metric. Rate and record source tier before quoting.
 7. **Confidence numbers are triage, never a gate.** Self-reported confidence clusters at 80–100% regardless of actual accuracy. Use it to decide what to verify first; never to decide what ships unverified. Evidence status is the gate.
+8. **Quote the source, then re-check the quote against the page.** Numeric, definitional, load-bearing, hedged, and disputed claims reach the reader in the source's own words — verbatim, copied from the ledger span, never retyped. Then a string matcher, not a model, confirms those words are on the page: the retriever only *asserts* its span is verbatim, and a drifted span is invisible to every other gate in this skill. `references/quotation.md`.
 
 ## Architecture
 
@@ -50,8 +51,9 @@ Detail on subagent contracts and prompt shapes: `references/subagent-protocol.md
 | 6. Verify (parallel, blind) | One blind verifier per `verifiable` claim. Route conflicts to step 7 | Per-claim status |
 | 7. Reconcile disagreement | Sources conflict → render both, mark unresolved. **Never** average or debate | Disagreement block |
 | 8. Refute (gated) | Refutation subagent on load-bearing, numeric, and contested claims only | Refutation results |
-| 9. Draft report | Body cites `C-` IDs. Inferences to the inference block | Draft |
+| 9. Draft report | Body cites `C-` IDs. Numeric / definitional / load-bearing / hedged / disputed claims carry a verbatim quote copied from the ledger span. Inferences to the inference block | Draft |
 | 10. **Grounding gate** | Walk every body sentence → `C-` ID → `S-` row → span. Any break: fix, demote, or delete. Non-negotiable | Verified draft |
+| 10b. **Span check** (mechanical) | `python3 scripts/check_spans.py <report.md>` — re-fetches every registered source and string-matches every span. `NOT-FOUND` blocks delivery | Span-check result |
 | 11. Coverage | State what was searched, what was not found, and what the search could not cover | Coverage block |
 
 Depth presets: Quick = 3 sub-questions, no refutation, spot-check verification. Standard = 5 sub-questions, verify all `verifiable` claims, refute load-bearing ones. Deep = 7 sub-questions, full verification, refutation on every numeric and contested claim.
@@ -102,11 +104,12 @@ Run before delivery. Non-negotiable.
 1. **Body sentence → `C-` ID?** No ID: move to inference block or delete.
 2. **`C-` → `S-` → span?** Any broken hop is a hallucinated claim regardless of how reasonable it reads.
 3. **Span actually entails the claim?** Not "is about the same topic". Re-read the span cold, without the claim in mind, and ask what it establishes on its own.
-4. **Numbers exact?** Units, dates, currency, base rates, denominators. Numeric claims resting on a paraphrase and not a verbatim span do not ship.
-5. **Hedges preserved?** The source's "may" is not your "does". The source's "in this sample" is not your "in general".
-6. **Tier honest?** No T1 claim standing on a T4 restatement.
-7. **Disagreements intact?** Nothing quietly resolved between draft and final.
-8. **Coverage stated?** What was not found is part of the finding.
+4. **Span actually on the page?** Run `scripts/check_spans.py`. `NOT-FOUND` means the span was paraphrased, stitched, or invented — it is not a tooling problem. `NORMALIZED` means correct the ledger to the page's characters. `UNREACHABLE` means check by hand and say you did. Body quotes must be character-identical to their ledger span.
+5. **Numbers exact?** Units, dates, currency, base rates, denominators. Numeric claims resting on a paraphrase and not a verbatim span do not ship.
+6. **Hedges preserved?** The source's "may" is not your "does". The source's "in this sample" is not your "in general".
+7. **Tier honest?** No T1 claim standing on a T4 restatement.
+8. **Disagreements intact?** Nothing quietly resolved between draft and final.
+9. **Coverage stated?** What was not found is part of the finding — including the span-check result.
 
 ## Disagreement Protocol
 
@@ -122,7 +125,7 @@ When sources conflict, this is what the reader is paying for. Do not smooth it.
 
 | Dimension | Strong | Adequate | Weak |
 |---|---|---|---|
-| **Grounding** | Every claim → span; spans entail claims | Minor paraphrase drift | Claims supported only by topical relevance |
+| **Grounding** | Every claim → span; spans entail claims; spans string-checked against the live page | Minor paraphrase drift | Claims supported only by topical relevance |
 | **Source quality** | T1/T2 primaries; restatements traced to originals | Mixed, tiers labeled | T4 aggregators cited as fact |
 | **Verification** | All verifiable claims blind-verified | Load-bearing claims verified | Drafter graded its own claims |
 | **Disagreement handling** | Conflicts surfaced, characterized, attributed | Conflicts noted | Conflicts averaged or silently dropped |
@@ -142,6 +145,7 @@ When sources conflict, this is what the reader is paying for. Do not smooth it.
 | **"N agents review the report"** | Verification is itself a top empirical source of multi-agent failure | One narrow job per agent |
 | **Confidence score as publish gate** | Overconfident and not acted on faithfully | Gate on evidence status |
 | **More searches = better** | Accuracy degrades as retrieval breadth grows; noise crowds out signal | Cap per sub-question; prune unquoted sources |
+| **Quotation marks around a paraphrase** | A tidied, translated, or retyped "quote" reads more authoritative than the source and is unfalsifiable by eye | Copy the ledger span verbatim; run the span check |
 | **Restatement laundering** | T4 blog cited for a T1 fact it garbled | Trace to the original, register that |
 | **Corroboration theater** | Three sources all restating one press release | Corroboration requires independent origin |
 | **Silent non-findings** | Reader assumes coverage that never happened | Coverage block |
@@ -159,13 +163,17 @@ When sources conflict, this is what the reader is paying for. Do not smooth it.
 
 ## Findings
 - <claim> [C-01]
-- <claim> [C-02]
+- <numeric / definitional / load-bearing / hedged claim> [C-02]:
+  > "<verbatim quote, copied from the ledger span, source language>"
+  > — S-02, <source name> (T2, accessed <date>)
 
 ## Disagreement / unresolved
 - <claim>: S-01 says X, S-04 says Y. Conflict type: <definitional/temporal/…>. Unresolved. Settled by: <what evidence would decide it>
 
 ## What we could not establish
 <not found; out of reach — paywalled, no primary source, no data past <date>>
+
+**Span check**: <n> spans, <n> EXACT, <n> NORMALIZED (ledger corrected), <n> NOT-FOUND, <n> UNREACHABLE (<which, and how verified>). Tool: `scripts/check_spans.py`, <date>.
 
 ---
 
@@ -193,4 +201,5 @@ When sources conflict, this is what the reader is paying for. Do not smooth it.
 
 - `references/source-ledger.md` — register/ledger schema, span selection rules, tiering edge cases, append-only discipline
 - `references/subagent-protocol.md` — exact contracts and prompt shapes for retriever / blind verifier / refuter, budgets, and what to do when a subagent returns prose anyway
+- `references/quotation.md` — what to quote and how, permitted edits inside a quote, translation, and the `scripts/check_spans.py` verdicts + `NOT-FOUND` triage
 - `references/evidence-base.md` — why this design and not debate/voting: the findings, effect sizes, and citations behind each rule

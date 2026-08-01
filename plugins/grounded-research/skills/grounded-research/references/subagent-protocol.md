@@ -57,7 +57,7 @@ A span for one item is not coverage of the others.
 **Delegating a retriever.** On explicit user request, retrievers — and only retrievers — may be delegated to a foreign CLI agent (`agy`, `codex`, `gemini`) via `agent-delegate`. The span contract survives delegation because a span is checkable no matter who fetched it. Never delegate the lead; it holds the ledger. Two rules:
 
 - **Canonicalize the URL.** Delegates return redirectors by default — `agy` returns `https://vertexaisearch.cloud.google.com/grounding-api-redirect/…` in place of the page; Google/Bing redirectors, AMP and proxies are the same hazard. All are opaque and expire. Add to the prompt: `Return the CANONICAL publisher URL after redirects (e.g. https://code.claude.com/docs/en/skills), never a search/grounding redirect, AMP, or proxy URL.` Resolve doubtful ones with `curl -sIL <url> | grep -i '^location:'`; if it won't canonicalize, re-fetch and register the real page.
-- **Check the delegate's first spans once**, with `curl -sL <url> | grep -F "<span>"` — docs sites often serve raw Markdown at a `.md` suffix. A delegate that paraphrases is not a retriever; drop it.
+- **Check the delegate's first spans once**, with `curl -sL <url> | grep -F "<span>"` (or `scripts/check_spans.py` once the rows are in the ledger) — docs sites often serve raw Markdown at a `.md` suffix. A delegate that paraphrases is not a retriever; drop it.
 
 Delegate for a separate quota pool, model heterogeneity, or tools Claude Code lacks (`agy`: Google Search grounding, scientific databases) — not for token cost, where the honest comparison is a Haiku retriever that is already cheap. Rationale: `docs/grounded-research-design.md`.
 

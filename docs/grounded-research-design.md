@@ -140,6 +140,35 @@ repo's strongest hallucination control — and which, before this skill existed,
 single-source work that does no web search at all. The strongest defense was on the lowest-risk
 task. `grounded-research` is its multi-source, web-sourced sibling.
 
+### Why the span itself is machine-checked (v1.2)
+
+The original design had one unguarded hop. Follow the chain: the retriever produces the span,
+the blind verifier checks **claim ↔ span**, the grounding gate walks **body → C- → S- → span**.
+Every one of those is a check on how the span is *used*. Nothing checked that the span is
+actually on the page. The retriever merely *asserts* "quote verbatim" — and a paraphrase written
+in quotation marks is, from every downstream agent's position, identical to a real quote. Worse
+than identical: a span the model wrote to fit the claim entails the claim more cleanly than a
+real one does, so it passes blind verification *more* easily.
+
+That is the same failure the skill exists to prevent, moved one level down. The fix has to be
+mechanical, because the failure is invisible to any reader — human or model — who does not hold
+the source text. `scripts/check_spans.py` re-fetches every registered URL and string-matches
+every span. It is stdlib-only, cached, and reads the report's own tables, so it costs one command.
+
+Two consequences follow, and both are deliberate:
+
+- **Quotes reach the reader.** If the span must survive string matching anyway, there is no
+  reason to hide it in an appendix table. Numeric, definitional, load-bearing, hedged, and
+  disputed claims now carry the source's own words in the body, attributed to the `S-` row.
+  Paraphrase is where hedges and scope qualifiers die; the quote is where they survive.
+- **`NORMALIZED` is a real verdict, not a pass.** Whitespace, curly quotes, and a lowercased
+  sentence-initial letter are benign; they are also exactly what a fabricated span does not have.
+  Folding them and *reporting that it folded* keeps the check usable without making it lenient.
+
+What it does not do is worth stating too: string matching says nothing about whether the claim is
+true, whether the source is any good, or whether the page is the original rather than a
+restatement. It closes one hop. The other gates stay.
+
 ## What this skill deliberately does NOT do
 
 | Not built | Why |
