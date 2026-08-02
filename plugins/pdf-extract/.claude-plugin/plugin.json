@@ -1,0 +1,8 @@
+{
+  "name": "pdf-extract",
+  "description": "Extract information from PDFs reliably. Triages whether a text layer exists, routes to the right path (native text extraction / OCR + layout-aware parser / vision-model direct), serializes tables in a lossless form, and binds every extracted field to a page and a verbatim span. Covers scanned PDFs, multi-column layouts, tables, and schema-constrained extraction with citations.",
+  "version": "1.0.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

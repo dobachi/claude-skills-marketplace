@@ -60,6 +60,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **faithful-translation** | 任意の言語ペアで原文に忠実な翻訳を生成。検証用の文単位parallel ledger、用語集、訳者注を必須化。要約はせず、必要なら `document-summary` と連携。 |
 | **document-summary** | 文献の構造化要約スキル。エグゼクティブ向け／プロフェッショナル向けの2モード。出典紐付けの Claim Ledger を全モード必須化し、原文に無い推論は `[Inference]` ブロックとして明示分離してハルシネーションを防止。 |
 | **document-figures** | 既存ドキュメント（PDF / Word / PowerPoint / Web）から図を出典付きで抽出し、新規の構造図（Mermaid 優先）を作成。`document-summary` と連携する Figure Ledger を生成。装飾的な箱・矢印は情報量テストで排除。Node.js 18+ / Puppeteer / poppler-utils が必要。 |
+| **pdf-extract** | PDF からのテキスト・表・構造化フィールド抽出。まず同梱スクリプトでファイルを判定し（テキスト層の有無・段組み・スキャンか）、そのうえで最も安く済む経路へ振り分ける — ネイティブ抽出／OCR＋レイアウト解析パーサ／ビジョンモデル直接。抽出した各フィールドはページ番号と逐語スパンに紐づけ、機械的に検証できる形で返す。表の直列化形式、スキーマ拘束抽出、各経路の既知の失敗モードまで扱う。poppler-utils が必要。 |
 | **doc-coauthoring** | 知識ベースに接地した文書の共同執筆ガイド — 文脈収集・節ごとの起草・読者テストの3段（任意・合成可）。事実・定義をドメイン知識ベースで裏取りして出典を付し、用語を統一。作業ファイルに起草し、人の [人] 編集を保持。批判レビュー/再構成/事実確認/脱AI/翻訳は兄弟スキルへ委譲。日英対応。 |
 | **doc-refactor** | 文章ドキュメントをリファクタリング — コードのリファクタリングが挙動を保つように、意味を変えずに構造整理と重複削除を行う。診断優先のワークフロー（逆アウトライン → 課題棚卸し → 構造変更の確認 → リファクタ → 変更ログ）で、すべての主張・事実・図・著者の声を保ちつつ、実質的な問題は勝手に直さず指摘する。 |
 | **ai-tell-reducer** | 文章の「AIっぽさ」を低減 — 単調な文のリズム、反射的なヘッジ、曖昧な抽象化、定型的な骨組み、大げさな語彙、表層的な癖（ダッシュ・太字・三点列挙の多用）を、意味・事実・レジスター・著者の声を保ったまま、何も捏造せずに整える。日本語・英語対応。 |
@@ -284,6 +285,11 @@ document-figures プラグインは以下を必要とします：
 - **poppler-utils** — `pdfimages`, `pdftocairo`, `pdftotext`（`apt install poppler-utils` または `brew install poppler`）
 - **xmllint** — `apt install libxml2-utils` または `brew install libxml2`
 - **（任意）LibreOffice** — PPTX のスライドを PNG レンダリングする場合に使用
+
+pdf-extract プラグインは以下を必要とします：
+
+- **poppler-utils** — `pdfinfo`, `pdftotext`, `pdffonts`, `pdfimages`（`apt install poppler-utils` または `brew install poppler`）
+- **（任意）OCRmyPDF + Tesseract** — OCR 経路を使う場合のみ（`apt install ocrmypdf tesseract-ocr` または `brew install ocrmypdf tesseract`）
 
 ## Adding a New Plugin
 

@@ -60,6 +60,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 | **faithful-translation** | Produces source-faithful translations across any language pair with a parallel sentence ledger, terminology glossary, and translator's notes. No summarization — chain with `document-summary` if you need both. |
 | **document-summary** | Structured document/literature summarization with Executive and Professional modes. Mandatory source-grounded Claim Ledger and Source-vs-Inference separation prevent hallucinated content. |
 | **document-figures** | Extracts figures from existing documents (PDF / Word / PowerPoint / web) with provenance and creates new structural diagrams (Mermaid-first). Produces a Figure Ledger that chains into `document-summary`. Requires Node.js 18+, Puppeteer, and poppler-utils. |
+| **pdf-extract** | Gets text, tables and structured fields out of PDFs. Triages the file first (text layer? multi-column? scanned?) with a bundled poppler-based script, then routes to the cheapest path that survives it — native extraction, OCR plus a layout-aware parser, or a vision model — and binds every extracted field to a page and a verbatim span so it can be checked mechanically. Covers table serialization, schema-constrained extraction, and the documented failure modes of each path. Requires poppler-utils. |
 | **doc-coauthoring** | Guided, knowledge-grounded co-authoring workflow for substantial documents — three optional, composable stages (context gathering, section-by-section drafting, reader-testing). Grounds facts in a domain knowledge base with cited sources and consistent terminology, drafts into a working file, preserves human [人] edits, and hands off review/refactor/fact-check/de-AI/translation to sibling skills. Bilingual JA/EN. |
 | **doc-refactor** | Refactors prose documents — restructures and de-duplicates without changing meaning, the way code refactoring preserves behavior. Diagnose-first workflow (reverse outline → issue inventory → confirm moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them. |
 | **ai-tell-reducer** | Reduces the "AI-ness" of writing — uniform sentence rhythm, reflexive hedging, vague abstraction, formulaic scaffolding, inflated vocabulary, and surface tics (em-dash / bold / rule-of-three overuse) — while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Bilingual (Japanese / English). |
@@ -284,6 +285,11 @@ The document-figures plugin requires:
 - **poppler-utils** — `pdfimages`, `pdftocairo`, `pdftotext` (`apt install poppler-utils` or `brew install poppler`)
 - **xmllint** — `apt install libxml2-utils` or `brew install libxml2`
 - **(optional) LibreOffice** — for slide-to-PNG rendering of PPTX
+
+The pdf-extract plugin requires:
+
+- **poppler-utils** — `pdfinfo`, `pdftotext`, `pdffonts`, `pdfimages` (`apt install poppler-utils` or `brew install poppler`)
+- **(optional) OCRmyPDF + Tesseract** — only for the OCR path (`apt install ocrmypdf tesseract-ocr` or `brew install ocrmypdf tesseract`)
 
 ## Adding a New Plugin
 
