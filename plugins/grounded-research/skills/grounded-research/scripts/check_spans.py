@@ -76,18 +76,46 @@ def _cells(line):
     return [c.strip() for c in line.strip("|").split("|")]
 
 
+SEP_RE = re.compile(r"^\s*\|?[\s:|-]+\|[\s:|-]*$")
+SPAN_HEADER_RE = re.compile(r"span|引用|スパン", re.I)
+# Vocabulary of the Kind and Status columns. A cell that is exactly one of these
+# is never a span - it is the neighbouring column, reached because this ledger
+# has no Span column at all.
+NOT_A_SPAN = {
+    "verifiable", "interpretive", "speculative", "inference",
+    "supported", "partial", "unsupported", "disputed", "unverified",
+    "—", "-", "n/a", "see disagreement block",
+}
+
+
 def parse_report(text):
-    """Return (sources, claims).
+    """Return (sources, claims, has_span_column).
 
     sources: {"S-01": {"url":..., "title":...}}
     claims:  [{"id":..., "sources":[...], "span_cell":...}]
-    Tables are located by row shape, not by heading, so a report that renames
-    its sections still checks.
+
+    The Span column is located from the table header when there is one. Guessing
+    it positionally is what made this script report every claim as NOT-FOUND on a
+    ledger shaped `ID | Claim | Source | Kind | Status`: it checked the word
+    "verifiable" against the page. A wall of false NOT-FOUNDs is worse than no
+    check, because it teaches the reader to ignore the tool.
     """
     sources, claims = {}, []
-    for line in text.splitlines():
+    span_idx = None          # column index of Span in the current table
+    header_seen = False      # whether the current table declared a header
+    span_col_anywhere = False
+    lines = text.splitlines()
+    for n, line in enumerate(lines):
         cells = _cells(line)
         if len(cells) < 3:
+            span_idx, header_seen = None, False   # table ended
+            continue
+        # A header row is one followed by the |---|---| separator.
+        if n + 1 < len(lines) and SEP_RE.match(lines[n + 1]) and "|" in lines[n + 1]:
+            header_seen = True
+            span_idx = next((i for i, c in enumerate(cells) if SPAN_HEADER_RE.search(c)), None)
+            if span_idx is not None:
+                span_col_anywhere = True
             continue
         cid = cells[0]
         if re.fullmatch(r"S-\d+", cid):
@@ -99,17 +127,34 @@ def parse_report(text):
                     break
             sources[cid] = {"url": url, "title": cells[1] if len(cells) > 1 else ""}
         elif re.fullmatch(r"C-\d+", cid):
-            refs, span_cell = [], ""
+            refs = []
             for c in cells[1:]:
                 found = re.findall(r"S-\d+", c)
-                if found and not refs:
+                if found:
                     refs = found
-                    continue
-                if refs and not span_cell and c and c != "—":
-                    span_cell = c
-            if refs:
-                claims.append({"id": cid, "sources": refs, "span_cell": span_cell})
-    return sources, claims
+                    break
+            if not refs:
+                continue
+            if span_idx is not None:
+                span_cell = cells[span_idx] if span_idx < len(cells) else ""
+            elif header_seen:
+                span_cell = ""      # header exists and has no Span column: don't guess
+            else:
+                # Headerless table: fall back to "the cell after the sources",
+                # but never accept a Kind/Status keyword as a span.
+                span_cell = ""
+                after = False
+                for c in cells[1:]:
+                    if re.search(r"S-\d+", c):
+                        after = True
+                        continue
+                    if after and c and c.strip().lower() not in NOT_A_SPAN:
+                        span_cell = c
+                        break
+            if span_cell.strip().lower() in NOT_A_SPAN:
+                span_cell = ""
+            claims.append({"id": cid, "sources": refs, "span_cell": span_cell})
+    return sources, claims, span_col_anywhere
 
 
 QUOTE_RE = re.compile(r"[\"“”「『‘’']")
@@ -290,10 +335,23 @@ def main():
         print("cannot read report: %s" % exc, file=sys.stderr)
         return 3
 
-    sources, claims = parse_report(report)
+    sources, claims, has_span_col = parse_report(report)
     if not claims:
         print("no Claim Ledger rows (C-nn) found in %s" % args.report, file=sys.stderr)
         return 3
+    if not has_span_col and not any(c["span_cell"] for c in claims):
+        # Every claim is unauditable by this tool. Say so once; do not manufacture
+        # a NOT-FOUND per row, which reads as 46 hallucinations instead of one
+        # missing column.
+        print(
+            "Claim Ledger has no Span column: %d claims, 0 checkable spans.\n"
+            "Nothing was verified. Add a verbatim Span column (see the skill's "
+            "Claim Ledger schema) and re-run." % len(claims),
+            file=sys.stderr,
+        )
+        if not parse_body_quotes(report):
+            return 3
+        print("Checking the body quotes only.", file=sys.stderr)
 
     local = {}
     for item in args.local:
@@ -393,7 +451,11 @@ def main():
                 verdict = "NOT-FOUND"
                 detail = "missing: " + " | ".join(m[:60] for m in missing)
         q = re.sub(r"\s+", " ", fold(bq["quote"])).strip()
-        if not any(q in re.sub(r"\s+", " ", fold(s)) for s in all_spans.get(bq["source"], [])):
+        # Only meaningful when the ledger HAS spans to have been copied from;
+        # otherwise the missing column is the finding, already reported once.
+        if all_spans and not any(
+            q in re.sub(r"\s+", " ", fold(s)) for s in all_spans.get(bq["source"], [])
+        ):
             detail = (detail + "; " if detail else "") + "not copied from any ledger span"
             if verdict == "EXACT":
                 verdict = "NORMALIZED"

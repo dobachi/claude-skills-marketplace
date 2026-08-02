@@ -89,7 +89,13 @@ python3 scripts/check_spans.py report.md --json               # machine-readable
 
 Stdlib only. Elided spans are split on `…` and every fragment must be found. Pages are cached,
 so re-running after a ledger fix costs nothing. Exit codes: `0` clean, `1` NOT-FOUND present,
-`2` UNREACHABLE present, `3` no ledger found.
+`2` UNREACHABLE present, `3` the check could not run.
+
+The Span column is located **from the table header**, so column order does not matter. A ledger
+with no Span column at all — the pre-v1.2 shape `ID | Claim | Source | Kind | Status` — reports
+`Claim Ledger has no Span column: N claims, 0 checkable spans` and exits `3`. That is the honest
+answer: nothing was verified. It is deliberately not one NOT-FOUND per row, which would read as
+N hallucinations when the truth is one missing column, and would train you to ignore the tool.
 
 **Body quotes are checked too.** Any blockquote whose attribution line names an `S-` ID is
 matched against that source's page *and* against the ledger span it should have been copied
