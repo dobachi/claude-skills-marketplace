@@ -51,7 +51,7 @@ The standard 5-phase workflow still applies, but each phase is augmented with di
 Determine input type and extract text:
 
 **Markdown / plain text in conversation** -> Use directly.
-**File path provided** -> Read the file. For PDFs, use the Read tool (supports PDF). For DOCX, use python-docx or similar extraction.
+**File path provided** -> Read the file. For DOCX, use python-docx or similar extraction. For PDFs, the Read tool is fine for a digitally-generated, single-column document; anything else (scanned, multi-column, table-heavy) needs `pdf-extract` first — the Read tool depends on a text layer, and a bad reconstruction reads perfectly while merging columns or dropping table cells, which then gets fact-checked as if it were the document.
 
 ## Phase 2: Extract Claims
 

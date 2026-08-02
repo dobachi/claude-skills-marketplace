@@ -11,7 +11,7 @@ Performs literature search, citation analysis, and snowballing using **free offi
 
 **Out of scope** (deliberate):
 - **Google Scholar direct access.** No SerpAPI (active litigation, DMCA §1201 risk as of 2026), no Puppeteer scraping (ToS violation, CAPTCHA cascades). For genuinely Scholar-only data (grey literature, "All versions" cluster, Scholar's own h-index), use [Publish or Perish](https://harzing.com/resources/publish-or-perish) — Anne-Wil Harzing's free desktop app — see `references/backends.md`.
-- **Full-text PDF retrieval and ingestion.** Out of scope; chain with `fact-checker` (Puppeteer) or external tools.
+- **Full-text PDF retrieval and ingestion.** Out of scope. *Fetching* the PDF: chain `fact-checker` (Puppeteer) or external tools. *Reading* one once you have it: `pdf-extract` — a paper PDF is the multi-column, table-heavy case where a naive text extractor interleaves columns silently.
 - **Document reading / summarization.** Hand off to `document-summary`.
 - **Writing methodology.** Hand off to `academic-researcher`.
 

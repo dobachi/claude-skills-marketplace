@@ -9,7 +9,9 @@ description: Extracts figures from existing documents (PDF, Word, PowerPoint, we
 
 Handles figures for document summarization workflows. Two operations: **extract** figures from existing documents (PDF / Word / PowerPoint / web) with provenance preserved, and **create** new structural diagrams (Mermaid-first) when the source has no figure or its figure is unsuitable. Both feed downstream summaries via a **Figure Ledger** that mirrors `document-summary`'s Claim Ledger discipline.
 
-**Out of scope**: full-text extraction (use Read or `document-summary`); chart authoring from raw data (chain `data-analyst`); PowerPoint design principles (use `pptx-design`); slide deck authoring (use `marp-slides` or `pptx-design`); OCR or image-to-text (out for v1); image upscaling / enhancement (out for v1); caption translation (chain `faithful-translation`).
+**Out of scope**: full-text / table / field extraction (use `pdf-extract`); OCR and image-to-text (use `pdf-extract` — its Path B); chart authoring from raw data (chain `data-analyst`); PowerPoint design principles (use `pptx-design`); slide deck authoring (use `marp-slides` or `pptx-design`); image upscaling / enhancement (out for v1); caption translation (chain `faithful-translation`).
+
+The split with `pdf-extract` is by output, not by file type: this skill returns **image assets** with a Figure Ledger, `pdf-extract` returns **text, tables and fields** bound to a page and a verbatim span. Both open PDFs with poppler; that is not a reason to route a text job here.
 
 ## Core Principles
 
@@ -29,6 +31,12 @@ Handles figures for document summarization workflows. Two operations: **extract*
 | DOCX | yes (`unzip word/media/`) | n/a | yes — alt-text (`wp:docPr/@descr`) + Caption-styled paragraph siblings | unzip + xmllint |
 | PPTX | yes (`unzip ppt/media/`) | yes (LibreOffice headless, optional) | yes — per-slide title + alt-text | unzip + xmllint |
 | HTML / web | yes — `<img>` + `<figure>` DOM walk | yes — Puppeteer full-page PNG | yes — `alt` + `<figcaption>` | Puppeteer |
+
+**Scanned PDFs**: image extraction still works (`pdfimages` does not need a text layer), but caption
+recovery does not — `pdftotext -bbox-layout` returns nothing on a page with no selectable text, so
+every figure comes back uncaptioned. Run `pdf-extract` Path B (OCR) over the file first, then come
+back here against the OCR'd copy. Do not write the captions yourself from the images; that is the
+`[reconstructed]` case at best and invention at worst (Principle 5).
 
 ## Diagram-Type Selection (for the *create* path)
 
