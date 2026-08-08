@@ -1,0 +1,105 @@
+# SAMPLE — 出張・会議・カンファレンス報告デッキ（debrief-report → pptx-build）
+# 論法: 「行った結果こう分かった。だから当社はこう動くべきで、これを承認いただきたい。」
+# 構成は Markdown 報告書と一対一: 表紙 → サマリ → 目的と結果 → 論点 → 示唆 → アクション → 付録
+# 検証:  cd <pptx-build>/assets && python3 validate_deck.py deck.debrief-report.yaml
+# 生成:  python3 build_deck.py deck.debrief-report.yaml -o debrief.pptx
+meta:
+  accent: "2F5DA8"
+
+slides:
+  - type: title
+    title: "<カンファレンス名／訪問先> 参加報告"
+    subtitle: "2026-07-14〜16 / <都市・会場> / 報告者: <氏名> / 社内限"
+
+  # BLUF — サマリが最初の内容スライド。ここだけで判断できること。
+  - type: bullets
+    title: "<結論を一文で。例: 主要各社は2027年の規制対応を前提に前倒しで動いている>"
+    bullets:
+      - "<結論1: 一文の主張>"
+      - "<結論2: 一文の主張>"
+      - "<結論3: 一文の主張>"
+      - "当社への意味: <一文>"
+      - "ご依頼: <承認/判断してほしいこと、誰に、いつまでに>"
+
+  - type: two_col
+    title: "当初の3目的のうち2件を達成、<X>は継続協議となった"
+    left:
+      heading: "目的"
+      bullets:
+        - "<目的1>"
+        - "<目的2>"
+        - "<目的3>"
+    right:
+      heading: "結果"
+      bullets:
+        - "達成 — <一行の根拠>"
+        - "達成 — <一行の根拠>"
+        - "未達 — <理由と次の一手>"
+    source: "出典: 出張申請時の目的、および現地記録（報告書Markdown 付録E）"
+
+  - type: section
+    number: "01"
+    title: "<論点1の名前>"
+
+  - type: bullets
+    title: "<論点1の結論を述べたタイトル>"
+    bullets:
+      - "<観察した事実>"
+      - text: "<補足・数値>"
+        level: 1
+      - "<当社にとっての意味（解釈であることが分かる書き方）>"
+    source: "出典: <資料名 p.12 / transcript 01:12:30>"
+
+  - type: quote
+    quote: "<会議で最も重要だった発言の原文引用>"
+    attribution: "<A社（発言者は要確認の場合は組織名で）>"
+
+  - type: section
+    number: "02"
+    title: "<論点2の名前>"
+
+  - type: big_number
+    title: "<数値が語る結論をタイトルに>"
+    number: "3億円"
+    caption: "<この数値が何か>"
+    source: "出典: <配布資料 p.8>"
+
+  - type: image
+    title: "<図・写真から得る結論>"
+    image: "figures/<capture>.png"
+    caption: "図1: <何を示す図か>"
+    note: "<読み手が持ち帰るべき一文>"
+    source: "出典: <登壇者・セッション名・日付>"
+
+  - type: section
+    number: "03"
+    title: "当社への示唆とアクション"
+
+  - type: two_col
+    title: "<示唆を一文で述べたタイトル>"
+    left:
+      heading: "機会"
+      bullets:
+        - "<>"
+    right:
+      heading: "リスク"
+      bullets:
+        - "<>"
+
+  - type: bullets
+    title: "<次の一手を述べたタイトル。承認事項を明示する>"
+    bullets:
+      - "<アクション1> — 担当: <氏名> / 期限: <YYYY-MM-DD>"
+      - "<アクション2> — 担当: <氏名> / 期限: <YYYY-MM-DD>"
+      - "ご承認いただきたい事項: <決裁者と内容>"
+
+  - type: section
+    number: "04"
+    title: "付録"
+
+  - type: bullets
+    title: "参加セッションと記録の所在（詳細は報告書Markdownを参照）"
+    bullets:
+      - "<セッション1> — 論点1で扱った"
+      - "<セッション2> — 記録なし（概要のみ）"
+      - "根拠台帳・追加調査メモ・写真は報告書Markdownの付録に収録"

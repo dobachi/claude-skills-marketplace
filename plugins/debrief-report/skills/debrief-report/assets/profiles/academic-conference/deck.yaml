@@ -1,0 +1,111 @@
+# SAMPLE — プロファイルA: 国際学会 参加報告デッキ（debrief-report → pptx-build）
+# 論法: 「分野はこう動いている。当社の位置はここ。だから次はこう投資・投稿すべき。」
+# 報告書Markdown（profiles/academic-conference/report-template.md）と節が一対一。
+# 検証:  cd <pptx-build>/skills/pptx-build/assets && python3 validate_deck.py <path>/deck.yaml
+meta:
+  accent: "2F5DA8"
+
+slides:
+  - type: title
+    title: "<学会名（略称・第N回）> 参加報告"
+    subtitle: "2026-09-08〜12 / <都市・国> / 報告者: <氏名> / 社内限"
+
+  # BLUF — サマリが最初の内容スライド
+  - type: bullets
+    title: "<分野の結論を一文で。例: 評価手法の標準化が争点に移り、当社の指標は主流から外れつつある>"
+    bullets:
+      - "<結論1: 分野の位置づけ>"
+      - "<結論2: 当社の相対位置（先行/追随/出遅れ）>"
+      - "<結論3: 機会または脅威>"
+      - "当社への意味: <一文>"
+      - "ご依頼: <投稿計画の承認 / 共同研究の可否 / 要員配置>"
+
+  - type: two_col
+    title: "参加目的3件のうち2件を達成、<X>は次年度に持ち越し"
+    left:
+      heading: "目的"
+      bullets:
+        - "<最新動向の把握>"
+        - "<自社発表による認知獲得>"
+        - "<共同研究先の探索>"
+    right:
+      heading: "結果"
+      bullets:
+        - "達成 — <一行の根拠>"
+        - "達成 — <一行の根拠>"
+        - "未達 — <理由と次の一手>"
+    source: "出典: 出張申請時の目的、参加記録（報告書 付録A）"
+
+  - type: section
+    number: "01"
+    title: "分野の潮流"
+
+  # 潮流は必ず観測数と観測元を示す（1件の基調講演は潮流ではない）
+  - type: bullets
+    title: "<潮流1を主張文で。例: 評価は精度からロバスト性へ軸足が移った>"
+    bullets:
+      - "計<N>件で扱われた: <A大学>, <B社>, <ポスターC>, <パネルD>"
+      - "昨年との差分: <何が変わったか>"
+      - text: "当社との関係: <解釈であることが分かる書き方>"
+        level: 1
+    source: "出典: 各発表（報告書 付録B 論文リスト E-01〜E-04）"
+
+  - type: quote
+    quote: "<最も重要だった発言の原文（English verbatim）>"
+    attribution: "<話者・所属>（招待講演／査読なし）"
+
+  - type: section
+    number: "02"
+    title: "当社の位置づけ"
+
+  - type: big_number
+    title: "<数値が語る結論をタイトルに。例: 採択率18%、当該分野の投稿は前年比2.1倍>"
+    number: "18%"
+    caption: "<この数値が何か（採択率・件数など）>"
+    source: "出典: 公式プログラム <URL>"
+
+  - type: image
+    title: "<図が示す結論を主張文で書く。例: 提案手法の優位は小規模データでのみ成立している>"
+    image: "figures/<capture>.png"
+    caption: "図1: <何を示す図か>"
+    note: "<読み手が持ち帰るべき一文>"
+    source: "出典: <著者 (年) タイトル, 学会名>, DOI: <ID>"
+
+  - type: section
+    number: "03"
+    title: "当社の発表と反応"
+
+  # 我々が発表したなら、受けた指摘こそ最大の収穫。省略しない
+  - type: two_col
+    title: "<発表の反応を一文で。例: 手法は評価されたが、汎化性への指摘が集中した>"
+    left:
+      heading: "評価された点"
+      bullets:
+        - "<>"
+    right:
+      heading: "受けた批判・指摘"
+      bullets:
+        - "<最も重要な指摘>"
+        - "<フォローアップ依頼>"
+
+  - type: section
+    number: "04"
+    title: "示唆とアクション"
+
+  - type: bullets
+    title: "<次の一手を述べたタイトル。承認事項を明示する>"
+    bullets:
+      - "<アクション1: 投稿・共同研究・技術検討> — 担当: <氏名> / 期限: <YYYY-MM-DD>"
+      - "<アクション2> — 担当: <氏名> / 期限: <YYYY-MM-DD>"
+      - "ご承認いただきたい事項: <決裁者と内容>"
+
+  - type: section
+    number: "05"
+    title: "付録"
+
+  - type: bullets
+    title: "本報告のカバレッジと記録の所在"
+    bullets:
+      - "全<M>セッション中<N>セッションに参加（トラック<X>は不参加）"
+      - "<分野Y>は本報告の対象外"
+      - "論文リスト・根拠台帳・注目研究者一覧は報告書Markdownの付録に収録"

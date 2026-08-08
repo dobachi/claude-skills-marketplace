@@ -1,0 +1,145 @@
+# SAMPLE — プロファイルB: 商業カンファレンス・展示会 参加/視察報告デッキ
+# 論法: 「今日使えるものはこれだけ。当社の計画にはこう効く。だからこれを承認いただきたい。」
+# 報告書Markdown（profiles/commercial-conference/report-template.md）と節が一対一。
+# 検証:  cd <pptx-build>/skills/pptx-build/assets && python3 validate_deck.py <path>/deck.yaml
+meta:
+  accent: "1E7A5A"
+
+slides:
+  - type: title
+    title: "<イベント名> 参加報告"
+    subtitle: "2026-10-06〜08 / <都市・会場> / 報告者: <氏名> / 社内限・エンバーゴ<YYYY-MM-DD>まで"
+
+  # BLUF
+  - type: bullets
+    title: "<結論を一文で。例: 主要3社が同じ機能をGAで出荷済み、当社の内製前提は見直しが必要>"
+    bullets:
+      - "<結論1: 市場・技術の動き>"
+      - "<結論2: 当社の計画・契約への影響>"
+      - "<結論3: 競合の動き>"
+      - "当社への意味: <一文>"
+      - "ご依頼: <検証予算 / 契約更改方針 / PoC着手の承認>"
+    source: "出典: 各社公式発表（報告書 付録F 根拠台帳）"
+
+  - type: two_col
+    title: "視察目的3件のうち2件を達成、<X>は継続確認"
+    left:
+      heading: "目的"
+      bullets:
+        - "<ベンダーXのロードマップ把握>"
+        - "<競合動向の把握>"
+        - "<リード獲得（出展時）>"
+    right:
+      heading: "結果"
+      bullets:
+        - "達成 — <一行の根拠>"
+        - "達成 — <一行の根拠>"
+        - "未達 — <理由と次の一手>"
+    source: "出典: 出張申請時の目的、参加記録（報告書 付録A）"
+
+  - type: section
+    number: "01"
+    title: "何が今日使えるのか"
+
+  # 成熟度の分類は本デッキの核。ロードマップを「使える」と読ませない
+  - type: two_col
+    title: "<結論。例: 発表12件のうちGAは3件、残りはPreviewかロードマップ>"
+    left:
+      heading: "GA（今日使える）"
+      bullets:
+        - "<機能A（社名）>"
+        - "<機能B（社名）>"
+    right:
+      heading: "Preview / ロードマップ"
+      bullets:
+        - "<機能C — Preview・<条件>>"
+        - "<機能D — <年><Q>予定（時期の宣言のみ）>"
+    source: "出典: 各社公式発表（報告書 付録F 根拠台帳 E-01〜）"
+
+  - type: big_number
+    title: "<数値が語る結論をタイトルに。例: 提示価格は現行比1.4倍、条件付き>"
+    number: "1.4x"
+    caption: "<この数値が何か。測定・見積の条件を必ず添える>"
+    source: "出典: <社名>公式価格ページ <URL>（条件: <規模・地域・契約期間>）"
+
+  - type: section
+    number: "02"
+    title: "市場の潮流と競合"
+
+  - type: bullets
+    title: "<潮流1を主張文で>"
+    bullets:
+      - "計<N>社が言及: <A社基調講演>, <B社セッション>, <C社展示>, <アナリストD>"
+      - "昨年との差分: <>"
+      - text: "解釈: <当社にとっての意味>"
+        level: 1
+    source: "出典: 各社セッション（報告書 付録F）"
+
+  - type: two_col
+    title: "<競合の動きを一文で。例: 競合2社は統合基盤へ、1社は特化路線に舵を切った>"
+    left:
+      heading: "見せたもの"
+      bullets:
+        - "<X社: >"
+        - "<Y社: >"
+    right:
+      heading: "見せなかったもの"
+      bullets:
+        - "<X社: 価格・SLAの提示なし>"
+        - "<Y社: 日本での提供時期>"
+    source: "出典: 各社セッション・展示（報告書 付録A）"
+
+  - type: image
+    title: "<展示・デモから得る結論>"
+    image: "figures/<capture>.png"
+    caption: "図1: <何を示すか>"
+    note: "<読み手が持ち帰るべき一文>"
+    source: "出典: <社名> <セッション名> <日付>（撮影・掲載可否確認済）"
+
+  - type: section
+    number: "03"
+    title: "当社への影響とアクション"
+
+  - type: two_col
+    title: "<影響を一文で。例: 現行契約の更改条件と内製計画の2点に影響する>"
+    left:
+      heading: "機会"
+      bullets:
+        - "<>"
+    right:
+      heading: "リスク"
+      bullets:
+        - "<価格改定・提供終了・ロックイン>"
+
+  - type: bullets
+    title: "<次の一手を述べたタイトル。承認事項を明示する>"
+    bullets:
+      - "<アクション1: 検証・PoC・契約確認> — 担当: <氏名> / 期限: <YYYY-MM-DD>"
+      - "<アクション2> — 担当: <氏名> / 期限: <YYYY-MM-DD>"
+      - "ご承認いただきたい事項: <決裁者と内容>"
+
+  # 出展・登壇した場合のみ。費用を使った以上、成果を報告する
+  - type: two_col
+    title: "<出展成果を一文で。出展・登壇していない場合はこのスライドを削除>"
+    left:
+      heading: "実績"
+      bullets:
+        - "リード <N>件 / 商談化 <N>件"
+        - "登壇の反応: <>"
+    right:
+      heading: "費用対効果"
+      bullets:
+        - "費用 <金額> / リード単価 <金額>"
+        - "次回出展の判断: <推奨 / 縮小 / 見送り>"
+    source: "出典: 展示ブース記録、社内CRM <日付>時点"
+
+  - type: section
+    number: "04"
+    title: "付録"
+
+  - type: bullets
+    title: "本報告のカバレッジと記録の所在"
+    bullets:
+      - "全<M>セッション中<N>セッションに参加、<N>ブースを訪問（<トラックX>は不参加）"
+      - "本報告は参加分と公開資料に基づく"
+      - "成熟度一覧・収集資料・根拠台帳は報告書Markdownの付録に収録"
