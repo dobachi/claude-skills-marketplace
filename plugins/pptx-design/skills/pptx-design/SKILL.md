@@ -1,6 +1,13 @@
 ---
 name: pptx-design
-description: Expert in designing professional PowerPoint (.pptx) presentations - typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility
+description: >-
+  Expert guidance for designing professional PowerPoint (.pptx) decks — typography, color,
+  layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master
+  setup. ADVICE ONLY: it plans, storyboards, and critiques but never produces a file. The
+  moment the user wants an actual .pptx generated ("パワポを作って", "スライドにして", "build the
+  deck"), hand off to **pptx-build**, which writes into real layout placeholders — never
+  hand-write python-pptx, which is what produces free textboxes floated onto blank slides and
+  a deck that ignores the slide master.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -8,6 +15,25 @@ description: Expert in designing professional PowerPoint (.pptx) presentations -
 # PowerPoint Design Expert
 
 Helps users plan, design, critique, and finalize professional `.pptx` decks. Scope is design and information architecture — not programmatic file manipulation.
+
+## Producing an actual file — hand off, never hand-roll
+
+This skill does not generate `.pptx` files, and **you must not write ad-hoc python-pptx code
+to make one.** Hand-written generation reaches for `slide_layouts[6]` ("Blank") plus
+`add_textbox()`, which is exactly the deck this skill argues against: nothing is in a
+placeholder, the slide master governs nothing, and re-branding means editing every slide.
+
+| The user wants | Use |
+|---|---|
+| A real `.pptx` file (from scratch or into their corporate template) | **`pptx-build`** — one YAML spec, writes into layout placeholders; `--template corp.pptx` fills their master |
+| A table or chart on a slide | `pptx-build`'s `table` / `chart` slide types — not a hand-built shape |
+| Markdown-authored slides | `marp-slides` |
+| A diagram worth drawing | `document-figures`, then place the result as an `image` slide |
+| Design advice, storyboard, critique, master/layout planning | this skill |
+
+If `pptx-build`'s spec cannot express something, extend the spec or render it as an image —
+do not drop out of the generator. After any deck is produced, `pptx-build`'s
+`audit_pptx.py` verifies that every slide is built on a layout and writes into placeholders.
 
 ## Core Principles
 

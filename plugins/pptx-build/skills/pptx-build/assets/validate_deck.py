@@ -46,7 +46,8 @@ ASSERT_RE = re.compile(
     r"ない|べき|だ$|である|った|increase|grow|grew|fall|fell|rose|drove|wins?|"
     r"should|will|is|are|was|were|up|down", re.I)
 
-CONTENT_TYPES = {"bullets", "two_col", "big_number", "image"}
+CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart"}
+KNOWN_TYPES = CONTENT_TYPES | {"title", "section", "quote", "blank"}
 ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
 
 
@@ -75,7 +76,7 @@ def _looks_like_topic(title):
 
 
 def _has_data_claim(s):
-    if s.get("type") == "big_number":
+    if s.get("type") in ("big_number", "table", "chart"):
         return True
     texts = [_slide_title(s)]
     for key in ("bullets",):
@@ -129,6 +130,11 @@ def validate(spec, theme, g):
         t = s.get("type", "bullets")
         title = _slide_title(s)
 
+        if t not in KNOWN_TYPES:
+            add(ERROR, i, "unknown slide type %r — supported: %s (do NOT hand-write "
+                          "python-pptx for it; extend the spec or use `image`)"
+                % (t, ", ".join(sorted(KNOWN_TYPES))))
+
         if t == "section":
             if last_section_idx is not None and not section_has_content:
                 add(ERROR, last_section_idx, "section has no content slides before the next section — fill it or remove it")
@@ -166,9 +172,47 @@ def validate(spec, theme, g):
         if _body_overflows(s, theme, g):
             add(WARN, i, "body won't fit at readable sizes — split into two slides (one message per slide)")
 
+        # tables and charts: the data has to actually be there and stay readable
+        if t == "table":
+            header, rows = B._table_rows(s)
+            if not rows and not header:
+                add(ERROR, i, "table slide has neither `columns` nor `rows`")
+            elif not rows:
+                add(WARN, i, "table has a header but no rows")
+            ncols = max([len(header or [])] + [len(r) for r in rows] or [0])
+            if ncols > 6:
+                add(WARN, i, "%d columns — 6 is the readable maximum on a slide; split or transpose it" % ncols)
+            if len(rows) > 8:
+                add(WARN, i, "%d rows — over ~8 rows stops being readable from the back of a room; summarize or split" % len(rows))
+            if header and any(len(r) != len(header) for r in rows):
+                add(WARN, i, "some rows do not have the same number of cells as `columns` — the table will have holes")
+            if s.get("widths") and len(s["widths"]) != ncols:
+                add(WARN, i, "`widths` has %d entries but the table has %d columns — it will be ignored"
+                    % (len(s["widths"]), ncols))
+        if t == "chart":
+            kind = str(s.get("chart", "column")).lower()
+            if kind not in B._CHART_TYPES:
+                add(WARN, i, "unknown chart type %r — use one of %s"
+                    % (kind, "/".join(sorted(B._CHART_TYPES))))
+            series = s.get("series") or []
+            if isinstance(series, dict):
+                series = [{"name": k, "values": v} for k, v in series.items()]
+            cats = s.get("categories") or []
+            if not cats or not [se for se in series if se.get("values")]:
+                add(ERROR, i, "chart slide needs `categories` and at least one `series` with `values`")
+            for se in series:
+                vals = se.get("values") or []
+                if cats and vals and len(vals) != len(cats):
+                    add(WARN, i, "series %r has %d values for %d categories — the chart will have gaps"
+                        % (se.get("name", "?"), len(vals), len(cats)))
+            if kind in ("pie", "doughnut") and len([se for se in series if se.get("values")]) > 1:
+                add(WARN, i, "a pie/doughnut shows one series — use column/bar to compare several")
+            if kind in ("pie", "doughnut") and len(cats) > 6:
+                add(WARN, i, "%d slices — over ~6 a pie is unreadable; use a bar chart" % len(cats))
+
         # sources on data claims
         if t in CONTENT_TYPES and _has_data_claim(s) and not s.get("source"):
-            sev = WARN if t == "big_number" else INFO
+            sev = WARN if t in ("big_number", "table", "chart") else INFO
             add(sev, i, "shows a number/figure but has no source: — cite it (a data claim without a source is unverifiable)")
 
     if last_section_idx is not None and not section_has_content:

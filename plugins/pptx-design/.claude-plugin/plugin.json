@@ -1,6 +1,8 @@
 {
   "name": "pptx-design",
-  "description": "Expert guidance for designing professional PowerPoint presentations: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility.",
-  "version": "1.0.0",
-  "author": {"name": "dobachi"}
+  "description": "Expert guidance for designing professional PowerPoint decks: typography, color, layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup. Advice only — hands file generation to pptx-build rather than hand-writing python-pptx.",
+  "version": "1.1.0",
+  "author": {
+    "name": "dobachi"
+  }
 }

@@ -116,6 +116,46 @@ In default mode the slide is built on the **Picture with Caption** layout: the f
 
 Prefer a `caption` that names the figure and a `note` that states the takeaway — a figure without an explanation makes the audience guess.
 
+### table
+```yaml
+- type: table
+  title: "Action title — what the table proves"
+  columns: ["方式", "初期費用", "年間運用", "備考"]   # optional header row
+  rows:
+    - ["方式A", "1.2億円", "2,400万円", "既存資産を流用"]
+    - ["方式B", "0.9億円", "1,800万円", "推奨"]
+  widths: [1, 1, 1, 2]              # optional relative column widths
+  source: "出典: 社内試算 2026-07"
+```
+`rows` may also be a list of dicts keyed by the `columns` names. The table is inserted at the
+**body placeholder's** region and adopts its placeholder marker, so it stays master-governed.
+Default mode draws it plain — no banded template style, transparent cells, bold header with an
+accent hairline under it, light hairlines between rows; template-fill mode uses the template's
+own table style. Readability ceilings the linter enforces: **6 columns, ~8 rows**. Beyond that,
+split the table or move the detail to an appendix — a slide is not a spreadsheet.
+
+### chart
+```yaml
+- type: chart
+  title: "Action title — the conclusion the chart supports"
+  chart: column          # column | bar | line | area | pie | doughnut
+  categories: ["1年目", "2年目", "3年目"]
+  series:
+    - name: "方式B"
+      values: [1800, 1800, 1800]
+    - name: "方式C"
+      values: [1200, 1200, 1200]
+  legend: true           # optional; default = only when there is >1 series
+  gridlines: false       # optional; default off (value axis)
+  data_labels: false     # optional
+  source: "出典: 社内試算 2026-07"
+```
+Also inserted at the body placeholder's region with its placeholder marker. Default mode gives
+one accent-led palette, no chart-area border and **no chart title** — the slide title carries
+the message, so a chart title would repeat it. Template-fill mode leaves colors to the
+template's theme. `series` may also be given as a mapping `{name: [values]}`. Pie/doughnut take
+exactly one series and stay readable to about 6 slices; past that use `bar`.
+
 ### blank
 ```yaml
 - type: blank

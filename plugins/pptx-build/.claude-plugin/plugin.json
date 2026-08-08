@@ -1,6 +1,8 @@
 {
   "name": "pptx-build",
-  "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. LibreOffice preview pass included.",
-  "version": "2.0.0",
-  "author": {"name": "dobachi"}
+  "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included.",
+  "version": "2.1.0",
+  "author": {
+    "name": "dobachi"
+  }
 }

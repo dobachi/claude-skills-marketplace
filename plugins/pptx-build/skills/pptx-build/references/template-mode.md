@@ -108,6 +108,27 @@ logos and chrome, the bullet styling of each BODY placeholder. So:
   the image is added at the placeholder's box, or top-left as a fallback.
 - `quote`/`big_number` reuse the title+body of a content layout (the quote/number go in
   the body) unless you map them to a dedicated layout.
+- `table`/`chart` are inserted **at the body placeholder's own region** and take over its
+  placeholder marker (the same shape PowerPoint produces when you insert a table into a
+  content placeholder), so they remain master-governed. Their look is the template's: the
+  table keeps the template's table style and theme fonts, the chart its theme colors. The
+  plain-table styling and the accent palette of default mode are deliberately not applied.
+
+## Nothing is dropped silently
+
+Template-fill can only write into placeholders the chosen layout actually has. Whenever the
+spec supplies content for a role the layout lacks, the build now prints a `warning:` naming
+the slide, the layout, and the missing role — and the run ends with a count of them:
+
+```
+  warning: slide 4: layout 'Title Only' has no body placeholder — that content was NOT
+           written. Pin a layout with `layout:` or map the role in --map.
+  1 template warning(s) above — content may be missing from the deck.
+```
+
+Fix it by pinning a different layout on that slide (`layout: "Two Content"`) or by mapping
+the role to a placeholder idx in `--map`. Then confirm with `audit_pptx.py`, which reads the
+produced file and fails it if a slide's content ended up outside placeholders.
 
 ## When the binary master itself must be carried — this is it
 

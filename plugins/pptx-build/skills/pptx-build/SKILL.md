@@ -1,7 +1,7 @@
 ---
 name: pptx-build
 description: >-
-  Generate clean, white-based .pptx decks that don't look AI-made — built on python-pptx. Two modes from ONE spec: (1) default — grid-anchored from-scratch layout with no drifting decorative bands (accent computed once from the grid, identical on every slide); (2) template-fill — open a real corporate .pptx/.potx and write into ITS layouts and placeholders (title/body/subtitle), inheriting the template's master, theme, fonts, and logos. Use when the user wants to actually produce a PowerPoint file (not just design advice), asks for a "simple white deck," "テンプレに沿ったパワポ," "会社のテンプレートで作って," or a deck that doesn't look AI-generated. Also ships `validate_deck.py` (lints structure/logic and prints the title-only narrative spine for a cross-slide story check) and argument-shaped starter decks in `assets/samples/` (recommendation / progress-review / decision).
+  Generate clean, white-based .pptx decks that don't look AI-made — built on python-pptx. Two modes from ONE spec: (1) default — grid-anchored from-scratch layout with no drifting decorative bands (accent computed once from the grid, identical on every slide); (2) template-fill — open a real corporate .pptx/.potx and write into ITS layouts and placeholders (title/body/subtitle), inheriting the template's master, theme, fonts, and logos. Use when the user wants to actually produce a PowerPoint file (not just design advice), asks for a "simple white deck," "テンプレに沿ったパワポ," "会社のテンプレートで作って," or a deck that doesn't look AI-generated. Covers bullets/two-column/big-number/quote/image plus `table` and `chart`, so a deck never falls back to hand-written python-pptx — the thing that floats textboxes onto blank slides and ignores the slide master. Ships `validate_deck.py` (spec lint + narrative spine) and `audit_pptx.py` (fails a produced deck whose content is not in layout placeholders).
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -14,6 +14,27 @@ Produces an actual `.pptx` file. Two rendering paths share one spec:
 - **Template-fill mode** — open a **real** `.pptx`/`.potx` the user provides and write content into **its slide layouts and placeholders**, so the deck inherits the template's master, theme, fonts, and logos. This is what "use our company template" actually means.
 
 **Engine: python-pptx.** Chosen specifically because it can *open* an existing binary template and address its placeholders — the thing PptxGenJS could not do. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **pptx-design** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
+
+## Rule zero: never hand-write python-pptx for a deck
+
+Generate every deck through `build_deck.py` with a spec. Do not write an ad-hoc script, and
+do not "just add one slide" with `python-pptx` afterwards. Hand-written generation reaches
+for `slide_layouts[6]` ("Blank") + `add_textbox()`, and the result is the failure this skill
+exists to prevent: **nothing lands in a placeholder, so the slide master governs nothing** —
+titles drift, the template's fonts and logos are ignored, and a rebrand means editing every
+slide by hand.
+
+When the spec seems not to cover what you need:
+
+| Situation | Do this — not a hand-rolled script |
+|---|---|
+| A table is needed | `type: table` (rows/columns land in the body placeholder's region) |
+| A chart is needed | `type: chart` (column / bar / line / area / pie / doughnut) |
+| A diagram is needed | Draw it with `document-figures`, place it as `type: image` |
+| Something genuinely unsupported | Extend `build_deck.py` and `references/spec-format.md` — the generator is the artifact, not the deck |
+
+`validate_deck.py` errors on an unknown `type:`, and `audit_pptx.py` (below) fails any deck
+whose text ended up in free textboxes. If either fires, fix the generator or the spec.
 
 ## The three guarantees this skill is built around
 
@@ -82,7 +103,19 @@ python3 build_deck.py deck.yaml -o out.pptx --template corp.pptx --map map.json
 
 The command prints which layout each slide landed on. If a slide picked the wrong layout, pin it in `map.json` (or per-slide via `layout:` in the spec) and rerun. See `references/template-mode.md`.
 
-### 3. Preview and QA
+### 3. Audit the produced file (mechanical, do not skip)
+
+```bash
+python3 audit_pptx.py out.pptx      # nonzero exit on ERROR
+```
+
+`validate_deck.py` lints the *spec*; this lints the *artifact*. It reports, per slide, the
+layout used and whether content sits in placeholders, and it **errors** when a slide's text
+is in free textboxes instead — the signature of a hand-rolled deck or a template-fill that
+landed on the wrong layout. It also warns on placeholders that pin their own geometry
+(they stop following the layout), empty placeholders, and mixed slide masters.
+
+### 4. Preview and QA
 
 ```bash
 ./render_preview.sh out.pptx        # -> preview/slide-*.png via LibreOffice
@@ -92,7 +125,19 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 
 ## Slide types
 
-`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `blank`. In default mode each maps to a standard PowerPoint layout and writes that layout's placeholders — titles share one bottom-anchored baseline, body/columns go in the layout's body placeholder(s), and `image` fits the figure into a real PICTURE-placeholder region with its `caption` + `note` in the caption placeholder. In template-fill mode each maps to the *supplied* template's layout and placeholders instead. Detail in `references/spec-format.md`.
+`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `table`, `chart`, `blank`.
+
+`table` and `chart` exist so that a deck needing one never has to leave the generator. Both
+are inserted at the **body placeholder's** region and adopt its placeholder marker — the same
+thing PowerPoint does when you insert a table into a content placeholder — so they stay
+master-governed instead of becoming free objects. In default mode the table is drawn plain
+(no banded template style): header row bold with an accent hairline under it, body rows
+separated by a light hairline, transparent cells. Charts get one accent-led series palette,
+no chart-area border, no chart title (the slide title carries the message), and a legend only
+when there is more than one series. In template-fill mode both inherit the template's own
+table style and theme colors.
+
+In default mode each type maps to a standard PowerPoint layout and writes that layout's placeholders — titles share one bottom-anchored baseline, body/columns go in the layout's body placeholder(s), and `image` fits the figure into a real PICTURE-placeholder region with its `caption` + `note` in the caption placeholder. In template-fill mode each maps to the *supplied* template's layout and placeholders instead. Detail in `references/spec-format.md`.
 
 ## Themes vs. templates — pick the right one
 
@@ -106,7 +151,9 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 
 ## Pre-delivery checklist
 
+- [ ] **The deck came out of `build_deck.py`** — no slide was added or patched by hand-written python-pptx.
 - [ ] **`validate_deck.py` run, 0 errors** — findings triaged; the printed spine read against `references/narrative-and-logic.md` (one governing thought, MECE sections, close delivers the open).
+- [ ] **`audit_pptx.py` run, 0 errors** — every slide is built on a layout and writes into its placeholders; warnings triaged (pinned geometry, empty placeholders, mixed masters).
 - [ ] Every title is an **action title** (states the takeaway), not a topic label.
 - [ ] One message per slide; no wall of text (split if it won't fit).
 - [ ] **No build `warning:` left unaddressed** — each one means a title or body overflows at readable sizes; split or shorten that slide rather than ignoring it.
@@ -128,4 +175,5 @@ Apply the **information test** before adding any shape: if deleting it changes n
 - `references/anti-band-design.md` — why bands drift and the computed-grid alternative this generator uses
 - `references/spec-format.md` — every spec field and slide type, with examples
 - `assets/samples/` — argument-shaped example decks (recommendation / review / decision) + `README.md` mapping each to its structure
-- `assets/validate_deck.py` — structure/logic linter and narrative-spine printer (run before rendering)
+- `assets/validate_deck.py` — spec linter (structure, logic, table/chart sanity) and narrative-spine printer; run before rendering
+- `assets/audit_pptx.py` — artifact auditor: fails a deck whose content is not in layout placeholders; run after rendering

@@ -67,6 +67,7 @@ SIZE_DEFAULTS = {
     "big_number": 88, "big_caption": 20,
     "quote": 28, "quote_attr": 18,
     "caption": 15, "caption_note": 14,
+    "table": 15, "table_header": 15, "chart_label": 12,
     "source": 11, "page_number": 11,
 }
 
@@ -255,6 +256,7 @@ CONTENT_LAYOUT = 1      # "Title and Content"    — TITLE + body (OBJECT)
 SECTION_LAYOUT = 2      # "Section Header"       — TITLE + body (BODY)
 TWO_CONTENT_LAYOUT = 3  # "Two Content"          — TITLE + two bodies (OBJECT)
 IMAGE_LAYOUT = 8        # "Picture with Caption" — TITLE + PICTURE + caption (BODY)
+QUOTE_LAYOUT = 5        # "Title Only"           — its TITLE placeholder holds the quote
 BLANK_LAYOUT = 6        # "Blank"                — only for type: blank
 
 
@@ -294,6 +296,38 @@ def _picture_ph(container):
     return None
 
 
+# --- placeholder surgery -----------------------------------------------------
+# A table or a chart cannot hold text the way a body placeholder does, but it can
+# still BE the placeholder: PowerPoint, when you insert a table into a content
+# placeholder, keeps the <p:ph> marker on the resulting graphicFrame. We do the
+# same — move the marker onto the new frame and drop the emptied placeholder — so
+# the shape stays master-governed (it inherits the layout's position and moves
+# with it) instead of becoming a free object floated onto the slide.
+def _adopt_placeholder(ph, frame):
+    """Give `frame` (table/chart graphicFrame) the placeholder identity of `ph`."""
+    try:
+        src = ph._element.nvSpPr.nvPr.find(qn("p:ph"))
+        if src is None:
+            return
+        nv_pr = frame._element.nvGraphicFramePr.nvPr
+        for old in nv_pr.findall(qn("p:ph")):
+            nv_pr.remove(old)
+        nv_pr.insert(0, src)          # <p:ph> is the first child of <p:nvPr>
+        ph._element.getparent().remove(ph._element)
+    except Exception:                 # never fail a build over the marker
+        pass
+
+
+def _drop_placeholder(ph):
+    """Remove an unused placeholder so it does not sit empty on the slide."""
+    if ph is None:
+        return
+    try:
+        ph._element.getparent().remove(ph._element)
+    except Exception:
+        pass
+
+
 def _prep_ph_tf(ph, anchor=MSO_ANCHOR.TOP, clear=True):
     """Ready a placeholder's text frame for our content while keeping it a REAL
     placeholder (inherits the layout/master; moves when the layout moves). Autofit
@@ -322,6 +356,13 @@ def setup_layouts(prs, theme, g):
     if cbodies:
         _place(cbodies[0], g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"])
         cbodies[0].text_frame.vertical_anchor = MSO_ANCHOR.TOP
+
+    # Quote: its own layout ("Title Only"), so the centered quote block is layout
+    # geometry like every other family — never a slide-level override.
+    qt, _ = _phs_by_role(prs.slide_layouts[QUOTE_LAYOUT])
+    if qt is not None:
+        _place(qt, g["marginX"], 2.4, g["contentW"], 2.2)
+        qt.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
 
     # Title Slide: title block + subtitle below it.
     ts, tsb = _phs_by_role(prs.slide_layouts[TITLE_LAYOUT])
@@ -494,6 +535,238 @@ def _trailing_para(tf, text, theme, font, size, color, space_before=6):
     _set_run_font(run, name=theme["font"][font], size=size, color=theme["color"][color])
 
 
+# ---------------------------------------------------------------------------
+# Tables and charts. Both exist so a deck that needs one does NOT have to fall
+# back to hand-written python-pptx (which is how decks end up as free textboxes
+# on blank slides). Both are inserted at the BODY PLACEHOLDER's geometry and
+# adopt its placeholder marker, so they stay master-governed.
+# ---------------------------------------------------------------------------
+PLAIN_TABLE_STYLE = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"   # "No Style, No Grid"
+_LN_ORDER = ("a:lnL", "a:lnR", "a:lnT", "a:lnB", "a:lnTlToBr", "a:lnBlToTr")
+
+
+def _cell_border(cell, edge, color, pt):
+    """Draw one hairline edge on a table cell (python-pptx has no border API)."""
+    tag = "a:" + edge
+    tcPr = cell._tc.get_or_add_tcPr()
+    for el in tcPr.findall(qn(tag)):
+        tcPr.remove(el)
+    ln = tcPr.makeelement(qn(tag), {"w": str(int(pt * 12700)), "cap": "flat",
+                                    "cmpd": "sng", "algn": "ctr"})
+    fill = ln.makeelement(qn("a:solidFill"), {})
+    fill.append(ln.makeelement(qn("a:srgbClr"), {"val": color}))
+    ln.append(fill)
+    want = _LN_ORDER.index(tag)
+    for child in list(tcPr):
+        name = "a:" + child.tag.split("}")[-1]
+        if name not in _LN_ORDER or _LN_ORDER.index(name) > want:
+            child.addprevious(ln)
+            return
+    tcPr.append(ln)
+
+
+def _table_rows(s):
+    """Normalize the spec into (header list or None, [row, ...]) of plain strings."""
+    header = s.get("columns") or s.get("header")
+    header = [str(c) for c in header] if header else None
+    rows = []
+    for r in s.get("rows") or []:
+        if isinstance(r, dict) and header:
+            rows.append([str(r.get(c, "")) for c in header])
+        elif isinstance(r, (list, tuple)):
+            rows.append([str(c) for c in r])
+        else:
+            rows.append([str(r)])
+    return header, rows
+
+
+def _render_table(slide, theme, g, s, i):
+    header, rows = _table_rows(s)
+    if not header and not rows:
+        _warn("slide %d: table has no columns and no rows — nothing to draw" % i)
+        return
+    ncols = max([len(header or [])] + [len(r) for r in rows] or [1]) or 1
+    nrows = len(rows) + (1 if header else 0)
+    if ncols > 6:
+        _warn("slide %d: table has %d columns — 6 is the readable maximum, split it"
+              % (i, ncols))
+    _, bodies = _phs_by_role(slide)
+    if not bodies:
+        _warn("slide %d: layout has no body placeholder — table not drawn" % i)
+        return
+    ph = bodies[0]
+    left, top, width = ph.left, ph.top, ph.width
+    height = min(ph.height, Inches(max(0.36 * nrows, 0.4)))
+    if Emu(int(height)).inches > g["bodyH"] + 0.05:
+        _warn("slide %d: table needs ~%.1f in but only %.1f in fits at readable sizes"
+              " — split the table across slides" % (i, Emu(int(height)).inches, g["bodyH"]))
+    frame = slide.shapes.add_table(nrows, ncols, left, top, width, height)
+    _adopt_placeholder(ph, frame)
+    tbl = frame.table
+
+    widths = s.get("widths")
+    if widths and len(widths) == ncols and sum(widths) > 0:
+        total = float(sum(widths))
+        for c, w in enumerate(widths):
+            tbl.columns[c].width = Emu(int(width * (w / total)))
+
+    tbl.first_row = bool(header)
+    tbl.horz_banding = False
+    tblPr = tbl._tbl.find(qn("a:tblPr"))
+    if tblPr is not None:
+        for el in tblPr.findall(qn("a:tableStyleId")):
+            tblPr.remove(el)
+        sid = tblPr.makeelement(qn("a:tableStyleId"), {})
+        sid.text = PLAIN_TABLE_STYLE
+        tblPr.append(sid)
+
+    sz = theme["size"]
+    body_rows = ([header] if header else []) + rows
+    for r, data in enumerate(body_rows):
+        is_head = bool(header) and r == 0
+        tbl.rows[r].height = Emu(int(Inches(0.36)))
+        for c in range(ncols):
+            cell = tbl.cell(r, c)
+            cell.fill.background()
+            cell.margin_left = cell.margin_right = Inches(0.08)
+            cell.margin_top = cell.margin_bottom = Inches(0.04)
+            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+            tf = cell.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            _no_bullet(p)
+            run = p.add_run()
+            run.text = data[c] if c < len(data) else ""
+            _set_run_font(run, name=theme["font"]["heading" if is_head else "body"],
+                          size=sz["table_header"] if is_head else sz["table"],
+                          bold=is_head,
+                          color=theme["color"]["ink" if is_head else "ink"])
+            # header: accent rule under it; body rows: hairline separator
+            _cell_border(cell, "lnB", theme["color"]["accent" if is_head else "muted"],
+                         1.25 if is_head else 0.5)
+
+
+_CHART_TYPES = {
+    "column": "COLUMN_CLUSTERED", "bar": "BAR_CLUSTERED",
+    "line": "LINE_MARKERS", "area": "AREA", "pie": "PIE", "doughnut": "DOUGHNUT",
+}
+
+
+def _chart_no_border(chart):
+    """Drop the chart-area frame (the default box around the plot) and its fill."""
+    try:
+        cs = chart._chartSpace
+        for el in cs.findall(qn("c:spPr")):
+            cs.remove(el)
+        spPr = cs.makeelement(qn("c:spPr"), {})
+        spPr.append(spPr.makeelement(qn("a:noFill"), {}))
+        ln = spPr.makeelement(qn("a:ln"), {})
+        ln.append(ln.makeelement(qn("a:noFill"), {}))
+        spPr.append(ln)
+        txPr = cs.find(qn("c:txPr"))
+        (txPr.addprevious(spPr) if txPr is not None else cs.append(spPr))
+    except Exception:
+        pass
+
+
+def _series_colors(theme):
+    pal = theme.get("series")
+    if pal:
+        return [str(c).lstrip("#") for c in pal]
+    return [theme["color"]["accent"], "9AA3AF", "4B5563", "C3CBD8", "1F2937"]
+
+
+def _render_chart(slide, theme, g, s, i):
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+
+    kind = str(s.get("chart", "column")).lower()
+    if kind not in _CHART_TYPES:
+        _warn("slide %d: unknown chart type %r — using 'column' "
+              "(column/bar/line/area/pie/doughnut)" % (i, kind))
+        kind = "column"
+    cats = [str(c) for c in (s.get("categories") or [])]
+    series = s.get("series") or []
+    if isinstance(series, dict):          # {name: [values]} shorthand
+        series = [{"name": k, "values": v} for k, v in series.items()]
+    series = [se for se in series if se.get("values")]
+    if not cats or not series:
+        _warn("slide %d: chart needs `categories` and at least one `series` — skipped" % i)
+        return
+    _, bodies = _phs_by_role(slide)
+    if not bodies:
+        _warn("slide %d: layout has no body placeholder — chart not drawn" % i)
+        return
+    ph = bodies[0]
+
+    data = CategoryChartData()
+    data.categories = cats
+    for se in series:
+        vals = list(se.get("values") or [])
+        vals += [None] * (len(cats) - len(vals))
+        data.add_series(str(se.get("name", "")), vals[:len(cats)])
+
+    frame = slide.shapes.add_chart(getattr(XL_CHART_TYPE, _CHART_TYPES[kind]),
+                                   ph.left, ph.top, ph.width, ph.height, data)
+    _adopt_placeholder(ph, frame)
+    chart = frame.chart
+    _chart_no_border(chart)
+    chart.has_title = False     # the SLIDE title states the message; a chart title repeats it
+    sz = theme["size"]
+    chart.font.size = Pt(sz["chart_label"])
+    chart.font.color.rgb = RGBColor.from_string(theme["color"]["muted"])
+    chart.font.name = theme["font"]["body"]
+
+    legend = s.get("legend")
+    show_legend = (len(series) > 1) if legend is None else bool(legend)
+    chart.has_legend = show_legend
+    if show_legend:
+        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
+        chart.legend.include_in_layout = False
+
+    pal = _series_colors(theme)
+    plot = chart.plots[0]
+    plot.gap_width = 60
+    if kind in ("pie", "doughnut"):
+        plot.vary_by_categories = True
+        pts = list(plot.series[0].points)
+        for idx, pt in enumerate(pts):
+            pt.format.fill.solid()
+            pt.format.fill.fore_color.rgb = RGBColor.from_string(pal[idx % len(pal)])
+        chart.has_legend = True if legend is None else bool(legend)
+        if chart.has_legend:
+            chart.legend.position = XL_LEGEND_POSITION.RIGHT
+            chart.legend.include_in_layout = False
+    else:
+        plot.vary_by_categories = False
+        for idx, ser in enumerate(plot.series):
+            color = RGBColor.from_string(pal[idx % len(pal)])
+            if kind in ("line",):
+                ser.format.line.color.rgb = color
+                ser.format.line.width = Pt(2.25)
+            else:
+                ser.format.fill.solid()
+                ser.format.fill.fore_color.rgb = color
+                ser.format.line.fill.background()
+        try:                                   # quiet axes: no gridlines, hairline base
+            va = chart.value_axis
+            va.has_major_gridlines = bool(s.get("gridlines", False))
+            if va.has_major_gridlines:
+                va.major_gridlines.format.line.color.rgb = \
+                    RGBColor.from_string(theme["color"]["muted"])
+                va.major_gridlines.format.line.width = Pt(0.5)
+            va.format.line.color.rgb = RGBColor.from_string(theme["color"]["muted"])
+            ca = chart.category_axis
+            ca.format.line.color.rgb = RGBColor.from_string(theme["color"]["muted"])
+            ca.has_major_gridlines = False
+        except Exception:
+            pass
+    if s.get("data_labels"):
+        plot.has_data_labels = True
+        plot.data_labels.font.size = Pt(sz["chart_label"])
+        plot.data_labels.font.color.rgb = RGBColor.from_string(theme["color"]["ink"])
+
+
 def render_default(prs, theme, g, slides):
     """Every slide is built on a STANDARD layout and its content is written into
     that layout's real placeholders — no free textboxes floated onto blank pages.
@@ -531,15 +804,14 @@ def render_default(prs, theme, g, slides):
             continue
 
         if t == "quote":
-            slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
+            # "Title Only" — the quote lives in that layout's TITLE placeholder, whose
+            # geometry was set once in setup_layouts (no slide-level override).
+            slide = prs.slides.add_slide(prs.slide_layouts[QUOTE_LAYOUT])
             _set_bg(slide, theme)
             _hairline(slide, theme, g, g["ruleY"]["quote"])
-            title_ph, bodies = _phs_by_role(slide)
-            _prep_ph_tf(title_ph)   # quote carries no title — leave the placeholder empty
-            if bodies:
-                body = bodies[0]
-                _place(body, g["marginX"], 2.4, g["contentW"], 2.2)   # centered quote block
-                tf = _prep_ph_tf(body, anchor=MSO_ANCHOR.MIDDLE)
+            quote_ph, _ = _phs_by_role(slide)
+            if quote_ph is not None:
+                tf = _prep_ph_tf(quote_ph, anchor=MSO_ANCHOR.MIDDLE)
                 set_simple(tf, "“" + s.get("quote", "") + "”", theme, font="heading",
                            size=theme["size"]["quote"], color="ink", line_spacing=1.25)
                 if s.get("attribution"):
@@ -588,6 +860,15 @@ def render_default(prs, theme, g, slides):
             _page_number(slide, theme, g, i)
             continue
 
+        if t in ("table", "chart"):
+            slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
+            _set_bg(slide, theme)
+            _title(slide, theme, g, s.get("title", ""), i)
+            (_render_table if t == "table" else _render_chart)(slide, theme, g, s, i)
+            _source(slide, theme, g, s.get("source"))
+            _page_number(slide, theme, g, i)
+            continue
+
         if t == "blank":
             slide = _blank_with_bg(prs, theme)
             _page_number(slide, theme, g, i)
@@ -626,11 +907,11 @@ def _render_image(slide, theme, g, s, i):
     if pic_ph is not None:
         rx, ry = Emu(pic_ph.left).inches, Emu(pic_ph.top).inches
         rw, rh = Emu(pic_ph.width).inches, Emu(pic_ph.height).inches
-        pic_ph._element.getparent().remove(pic_ph._element)
     else:
         rx, ry, rw, rh = g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"] * 0.7
 
     if img and os.path.exists(img):
+        _drop_placeholder(pic_ph)   # only once the real picture takes its region
         pic = slide.shapes.add_picture(img, Inches(rx), Inches(ry), height=Inches(rh))
         if pic.width > Inches(rw):                  # too wide: refit by width, keep aspect
             pic.height = int(pic.height * Inches(rw) / pic.width)
@@ -640,9 +921,13 @@ def _render_image(slide, theme, g, s, i):
     else:
         _warn("slide %d: image not found (%r) — caption kept, image region left empty"
               % (i, img))
-        tf = add_textbox(slide, rx, ry, rw, rh, anchor=MSO_ANCHOR.MIDDLE)
-        set_simple(tf, "[ image: %s ]" % (img or "missing"), theme, font="body",
-                   size=16, color="muted", align=PP_ALIGN.CENTER)
+        marker = "[ image: %s ]" % (img or "missing")
+        try:    # keep the marker INSIDE the picture placeholder, not floating over it
+            tf = _prep_ph_tf(pic_ph, anchor=MSO_ANCHOR.MIDDLE)
+        except Exception:
+            tf = add_textbox(slide, rx, ry, rw, rh, anchor=MSO_ANCHOR.MIDDLE)
+        set_simple(tf, marker, theme, font="body", size=16, color="muted",
+                   align=PP_ALIGN.CENTER)
 
     if cap_ph is not None and (label or note):
         tf = _prep_ph_tf(cap_ph)
@@ -711,6 +996,7 @@ def _layout_index_by_role(prs):
         "two_col": find(lambda lo: name_match(lo, "two content", "comparison",
                                               "two-col", "2 content"), content),
         "bullets": content, "big_number": content, "quote": content,
+        "table": content, "chart": content,
         "image": img,
         "blank": find(lambda lo: name_match(lo, "blank"), content),
     }
@@ -764,12 +1050,80 @@ def _set_ph_bullets(ph, items):
         p.level = min(it["level"], 8)
 
 
+def _tpl_need(ph, idx, layout_name, role, content):
+    """Template mode must never drop content silently: warn when the chosen layout
+    has no placeholder for a role the spec actually filled."""
+    if ph is None and content not in (None, "", [], {}):
+        _warn("slide %d: layout %r has no %s placeholder — that content was NOT written."
+              " Pin a layout with `layout:` or map the role in --map." % (idx, layout_name, role))
+    return ph
+
+
+def _render_table_template(slide, s, i, layout_name):
+    """Table in template mode: the template's own table style and theme fonts."""
+    header, rows = _table_rows(s)
+    if not header and not rows:
+        return
+    ncols = max([len(header or [])] + [len(r) for r in rows] or [1]) or 1
+    nrows = len(rows) + (1 if header else 0)
+    roles = _placeholders_by_role(slide)
+    ph = roles["body"][0] if roles["body"] else None
+    if _tpl_need(ph, i, layout_name, "body (for the table)", rows or header) is None:
+        return
+    frame = slide.shapes.add_table(nrows, ncols, ph.left, ph.top, ph.width,
+                                   min(ph.height, Emu(int(Inches(max(0.36 * nrows, 0.4))))))
+    _adopt_placeholder(ph, frame)
+    tbl = frame.table
+    tbl.first_row = bool(header)
+    for r, data in enumerate(([header] if header else []) + rows):
+        for c in range(ncols):
+            tbl.cell(r, c).text_frame.text = data[c] if c < len(data) else ""
+
+
+def _render_chart_template(slide, s, i, layout_name):
+    """Chart in template mode: colors come from the template's theme."""
+    from pptx.chart.data import CategoryChartData
+    from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+
+    kind = str(s.get("chart", "column")).lower()
+    kind = kind if kind in _CHART_TYPES else "column"
+    cats = [str(c) for c in (s.get("categories") or [])]
+    series = s.get("series") or []
+    if isinstance(series, dict):
+        series = [{"name": k, "values": v} for k, v in series.items()]
+    series = [se for se in series if se.get("values")]
+    if not cats or not series:
+        _warn("slide %d: chart needs `categories` and at least one `series` — skipped" % i)
+        return
+    roles = _placeholders_by_role(slide)
+    ph = roles["body"][0] if roles["body"] else None
+    if _tpl_need(ph, i, layout_name, "body (for the chart)", series) is None:
+        return
+    data = CategoryChartData()
+    data.categories = cats
+    for se in series:
+        vals = list(se.get("values") or [])
+        vals += [None] * (len(cats) - len(vals))
+        data.add_series(str(se.get("name", "")), vals[:len(cats)])
+    frame = slide.shapes.add_chart(getattr(XL_CHART_TYPE, _CHART_TYPES[kind]),
+                                   ph.left, ph.top, ph.width, ph.height, data)
+    _adopt_placeholder(ph, frame)
+    chart = frame.chart
+    chart.has_title = False
+    show = (len(series) > 1) if s.get("legend") is None else bool(s.get("legend"))
+    chart.has_legend = show
+    if show:
+        chart.legend.position = XL_LEGEND_POSITION.BOTTOM
+        chart.legend.include_in_layout = False
+
+
 def render_template(prs, spec, map_cfg):
     slides = spec.get("slides") or []
     role_layout = _layout_index_by_role(prs)
     chosen = []
+    del _WARNINGS[:]
 
-    for s in slides:
+    for i, s in enumerate(slides, start=1):
         t = s.get("type", "bullets")
         m = (map_cfg or {}).get(t, {})
         # layout: explicit per-slide > map > heuristic
@@ -787,17 +1141,26 @@ def render_template(prs, spec, map_cfg):
         title_text = s.get("title")
         if t == "quote":
             title_text = None  # quote has no title field
-        _set_ph_text(pick("title", roles["title"]), title_text)
+        _set_ph_text(_tpl_need(pick("title", roles["title"]), i, layout.name,
+                               "title", title_text), title_text)
+        if t == "quote":
+            _drop_placeholder(roles["title"])   # no title text — don't leave it empty
 
         if t == "title":
-            _set_ph_text(pick("subtitle", roles["subtitle"]
-                              or (roles["body"][0] if roles["body"] else None)),
+            _set_ph_text(_tpl_need(pick("subtitle", roles["subtitle"]
+                                        or (roles["body"][0] if roles["body"] else None)),
+                                   i, layout.name, "subtitle", s.get("subtitle")),
                          s.get("subtitle"))
         elif t == "section":
             pass  # title placeholder already filled
+        elif t == "table":
+            _render_table_template(slide, s, i, layout.name)
+        elif t == "chart":
+            _render_chart_template(slide, s, i, layout.name)
         elif t == "two_col":
             bodies = roles["body"]
-            left = pick("left", bodies[0] if len(bodies) > 0 else None)
+            left = _tpl_need(pick("left", bodies[0] if len(bodies) > 0 else None),
+                             i, layout.name, "body", s.get("left"))
             right = pick("right", bodies[1] if len(bodies) > 1 else None)
             _fill_col_placeholder(left, s.get("left") or {})
             if right is not None:
@@ -805,14 +1168,16 @@ def render_template(prs, spec, map_cfg):
             elif left is not None:  # no second body: merge into one
                 _append_col_placeholder(left, s.get("right") or {})
         elif t == "big_number":
-            body = pick("body", roles["body"][0] if roles["body"] else None)
+            body = _tpl_need(pick("body", roles["body"][0] if roles["body"] else None),
+                             i, layout.name, "body", s.get("number"))
             parts = [str(s.get("number", ""))]
             if s.get("caption"):
                 parts.append(s["caption"])
             _set_ph_bullets(body, parts)
             _set_ph_text(pick("source", None), s.get("source"))
         elif t == "quote":
-            body = pick("body", roles["body"][0] if roles["body"] else None)
+            body = _tpl_need(pick("body", roles["body"][0] if roles["body"] else None),
+                             i, layout.name, "body", s.get("quote"))
             lines = ["“" + s.get("quote", "") + "”"]
             if s.get("attribution"):
                 lines.append("— " + s["attribution"])
@@ -826,12 +1191,16 @@ def render_template(prs, spec, map_cfg):
                 except Exception:
                     slide.shapes.add_picture(img, pic.left, pic.top, height=pic.height)
             elif img and os.path.exists(img):
+                _warn("slide %d: layout %r has no picture placeholder — the image was placed"
+                      " free-floating. Pin a layout with a PICTURE placeholder via `layout:`."
+                      % (i, layout.name))
                 slide.shapes.add_picture(img, Inches(1), Inches(1.5))
             _set_ph_text(pick("caption", None), s.get("caption"))
         elif t == "blank":
             pass
         else:  # bullets
-            _set_ph_bullets(pick("body", roles["body"][0] if roles["body"] else None),
+            _set_ph_bullets(_tpl_need(pick("body", roles["body"][0] if roles["body"] else None),
+                                      i, layout.name, "body", s.get("bullets")),
                             s.get("bullets"))
             _set_ph_text(pick("source", None), s.get("source"))
 
@@ -889,6 +1258,9 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None):
         print("wrote %s  (template-fill: %s)" % (out, os.path.basename(template)))
         for t, name in chosen:
             print("  %-11s -> layout %r" % (t, name))
+        if _WARNINGS:
+            print("  %d template warning(s) above — content may be missing from the deck."
+                  % len(_WARNINGS))
     else:
         meta = spec.get("meta")
         theme = _apply_size_defaults(apply_meta(load_theme(theme_path), meta), meta)

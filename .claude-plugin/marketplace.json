@@ -143,12 +143,12 @@
     {
       "name": "pptx-design",
       "source": "./plugins/pptx-design",
-      "description": "Expert guidance for designing professional PowerPoint presentations: typography, color, layout, data visualization, structural diagrams, deck genres, and accessibility."
+      "description": "Expert guidance for designing professional PowerPoint decks: typography, color, layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup. Advice only — hands file generation to pptx-build rather than hand-writing python-pptx."
     },
     {
       "name": "pptx-build",
       "source": "./plugins/pptx-build",
-      "description": "Generate clean, white-based .pptx files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. LibreOffice preview."
+      "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included."
     },
     {
       "name": "faithful-translation",
