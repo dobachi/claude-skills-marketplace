@@ -166,6 +166,11 @@
       "description": "Turns raw records of an international academic conference, a commercial/vendor conference or trade show, a standards meeting, a customer visit, or an internal discussion into a reader-targeted report: a Markdown report as the source of truth plus a derived executive .pptx. Fixes reader / ask / disclosure scope / original objective / event profile first, inventories every input (AI transcripts, photos, captured slides, proceedings, handouts, colleagues' notes) with reliability and confidentiality, restructures by issue rather than by session, and separates fact / interpretation / hearsay with a lightweight evidence ledger. Requires a coverage statement for multi-track events, counted evidence for trend claims, and a GA/Preview/roadmap classification for vendor announcements. Ships per-profile report and deck templates."
     },
     {
+      "name": "social-post",
+      "source": "./plugins/social-post",
+      "description": "Writes LinkedIn-first social posts announcing or reporting an article, a result, a release, a talk, or conference attendance — in a voice that reads as human. Establishes whose post it is (individual / company account / individual posting under an employer's name) and confirms the tone before drafting. Front-loads the conclusion into the ~140 characters visible before 'See more', requires a concrete specific, caps emoji, and bans the announcement tells: 'Thrilled to announce', emoji bullet lists, engagement bait, broetry line breaks. Bilingual JA/EN, rewritten per language rather than translated. Delivers two drafts, three alternative hooks, a first-comment link, hashtags, and a facts/permissions checklist; hands the final de-AI pass to ai-tell-reducer."
+    },
+    {
       "name": "grounded-research",
       "source": "./plugins/grounded-research",
       "description": "Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged."

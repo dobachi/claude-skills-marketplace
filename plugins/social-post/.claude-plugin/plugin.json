@@ -1,0 +1,6 @@
+{
+  "name": "social-post",
+  "description": "Writes LinkedIn-first social posts announcing or reporting an article, a result, a release, a talk, or conference attendance — in a voice that reads as human. Establishes whose post it is (individual / company account / individual posting under an employer's name, which requires a personal-view disclaimer and blocks client and confidential detail) and confirms the tone before drafting. Front-loads the conclusion into the ~140 characters visible before 'See more', requires a concrete specific, caps emoji, and bans the announcement tells: 'Thrilled to announce', emoji bullet lists, engagement bait, broetry line breaks. Bilingual JA/EN, rewritten per language rather than translated. Delivers two drafts, three alternative hooks, a first-comment link, hashtags, and a facts/permissions checklist; hands the final de-AI pass to ai-tell-reducer.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
