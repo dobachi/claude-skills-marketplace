@@ -153,6 +153,8 @@ each maps to:
 | `long-sentence` | Japanese sentences past 60 / 100 characters; English past 40 / 60 words |
 | `notation-drift` | The same term spelled two ways (サーバ/サーバー, 行う/行なう, e-mail/email) |
 | `glossary-violation` | A banned variant of a spine glossary term, or a key term never defined |
+| `fact-conflict` | The same labelled fact given incompatible values in different sections — dates, versions, and explicit affirmative/negative pairs (採用する/採用しない, 必要である/不要である). Same mechanism and same precision argument as the numeric check |
+| `claim-conflict-candidate` | Where else the draft discusses a ledger claim's subject. **Renders no verdict** — it turns "read 2M sentence pairs" into "read these few places side by side", which is the only form a human can actually check |
 | `numeric-inconsistency` | The same labelled quantity given different values in different sections (§2 says 200ms, §7 says 500ms). A **content** check that needs no meaning. Tables and quotes excluded — tabulating different values is their job |
 | `cross-section-dup` | Near-identical sentences in *different* sections — the restatement signature |
 | `section-imbalance` | Sections far below the document's median length — the thinning-tail signature |
@@ -182,6 +184,29 @@ So the backend is worth installing **for terminology, not for register** — the
 already good enough there. False positives on six real documents: zero, after filtering out the
 three things a dictionary lemma folds that are not notation drift (verb conjugation, letter case,
 and translation — `reading`/`leading` both normalize to リーディング).
+
+## Contradiction
+
+Contradiction is a relation between two places, so the naive form is n² in sentences — about 2M
+pairs for a 40,000-character draft. At 99% per-pair precision that is 20,000 false positives against
+a handful of real conflicts. **The precision that matters therefore comes from the size of the
+candidate set, not from the quality of the judgement.** Nothing below judges; each step narrows.
+
+| Step | Covers | Cost |
+|---|---|---|
+| `numeric-inconsistency` | Same label, same unit, different value | free, deterministic |
+| `fact-conflict` | Same label, incompatible date / version / 可否 | free, deterministic |
+| `claim-conflict-candidate` | The ledger's subjects, with their other locations, for a human to read side by side | free; needs `--spine` |
+| free-form semantic contradiction | — | not implemented, and not before the three above are shown insufficient |
+
+The ledger is what makes the third row possible. A claim recorded with its section turns the search
+from "every pair of sentences" into "these two places". That is the whole reason the Claims table
+exists, and it is why a spine without it leaves the scanner blind here.
+
+What still needs a human: a commitment made in the introduction and quietly dropped in the
+conclusion, a definition that shifted, a recommendation that does not follow from the evidence.
+None of those are `p ∧ ¬p`, so no classifier finds them either — `references/content-review.md` 手順A4
+and B1 are the procedure.
 
 ## Content and context
 

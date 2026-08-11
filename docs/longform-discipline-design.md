@@ -145,6 +145,55 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.6.0 — contradiction, treated as a narrowing problem rather than a judgement problem
+
+Contradiction detection had been parked as one heavy "should we add NLI?" decision. Splitting the
+backlog revealed that had lumped two opposite failures together — **duplication** (saying the same
+thing twice) and **contradiction** (saying incompatible things) — on the sole grounds that both
+would use embeddings. Embeddings serve different roles in the two: for duplication, finding similar
+sentences *is* the answer; for contradiction it is only a retrieval step feeding a classifier. The
+practical consequence of the conflation was a wrong ordering — it implied duplication could not be
+improved without also taking on NLI, which is false.
+
+The reframing that made the rest tractable: **contradiction is n² in sentences**, roughly 2M pairs
+for a 40,000-character draft. At 99% per-pair precision that is 20,000 false positives against a
+handful of real conflicts. So the precision that matters comes from **the size of the candidate
+set**, not the quality of the judgement — which means the useful work is narrowing, and narrowing is
+mostly deterministic.
+
+The ladder, of which steps 2 and 3 shipped here:
+
+| Step | Covers | Cost |
+|---|---|---|
+| 1 `numeric-inconsistency` | same label, same unit, different value | shipped 1.2.0 |
+| 2 `fact-conflict` | same label, incompatible date / version / 可否 | **here**, deterministic |
+| 3 `claim-conflict-candidate` | where else the ledger's subjects are discussed | **here**, needs `--spine` |
+| 4 free-form semantic contradiction | — | not implemented; only after 1–3 prove insufficient |
+
+Step 3 is what the Claims ledger was always for. A claim recorded with its section turns "compare
+every pair of sentences" into "read these two places", and the check renders **no verdict** — it
+produces a reading list. That is the only form in which a human can actually check for contradiction,
+and it costs nothing.
+
+Step 2's precision argument is the same as the numeric check's: only values of the same kind
+carrying the same label are ever compared. Measured on seven real documents: zero findings. On the
+seeded fixture: 4/4, and the no-conflict variant is silent.
+
+Three defects surfaced while building it, all in presentation or scoping rather than detection:
+
+- The polarity display derived the negative form by string surgery (`する`→`しない`), which is wrong
+  for 必要である/不要である. The matched surface form now travels with the value.
+- `_measure_label` took the whole run before a number, so 「移行方式はブルーグリーンを採用する」
+  labelled the fact 「移行方式はブルーグリーン」. A leading topic marker is now stripped: the part
+  before `は` names the topic, the part after names what is being asserted.
+- `claim-conflict-candidate` matched the document root for every claim, because an ancestor section's
+  subtree contains everything below it. Sections shallower than the claim's own are now skipped.
+
+What deliberately stays with the human, because no classifier finds it either: a commitment made in
+the introduction and quietly dropped in the conclusion, a definition that shifted, a recommendation
+that does not follow from its evidence. None of those are `p ∧ ¬p`. `content-review.md` 手順A4 / B1
+is the procedure for them.
+
 ### 1.5.0 — tests, after checking what the official guidance actually says
 
 The nested-document bug survived because the controls lived in a scratch directory and evaporated

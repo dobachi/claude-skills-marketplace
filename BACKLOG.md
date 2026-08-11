@@ -10,4 +10,5 @@
 - [ ] 2026-08-11 longform-discipline: evals/evals.json の3ケースを実際に走らせる（有り/無しの2回、クリーン文脈）。書いただけで一度も実行していない #longform-discipline
 - [ ] 2026-08-12 マーケットプレイス横断: 100行超の references に目次を入れる（validate_skills.py の lint が46件）。loop-goal は frontmatter の version をトップレベルから metadata.version へ移すと spec 準拠になる #housekeeping
 - [ ] 2026-08-12 longform-discipline【重複】: cross-section-dup が言い換えの重複を拾えるようにするか判断 — 現状は文字トライグラムでほぼ逐語の再掲しか拾えず「Xは重要である」/「Xの重要性は看過できない」は素通り。実際の長文で取り逃し件数を数えてから埋め込み導入の可否を決める。埋め込み単独で成立する話で、NLIは不要。単独で出荷できる #longform-discipline
-- [ ] 2026-08-12 longform-discipline【矛盾】: 文章の矛盾検出を新設するか判断 — 現状 numeric-inconsistency(数値のみ)以外に矛盾の検査は無く、スキャナ自身が『数値以外の矛盾は人手』と出力で宣言している。候補は固定重みのNLI分類器(2023年のContraDocを根拠に一度却下したが、あれはプロンプトされたGPT-4の話で別カテゴリ。撤回済み)。章跨ぎは総当たりでN^2になるため、埋め込みによる候補絞り込みが前提になる。実測した適合率で判断する #longform-discipline
+- [x] 2026-08-12 longform-discipline【矛盾】: 文章の矛盾検出を新設するか判断 — 現状 numeric-inconsistency(数値のみ)以外に矛盾の検査は無く、スキャナ自身が『数値以外の矛盾は人手』と出力で宣言している。候補は固定重みのNLI分類器(2023年のContraDocを根拠に一度却下したが、あれはプロンプトされたGPT-4の話で別カテゴリ。撤回済み)。章跨ぎは総当たりでN^2になるため、埋め込みによる候補絞り込みが前提になる。実測した適合率で判断する #longform-discipline (done: 2026-08-12)
+- [ ] 2026-08-12 longform-discipline【矛盾・段4】: 自由な意味の矛盾を検出するか判断 — 段1〜3(数値・型のある事実・台帳による絞り込み)を実文書で使い、取り逃しが実際に問題になってから検討する。候補は固定重みのNLI分類器で、章跨ぎはN^2になるため埋め込みによる候補絞り込みが前提。実測した適合率で判断する。序論の約束が結論で落ちる類はp∧¬pではないのでNLIでも見つからない — そちらは content-review.md 手順A4/B1 のまま #longform-discipline

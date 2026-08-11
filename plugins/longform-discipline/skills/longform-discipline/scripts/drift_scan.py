@@ -834,6 +834,9 @@ def _measure_label(text, start, japanese):
         label = parts[-1]
         label = re.sub(r"(は|が|を|に|で|と|の|も|へ|より|から|まで)$", "", label)
         label = re.sub(r"(約|およそ|最大|最小|平均|合計|計|およそ)$", "", label)
+        # "移行方式はブルーグリーン" -> "ブルーグリーン": the part before a topic
+        # marker names the topic, the part after names the thing being asserted.
+        label = re.sub(r"^.{2,}?[はが]", "", label) or label
         return label.strip()
     words = re.split(r"[\s(),:;=\[\]|]+", win)
     words = [w for w in words if w]
@@ -1374,9 +1377,140 @@ def check_intent_ledger(sections, intents):
     return out
 
 
+
+# ------------------------------------------------------------ contradiction
+# Contradiction is a relation between two places, so the naive form is n^2 in
+# sentences — ~2M pairs for a 40k-character draft. At 99% per-pair precision
+# that is 20,000 false positives against a handful of real conflicts, so the
+# precision that matters comes from the SIZE OF THE CANDIDATE SET, not from the
+# judgement. Nothing here judges. Each check narrows.
+#
+# The ladder, cheapest first:
+#   1. numeric-inconsistency   same label, same unit, different value   (shipped)
+#   2. fact-conflict           same label, incompatible typed value     (here)
+#   3. claim-conflict-candidate  the ledger's subjects, read side by side (here)
+#   4. free-form semantic contradiction — needs a classifier; not here, and not
+#      before 1-3 are shown to be insufficient. See BACKLOG.
+
+# Narrow on purpose. Each pair is an explicit affirmative/negative of the same
+# act, so "same label + both polarities" is a real conflict rather than a guess.
+POLARITY_PAIRS = [
+    ("採用する", "採用しない"), ("導入する", "導入しない"), ("使用する", "使用しない"),
+    ("利用する", "利用しない"), ("対応する", "対応しない"), ("実施する", "実施しない"),
+    ("適用する", "適用しない"), ("提供する", "提供しない"), ("保証する", "保証しない"),
+    ("サポートする", "サポートしない"), ("含む", "含まない"), ("行う", "行わない"),
+    ("必要である", "不要である"), ("可能である", "不可能である"), ("必須である", "任意である"),
+]
+DATE_RE = re.compile(r"(\d{4})\s*[-/年]\s*(\d{1,2})\s*[-/月]\s*(\d{1,2})\s*日?")
+VERSION_RE = re.compile(r"(?:v|ver\.?|バージョン|版)\s*(\d+(?:\.\d+){1,2})", re.I)
+
+
+def _typed_facts(sent, japanese):
+    """[(kind, label, value)] — only shapes where two values are comparable."""
+    out = []
+    for m in DATE_RE.finditer(sent):
+        y, mo, d = m.groups()
+        label = _measure_label(sent, m.start(), japanese)
+        if len(label) >= 2:
+            out.append(("date", label, "%04d-%02d-%02d" % (int(y), int(mo), int(d))))
+    for m in VERSION_RE.finditer(sent):
+        label = _measure_label(sent, m.start(), japanese)
+        if len(label) >= 2:
+            out.append(("version", label, m.group(1)))
+    for pos, neg in POLARITY_PAIRS:
+        for form, sign in ((neg, "-"), (pos, "+")):   # negative first; 採用しない must not read as 採用する
+            idx = sent.find(form)
+            if idx < 0:
+                continue
+            label = _measure_label(sent, idx, japanese)
+            if len(label) >= 2:
+                # the surface form travels with the value: 必要である/不要である cannot
+                # be derived from each other by string surgery
+                out.append(("polarity:" + pos, label, sign + form))
+            break                                      # one polarity per pair per sentence
+    return out
+
+
+def check_fact_conflict(sections):
+    """The same labelled fact given incompatible values in different sections.
+
+    Extends numeric-inconsistency to dates, versions, and explicit affirmative /
+    negative pairs. Same mechanism, same precision argument: only values of the
+    same kind carrying the same label are ever compared.
+    """
+    seen = defaultdict(list)
+    for sec in sections:
+        for lineno, sent, kind in sentences_of(sec):
+            if kind in ("table", "quote"):
+                continue
+            for k, label, value in _typed_facts(sent, is_ja(sent)):
+                seen[(k, label)].append((value, sec["title"], lineno, sent))
+
+    out = []
+    for (kind, label), hits in sorted(seen.items()):
+        values = {v for v, _, _, _ in hits}
+        sects = {s for _, s, _, _ in hits}
+        if len(values) < 2 or len(sects) < 2:
+            continue
+        kindname = {"date": "日付", "version": "版"}.get(kind, "可否")
+        if kind.startswith("polarity:"):
+            if len({v[0] for v, _, _, _ in hits}) < 2:
+                continue                    # same polarity twice is not a conflict
+            where = " / ".join("%s%s (%s L%d)" % (label, v[1:], s, l)
+                               for v, s, l, _ in hits[:4])
+            msg = "「%s」の可否が章をまたいで食い違っています: %s" % (label, where)
+        else:
+            where = " / ".join("%s (%s L%d)" % (v, s, l) for v, s, l, _ in hits[:4])
+            msg = "「%s」の%sが章をまたいで食い違っています: %s" % (label, kindname, where)
+        out.append(finding("fact-conflict", "high", "(document)", hits[0][2], msg,
+                           {"kind": kind, "label": label, "values": sorted(values)}))
+    return out
+
+
+CLAIM_MIN_SHARED = 2
+
+
+def check_claim_conflict_candidates(sections, claims):
+    """Where else in the draft is this ledger claim's subject discussed?
+
+    This is the support the ledger was for. It renders no verdict — it turns
+    "read 2 million sentence pairs" into "read these few places side by side",
+    which is the only form in which a human can actually check for contradiction.
+    """
+    out = []
+    named = [(i, s) for i, s in enumerate(sections) if s["title"] != "(preamble)"]
+    for row in claims:
+        text = row.get("claim") or ""
+        terms = _subject_terms(text)
+        if len(terms) < CLAIM_MIN_SHARED:
+            continue
+        home = _section_index(sections, row.get("section"))
+        home_level = sections[home]["level"] if home is not None else 99
+        elsewhere = []
+        for i, sec in named:
+            if i == home or sec["level"] < home_level:
+                continue          # an ancestor contains the claim by construction
+            body = _subtree_body(sections, i)
+            shared = [w for w in terms if w in body]
+            if len(shared) >= CLAIM_MIN_SHARED:
+                elsewhere.append((sec["title"], sec["start"], shared))
+        if not elsewhere:
+            continue
+        where = " / ".join("%s L%d" % (t, l) for t, l, _ in elsewhere[:4])
+        out.append(finding(
+            "claim-conflict-candidate", "info",
+            row.get("section") or "(document)", None,
+            "%s「%s」の主題が %s でも論じられています。突き合わせて矛盾がないか読んでください。"
+            % (row.get("id"), text[:38], where),
+            {"id": row.get("id"), "terms": terms,
+             "elsewhere": [t for t, _, _ in elsewhere]}))
+    return out
+
+
 # -------------------------------------------------------------------- driver
 
 CHECKS = ["intent-unmeasurable", "intent-uncovered", "intent-open",
+          "fact-conflict", "claim-conflict-candidate",
           "claim-coverage", "unverified-claim", "term-before-definition",
           "unsourced-assertion",
           "style-mixing", "declared-style-violation", "long-sentence",
@@ -1446,6 +1580,10 @@ def run(path, spine_path=None, only=None, use_backend=True):
             prose_corpus(lines, drop_tables=False, drop_quotes=True), sections, glossary)
     if "numeric-inconsistency" in enabled:
         findings += check_numeric_inconsistency(sections)
+    if "fact-conflict" in enabled:
+        findings += check_fact_conflict(sections)
+    if "claim-conflict-candidate" in enabled and claims:
+        findings += check_claim_conflict_candidates(all_sections, claims)
     if "cross-section-dup" in enabled:
         findings += check_cross_section_dup(sections)
     if "section-imbalance" in enabled:
@@ -1494,8 +1632,10 @@ def render(findings, stats):
     else:
         lines.append("  content: スパイン未指定のため、主旨・未検証の主張・定義前の用語は "
                      "一切見ていません（--spine を渡すと有効）")
+    lines.append("  contradiction: 数値・日付・版・可否は突き合わせ済み。台帳の主題は "
+                 "読み合わせ先を提示するだけで判定はしません")
     lines.append("  still human-only: 主旨を実際に述べているか・章間の論理接続・読者前提との齟齬"
-                 "・数値以外の矛盾（references/content-review.md の手順 / doc-review）")
+                 "・自由な意味の矛盾（references/content-review.md の手順 / doc-review）")
     c = stats["counts"]
     lines.append("  findings: high=%d warn=%d info=%d"
                  % (c.get("high", 0), c.get("warn", 0), c.get("info", 0)))

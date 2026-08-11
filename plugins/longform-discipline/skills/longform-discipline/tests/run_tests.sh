@@ -78,6 +78,13 @@ CASES=(
   "1|$f/intent.md     --spine $f/intent.spine.md  --only intent-uncovered"
   "0|$f/intent.md     --spine $f/intent-ok.spine.md --only intent-uncovered"
 
+  # ---- 矛盾 (段2: 型のある事実 / 段3: 台帳による絞り込み) ----
+  "1|$f/conflict.md    --only fact-conflict"
+  "0|$f/conflict-ok.md --only fact-conflict"
+  "0|$f/clean.md       --only fact-conflict"
+  "has:claim-conflict-candidate|$f/conflict.md --spine $f/conflict.spine.md --only claim-conflict-candidate"
+  "no:claim-conflict-candidate|$f/conflict.md --only claim-conflict-candidate"
+
   # ---- 入れ子の文書 (1.4.1 / 1.4.2 の回帰) ----
   # 章見出しの直後が小見出しの文書。平坦なフィクスチャだけで検証していたせいで
   # 3つの検査が確信をもって誤る欠陥を出荷した。ここが常設の防波堤。
