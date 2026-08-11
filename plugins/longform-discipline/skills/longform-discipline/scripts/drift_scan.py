@@ -115,6 +115,54 @@ OPEN_MARKERS = [
 KEIGO_AUX = {"です", "ます", "まし", "ませ", "ましょ", "ましょう", "ましたら", "でし"}
 FINAL_FORMS = ("終止形", "命令形", "意志推量形")
 
+# SudachiPy raises past 49149 UTF-8 bytes. A book-length draft is routinely
+# several times that, so the one document class this tool exists for is exactly
+# the one a single tokenize() call cannot read. Chunk before handing text over.
+SUDACHI_MAX_BYTES = 40000
+
+
+def _tokenizer_units(text, limit):
+    """Text as pieces that are individually under `limit` bytes where possible.
+
+    Lines first, then sentences within an over-long line, then a hard character
+    split as the last resort. Nothing is dropped: the pieces re-concatenate to
+    the input exactly, so token counts match what one call would have produced.
+    """
+    for line in text.splitlines(keepends=True):
+        if len(line.encode("utf-8")) <= limit:
+            yield line
+            continue
+        buf, buf_bytes = "", 0
+        for ch in line:
+            cb = len(ch.encode("utf-8"))
+            if buf and buf_bytes + cb > limit:
+                yield buf
+                buf, buf_bytes = "", 0
+            buf += ch
+            buf_bytes += cb
+            if ch == "。":
+                yield buf
+                buf, buf_bytes = "", 0
+        if buf:
+            yield buf
+
+
+def chunk_for_tokenizer(text, limit=SUDACHI_MAX_BYTES):
+    """Group units into the fewest chunks that each stay under `limit` bytes."""
+    if len(text.encode("utf-8")) <= limit:
+        return [text]
+    out, buf, buf_bytes = [], [], 0
+    for unit in _tokenizer_units(text, limit):
+        ub = len(unit.encode("utf-8"))
+        if buf and buf_bytes + ub > limit:
+            out.append("".join(buf))
+            buf, buf_bytes = [], 0
+        buf.append(unit)
+        buf_bytes += ub
+    if buf:
+        out.append("".join(buf))
+    return out
+
 
 class Morph:
     """SudachiPy wrapper. `available` is False when the library is absent."""
@@ -144,13 +192,17 @@ class Morph:
         Both pos[0] and pos[1] are carried: the register rule keys on the
         coarse class plus the inflection, the notation rule keys on 名詞 +
         普通名詞/固有名詞. Collapsing them silently disables one of the two.
+
+        Chunked before hand-off, because SudachiPy refuses input over 49149
+        UTF-8 bytes and whole-draft callers exceed that by design.
         """
         out = []
-        for m in self._tok.tokenize(text, self._mode):
-            pos = m.part_of_speech()
-            out.append((m.surface(), m.normalized_form(), pos[0],
-                        pos[1] if len(pos) > 1 else "",
-                        pos[5] if len(pos) > 5 else ""))
+        for chunk in chunk_for_tokenizer(text):
+            for m in self._tok.tokenize(chunk, self._mode):
+                pos = m.part_of_speech()
+                out.append((m.surface(), m.normalized_form(), pos[0],
+                            pos[1] if len(pos) > 1 else "",
+                            pos[5] if len(pos) > 5 else ""))
         return out
 
     def register(self, sent):
@@ -1074,4 +1126,15 @@ if __name__ == "__main__":
     except SystemExit:
         raise
     except KeyboardInterrupt:
+        sys.exit(2)
+    except Exception:
+        # Exit 2, never 1. An uncaught exception would otherwise exit 1 — the
+        # same code as "findings found" — so a crashed run reads as a clean
+        # signal to any loop gating on the exit code, with empty stdout looking
+        # like "nothing to report".
+        import traceback
+        traceback.print_exc()
+        sys.stderr.write(
+            "\ndrift_scan: aborted before reporting. Exit code 2 (not 1) so a "
+            "gate cannot mistake this for a completed run.\n")
         sys.exit(2)

@@ -106,8 +106,10 @@ python3 scripts/drift_scan.py DRAFT.md --spine DRAFT.spine.md
 python3 scripts/drift_scan.py DRAFT.md --json               # machine-readable
 ```
 
-Stdlib only, Python 3.8+. Exit `0` clean, `1` findings, `2` usage error — so it can be a loop's
-stop condition (see `loop-goal`). What it detects, and the failure each maps to:
+Stdlib only, Python 3.8+. Exit `0` clean, `1` findings, `2` usage error **or an aborted run** — a
+crash never exits `1`, so a gate cannot mistake a run that died for a run that found nothing. That is
+what makes it usable as a loop's stop condition (see `loop-goal`). What it detects, and the failure
+each maps to:
 
 | Check | Catches |
 |---|---|
