@@ -1,9 +1,9 @@
 # Packaging skills for Claude Desktop / claude.ai
 
 How to get skills from this repo into the Claude Desktop app (or claude.ai web).
-For writing skills, see [skill-authoring-best-practices.md](./skill-authoring-best-practices.md);
+For writing skills, see [authoring-best-practices.md](../plugins/skill-authoring/skills/skill-authoring/references/authoring-best-practices.md);
 for registering them in the Claude Code marketplace, see
-[adding-or-updating-a-skill.md](./adding-or-updating-a-skill.md).
+[registration-runbook.md](../plugins/skill-authoring/skills/skill-authoring/references/registration-runbook.md).
 
 ## What's possible, and what isn't
 
@@ -49,7 +49,7 @@ python3 tools/validate_skills.py --only doc-review
 This runs in CI on every `plugins/**` change
 ([`.github/workflows/validate-skills.yml`](../.github/workflows/validate-skills.yml)),
 so a malformed frontmatter can no longer merge unnoticed. It is also the check
-step for [adding-or-updating-a-skill.md](./adding-or-updating-a-skill.md).
+step for [registration-runbook.md](../plugins/skill-authoring/skills/skill-authoring/references/registration-runbook.md).
 
 ### `tools/pack-desktop.py` — the zips
 

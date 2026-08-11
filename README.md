@@ -23,6 +23,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 | **verify-content** | Integrated skill for fact-checking and reference verification. Identifies claims, verifies with external sources, and organizes references. |
 | **agent-delegate** | Delegate a task to another CLI coding agent — Codex (`codex-delegate`), Antigravity/agy (`agy-delegate`), or Claude Code (`claude-code-delegate`) — from your current agent. Explicit-invocation only, read-first routing, a preview→confirm→apply gate for any write, and an OS sandbox (bubblewrap) confining every write step. Bundles three skills. |
 | **knowledge-base** | A persistent knowledge base any agent can use across sessions — plain Markdown, one KB per directory, no server and no database, so it travels by copying the folder and syncs via Git or OneDrive. Supports multiple KBs (`prose` and `entities` formats), curated-index-then-grep recall, and cross-agent adapters verified on Claude Code, Codex, and Antigravity (`agy`). Bundles a stdlib-only validator. |
+| **skill-authoring** | The contract for adding, updating and releasing a skill in *this* marketplace — the repo-specific half generic guidance does not cover. `new_skill.sh` scaffolds the plugin layout and registers it; `release_check.sh` is the pre-commit gate for the things that are invisible when forgotten: description length and YAML safety, the four places a description must stay in sync, version bump, catalog freshness, the validator, and any bundled test harness. Carries the authoring guidance and the registration runbook as its references. Hands measuring (evals, trigger accuracy, version A/B) to the official `skill-creator`. |
 
 ### Role Skills
 
@@ -101,6 +102,7 @@ agents (OpenAI Codex CLI, Gemini CLI, Google Antigravity) that read the same
 |---|---|
 | **fact-checker** | Automated fact-checking for AI-generated documents. Extracts claims and citations, verifies them in parallel via web search and Puppeteer headless browser, and generates a Markdown report. |
 | **evidence-check** | Verifies the validity of references and citations in reports and papers, conducting evidence-based fact-checking. |
+| **loop-goal** | Turn "fix it until it's OK" into a stopping condition a machine can decide — for DOCUMENT verification loops. Put the exit criterion into a deterministic detector's exit code, gate on a SET of detectors (never one), keep a monotonicity floor so deletion can't satisfy the gate, and enforce the generator/grader boundary mechanically rather than by instruction. Ships 11 dependency-free detectors (63-120 lines, meant to be edited), a template that wires the conventions into code, a test runner, and a fixed document format that collapses the per-document setup to a single yes/no. Deliberately narrow, and measured: the gate certifies TRACEABILITY, not correctness — in trials, a version that added five verbatim-checked quotes and a version that added none both passed the same gate. Says so in every output. Scope is prose; code has off-the-shelf checkers and different economics. Trials also surfaced that the detectors' own edit points become escape hatches — a skip-mark, a section name on the skip list, a zero declaration — and that under a tight turn limit the model stops iterating and reads the verifier source to solve it analytically. Both are documented rather than papered over: what cannot be closed is stated in the output. Pre-1.0. |
 
 ## Installation
 
@@ -305,7 +307,7 @@ The pdf-extract plugin requires:
 
 For the full step-by-step procedure (importing a packaged `.skill` file, updating an
 existing plugin, validation, and installation), see
-[docs/adding-or-updating-a-skill.md](docs/adding-or-updating-a-skill.md).
+[the `skill-authoring` skill](plugins/skill-authoring/skills/skill-authoring/references/registration-runbook.md).
 
 ```
 plugins/<plugin-name>/

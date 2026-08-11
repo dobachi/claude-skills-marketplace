@@ -74,7 +74,7 @@ project-manager / github-issues / commit-and-report(⑤)、code-reviewer / build
 4. **司令塔は薄く。** `ea-delivery` は配線・状態・ゲートのみ。工程ロジックを持たない。
 5. **description は役割で峻別。** トリガー衝突を避ける(司令塔=一気通貫、子=各工程)。
 6. **規約準拠。** SKILL.md < 500行、超過分は `references/`、plugin.json +
-   marketplace.json 登録(`docs/skill-authoring-best-practices.md`)。
+   marketplace.json 登録(`skill-authoring` スキル)。
 
 ---
 

@@ -171,6 +171,11 @@
       "description": "A persistent knowledge base any agent can use across sessions — plain Markdown, one KB per directory, no server and no database, so it travels by copying the folder and syncs via Git or OneDrive. Supports multiple KBs (prose and entities formats), curated-index-then-grep recall, and cross-agent adapters verified on Claude Code, Codex, and Antigravity (agy). Bundles a stdlib-only validator."
     },
     {
+      "name": "skill-authoring",
+      "source": "./plugins/skill-authoring",
+      "description": "The contract for adding, updating and releasing a skill in this marketplace — the repo-specific half that generic skill guidance does not cover. Scaffolds the plugin layout, registers the plugin in marketplace.json and both READMEs, and gates the release on a script rather than on remembering: description length and YAML safety, the four places a description must stay in sync, version bump, site catalog freshness, validator, and any bundled test harness. Carries the authoring guidance itself as references. Hands the measuring of a skill (evals, trigger accuracy, version A/B) to the official skill-creator plugin."
+    },
+    {
       "name": "literature-search",
       "source": "./plugins/literature-search",
       "description": "Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services."

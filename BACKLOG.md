@@ -11,3 +11,4 @@
 - [ ] 2026-08-11 longform-discipline: 意図台帳を実運用で1度まわす — 完了条件の書き方（どの粒度なら失敗判定できるか）と、D3の頻度（節ごと/5往復ごと）を実測で調整する #longform-discipline
 - [x] 2026-08-11 longform-discipline: 入れ子（章→小見出し）のフィクスチャを常設の対照に加える。スパイン参照をセクションに解決する検査は、平坦な文書だけで検証すると確信をもって誤る（1.4.1/1.4.2の教訓） #longform-discipline (done: 2026-08-11)
 - [ ] 2026-08-11 longform-discipline: evals/evals.json の3ケースを実際に走らせる（有り/無しの2回、クリーン文脈）。書いただけで一度も実行していない #longform-discipline
+- [ ] 2026-08-12 マーケットプレイス横断: 100行超の references に目次を入れる（validate_skills.py の lint が46件）。loop-goal は frontmatter の version をトップレベルから metadata.version へ移すと spec 準拠になる #housekeeping

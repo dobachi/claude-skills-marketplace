@@ -23,6 +23,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **verify-content** | 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備まで一貫実行。 |
 | **agent-delegate** | 現在のエージェントから別のCLIコーディングエージェント（Codex=`codex-delegate`、Antigravity/agy=`agy-delegate`、Claude Code=`claude-code-delegate`）へタスクを委譲。明示指示のみ・読み取り優先・書き込みは preview→確認→apply ゲートを経由し、各書き込みを OS サンドボックス（bubblewrap）で隔離。3スキルを同梱。 |
 | **knowledge-base** | セッションをまたいで、どのエージェントからも使える永続ナレッジベース。プレーンMarkdown・1ディレクトリ=1KB・サーバもDBも不要なので、フォルダのコピーで持ち運べGit/OneDriveで同期できる。複数KB（`prose`/`entities` 形式）、索引→grep の想起、Claude Code / Codex / Antigravity(`agy`) で検証済みのエージェント横断アダプタを備える。stdlibのみの検証器を同梱。 |
+| **skill-authoring** | **このマーケットプレイス**にスキルを追加・更新・リリースするための取り決め。一般的なスキル指南が扱わないリポジトリ固有の部分を持つ。`new_skill.sh` が雛形生成と登録、`release_check.sh` が出荷前ゲート — description の長さとYAML安全性、説明文を揃えるべき4箇所、バージョン更新、サイトカタログの鮮度、validator、同梱ハーネスの実行。忘れても症状が出ない項目だけを機械化してある。執筆ガイドと登録手順書を references として同梱。測定（evals・トリガ精度・版のA/B）は公式の `skill-creator` に委譲。 |
 
 ### 役割スキル (Role Skills)
 
@@ -101,6 +102,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 |---|---|
 | **fact-checker** | AI生成ドキュメントの自動ファクトチェック。主張・引用を抽出し、ウェブ検索とPuppeteerヘッドレスブラウザで並列検証、Markdownレポートを生成。 |
 | **evidence-check** | レポートや論文の参考文献・引用の妥当性を検証し、エビデンスに基づくファクトチェックを実施。 |
+| **loop-goal** | 「OKになるまで直して」を、機械が判定できる停止条件に変える — **文書の**検証ループ向け。終了条件を決定的な検出器の終了コードに落とし、検出器を1本ではなく**集合**でゲートにし、削除でゲートを満たせないよう単調性の下限を添え、生成側と採点側の境界を指示ではなく機構で担保する。依存なしの検出器11本とフィクスチャ、`test_detectors.sh` を同梱。測るのは追跡可能性であって正しさではない。対象は文書に限る（コードは既製の判定器があり事情が違う）。 |
 
 ## Installation
 
@@ -304,7 +306,7 @@ pdf-extract プラグインは以下を必要とします：
 6. コミット & プッシュ
 
 パッケージ済み `.skill` ファイルの取り込み、既存プラグインの更新、検証、インストールまでの
-詳細な手順は [docs/adding-or-updating-a-skill.md](docs/adding-or-updating-a-skill.md) を参照してください。
+詳細な手順は [`skill-authoring` スキル](plugins/skill-authoring/skills/skill-authoring/references/registration-runbook.md) を参照してください。
 
 ```
 plugins/<plugin-name>/
