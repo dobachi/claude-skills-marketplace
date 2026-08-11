@@ -6,6 +6,22 @@ what gets reconciled first.
 
 Name it after the draft: `whitepaper.md` → `whitepaper.spine.md`. One spine per document.
 
+## Contents
+
+- Why a file and not a prompt
+- Rules
+- Schema
+- Contract
+- Style contract
+- Outline
+- Glossary
+- 意図台帳 / Intent ledger
+- Claims
+- Open questions
+- Session log
+- What the scanner actually reads
+- Re-entry prompt
+
 ## Why a file and not a prompt
 
 Instructions repeated in conversation fall out of context the moment it is summarized. A file is

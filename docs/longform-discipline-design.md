@@ -145,6 +145,55 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.5.0 — tests, after checking what the official guidance actually says
+
+The nested-document bug survived because the controls lived in a scratch directory and evaporated
+with the session. Before building a replacement, the official guidance was read rather than assumed,
+and it changed the plan in three ways.
+
+**There is already a convention for testing a skill, not just its scripts.** Test cases go in
+`evals/evals.json` inside the skill directory, with `prompt` / `expected_output` / `files` /
+`assertions` ([spec](https://agentskills.io/skill-creation/evaluating-skills)). The invented format
+this project was about to grow is unnecessary. The important part is the protocol, not the schema:
+**run each case twice, with the skill and without, and read the delta.** A high with-skill pass rate
+proves nothing on its own — and the guidance says to *delete* assertions that pass in both
+configurations, which is the same instinct as requiring a detector to fire on defect-injected input.
+
+**Bundling tests inside the skill directory is fine.** The spec: "A skill directory may contain any
+files and directories beyond the required `SKILL.md`", and files cost no context until read. The
+worry about bloating the distributed skill was unfounded.
+
+**The order here was backwards.** "Create evaluations BEFORE writing extensive documentation. This
+ensures your Skill solves real problems rather than documenting imagined ones." This skill reached
+1.4.2 before anyone wrote a test.
+
+Reading the guidance also surfaced violations that had been shipping: four reference files over 100
+lines with no table of contents, and a repo-level rule ("frontmatter is name + description only")
+that contradicted the spec's six fields — which is why `loop-goal` was being flagged for `metadata`,
+a legal field. Only its top-level `version` is out of spec.
+
+What now exists:
+
+| Layer | Determinism | In CI | Catches |
+|---|---|---|---|
+| `tests/run_tests.sh` + 22 permanent fixtures | full | yes | the scanner silently breaking |
+| `tools/validate_skills.py` (extended) | full | yes | spec drift, undocumented checks, dead links, missing TOCs |
+| `evals/evals.json` (3 cases, 17 assertions) | probabilistic | no | SKILL.md's instructions not producing the intended behaviour |
+
+Two things the harness taught while being written:
+
+- **Exit codes are not enough.** Five checks report at `info` and deliberately do not fail the gate
+  (a gate that is always red during drafting gets ignored). Their liveness is invisible to exit
+  codes, so the harness grew a second assertion form — `has:<check>` / `no:<check>` on the output.
+  The substring bug in `unverified-claim` is caught *only* by that form.
+- **The harness must be proven to fail.** Reverting each of the three real bugs — the 1.4.1 nested
+  resolution, the 1.4.2 sibling checks, the `"unverified"` substring — turns the suite red. A suite
+  that has never failed is not evidence of anything.
+
+The nested fixture is now permanent, and the rule generalises: **include a fixture shaped unlike
+your own repository's documents**, because dogfooding can only ever exercise the shapes you already
+have.
+
 ### 1.4.1 / 1.4.2 — the nested-document bug, and why it reached three checks
 
 Every spine-driven check was written and validated against **flat** fixtures: `## 第1章` with prose

@@ -13,6 +13,15 @@ durable part and the *number* as perishable.
 
 ---
 
+## Contents
+
+- Axis 1 — Long input degrades
+- Axis 2 — Long output degrades
+- Axis 3 — Long sessions degrade
+- What works — planning and decomposition
+- What works — state outside the context window
+- Why the gate is a scan plus a human, never an AI score
+
 ## Axis 1 — Long input degrades
 
 **Position matters.** Relevant material in the middle of a long context is used worst.

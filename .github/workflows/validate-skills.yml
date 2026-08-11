@@ -37,3 +37,18 @@ jobs:
 
       - name: Validate SKILL.md files
         run: python3 tools/validate_skills.py
+
+      - name: Run bundled skill test harnesses
+        # Skills that ship a deterministic harness run it here. A skill whose
+        # script silently stops detecting anything reads exactly like a clean
+        # pass otherwise - that is how the nested-document bug shipped.
+        run: |
+          set -e
+          fail=0
+          for h in plugins/*/skills/*/tests/run_tests.sh \
+                   plugins/*/skills/*/detectors/test_detectors.sh; do
+            [ -f "$h" ] || continue
+            echo "== $h"
+            bash "$h" || fail=1
+          done
+          exit $fail

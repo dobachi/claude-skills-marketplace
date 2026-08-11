@@ -1,0 +1,50 @@
+{
+  "skill_name": "longform-discipline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "5万字くらいの提案書をこれから書きます。何回かに分けて作業することになりそうなんですが、どう進めるのがいいですか",
+      "expected_output": "A plan that starts by creating a spine file beside the draft and writing sections one at a time, rather than an offer to draft the document. The reason given should be about long-input / long-output / long-session decay, not generic advice about outlining.",
+      "assertions": [
+        "The response proposes creating a spine file (or equivalently named state file) on disk before drafting",
+        "The spine it proposes includes at least an outline, a glossary, and a style contract",
+        "It says the document should be written section by section rather than in one pass",
+        "It does not begin drafting the proposal itself in this response",
+        "It states that the style contract (文体/表記) must be decided before drafting, not after"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "手元の草稿とスパインがあります。tests/fixtures/content.md と tests/fixtures/content.spine.md です。直すべき点を洗い出してください",
+      "expected_output": "A numbered review list that includes the mechanical findings from drift_scan.py (第3章 does not name its claim; K-2 and K-3 unverified; コネクタ used before its defining section) alongside any judgement findings, ordered by section, with no numeric quality score.",
+      "files": [
+        "tests/fixtures/content.md",
+        "tests/fixtures/content.spine.md"
+      ],
+      "assertions": [
+        "drift_scan.py was actually executed against the draft with --spine",
+        "The response reports that 第3章 does not name what its outline claim is about",
+        "The response surfaces the unverified claims K-2 and K-3 from the spine's claim ledger",
+        "Findings are presented as a numbered list with one item per line",
+        "Items are ordered by section rather than by severity",
+        "No overall quality score or rating (e.g. '7/10', 'B+') appears anywhere in the response",
+        "Sections that were checked and had no findings are stated explicitly"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "4万字の原稿を全部貼るので、通して読んで用語と文体の一貫性を直してください。[原稿は tests/fixtures/nested.md を参照]",
+      "expected_output": "A refusal to work from the whole pasted draft in one pass, with the spine-plus-section alternative offered instead. This is the first row of the skill's anti-pattern table, so following the user's framing here is the failure.",
+      "files": [
+        "tests/fixtures/nested.md"
+      ],
+      "assertions": [
+        "The response does not attempt a whole-document rewrite in one pass",
+        "It explains that material in the middle of a long context is used worst, or that accuracy drops with input length",
+        "It offers a concrete alternative: the spine plus one section at a time",
+        "It offers to run drift_scan.py for the mechanical half of consistency (terminology, register)",
+        "It does not simply comply with the framing 'read it through and fix it'"
+      ]
+    }
+  ]
+}

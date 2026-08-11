@@ -43,16 +43,31 @@ MARKETPLACE = REPO / ".claude-plugin" / "marketplace.json"
 
 NAME_MAX = 64
 DESC_MAX = 1024
+COMPAT_MAX = 500          # spec: compatibility is 1-500 chars
+BODY_MAX_LINES = 500      # official: "Keep SKILL.md body under 500 lines"
+TOC_MIN_LINES = 100       # official: reference files >100 lines need a table of contents
 NAME_RE = re.compile(r"^[a-z0-9-]+$")
 RESERVED = ("anthropic", "claude")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
+
+# The Agent Skills spec defines exactly these frontmatter fields.
+# https://agentskills.io/specification
+SPEC_FIELDS = {"name", "description", "license", "compatibility",
+               "metadata", "allowed-tools"}
+
+# Markdown links to local files, and bare paths in prose/code like `references/x.md`.
+LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+BARE_PATH_RE = re.compile(r"`((?:scripts|references|assets|evals|tests)/[A-Za-z0-9_./-]+)`")
 
 
 class Finding:
     __slots__ = ("severity", "skill", "path", "message")
 
     def __init__(self, severity: str, skill: str, path: Path, message: str):
-        self.severity = severity  # "ERROR" | "DESKTOP"
+        # ERROR   the skill is broken here (repo contract)
+        # DESKTOP claude.ai / the Skills API would reject it
+        # LINT    official authoring guidance; printed, never fails the build
+        self.severity = severity
         self.skill = skill
         self.path = path
         self.message = message
@@ -158,13 +173,93 @@ def validate_skill(skill_md: Path, registered: set[str]) -> list[Finding]:
             findings.append(Finding("DESKTOP", str(name), rel,
                                     "`description` contains an XML tag (rejected by Skills API)"))
 
-    # --- extra frontmatter keys (this repo's convention: name + description only) ---
-    extra = set(fm) - {"name", "description"}
+    # --- frontmatter keys: the spec defines exactly six ---
+    extra = set(fm) - SPEC_FIELDS
     if extra:
+        hint = ""
+        if "version" in extra:
+            hint = " (`version` is not a spec field \u2014 use `metadata.version`)"
         findings.append(Finding("DESKTOP", str(name or dir_name), rel,
-                                f"unexpected frontmatter keys: {', '.join(sorted(extra))}"))
+                                "frontmatter keys outside the Agent Skills spec: "
+                                f"{', '.join(sorted(extra))}{hint}"))
 
+    compat = fm.get("compatibility")
+    if isinstance(compat, str) and len(compat) > COMPAT_MAX:
+        findings.append(Finding("DESKTOP", str(name or dir_name), rel,
+                                f"`compatibility` is {len(compat)} chars (max {COMPAT_MAX})"))
+
+    findings.extend(lint_authoring(skill_md, text, m.end(), str(name or dir_name), rel))
     return findings
+
+
+def lint_authoring(skill_md: Path, text: str, body_start: int,
+                   skill: str, rel: Path) -> list[Finding]:
+    """Checks from the official authoring guidance rather than the spec.
+
+    These never fail the build. They are the things a human reviewer would have
+    to remember on every release otherwise \u2014 and forgetting one is invisible,
+    which is exactly the class of mistake worth mechanising.
+    """
+    out: list[Finding] = []
+    skill_dir = skill_md.parent
+
+    body_lines = text[body_start:].splitlines()
+    if len(body_lines) > BODY_MAX_LINES:
+        out.append(Finding("LINT", skill, rel,
+                           f"SKILL.md body is {len(body_lines)} lines "
+                           f"(official guidance: under {BODY_MAX_LINES})"))
+
+    # Referenced files must exist, and paths must be POSIX-style.
+    targets: list[str] = []
+    for mm in LINK_RE.finditer(text):
+        targets.append(mm.group(1))
+    for mm in BARE_PATH_RE.finditer(text):
+        targets.append(mm.group(1))
+    for target in sorted(set(targets)):
+        if "\\" in target:
+            out.append(Finding("LINT", skill, rel,
+                               f"Windows-style path {target!r} (use forward slashes)"))
+            continue
+        if re.match(r"^(https?:|mailto:|#)", target):
+            continue
+        clean = target.split("#", 1)[0].strip()
+        # Markdown syntax examples put placeholders in link position — [text](URL),
+        # ![alt](image.jpg), \ref{label}. Only chase things shaped like a real
+        # relative path into the skill: a directory component, or a .md file.
+        if not clean or not ("/" in clean or clean.endswith(".md")):
+            continue
+        if any(ch in clean for ch in "<>{}|*?"):
+            continue
+        plugin_dir = plugin_dir_for(skill_md)
+        if (skill_dir / clean).exists() or (plugin_dir / clean).exists():
+            continue
+        # LINT, not ERROR: this is a heuristic over prose, and a false positive
+        # here would break the build for a skill that is actually fine.
+        out.append(Finding("LINT", skill, rel,
+                           f"references a file that does not resolve: {clean}"))
+
+    # Reference files: a table of contents once they get long, and no second hop.
+    for ref in sorted(skill_dir.glob("references/*.md")):
+        ref_rel = ref.relative_to(REPO)
+        ref_text = ref.read_text(encoding="utf-8")
+        ref_lines = ref_text.splitlines()
+        if len(ref_lines) > TOC_MIN_LINES:
+            head = "\n".join(ref_lines[:40])
+            if not re.search(r"^#{2,3}\s*(contents|目次|toc)\b", head, re.I | re.M):
+                out.append(Finding("LINT", skill, ref_rel,
+                                   f"{len(ref_lines)} lines but no table of contents "
+                                   "(official guidance: add one over "
+                                   f"{TOC_MIN_LINES} lines)"))
+        for mm in LINK_RE.finditer(ref_text):
+            tgt = mm.group(1)
+            if re.match(r"^(https?:|mailto:|#)", tgt):
+                continue
+            if tgt.split("#", 1)[0].strip().endswith(".md"):
+                out.append(Finding("LINT", skill, ref_rel,
+                                   f"links on to another file ({tgt}); official guidance "
+                                   "is to keep references one level deep from SKILL.md"))
+                break
+    return out
 
 
 def main() -> int:
@@ -173,6 +268,8 @@ def main() -> int:
                     help="treat DESKTOP (claude.ai/API) findings as errors too")
     ap.add_argument("--only", metavar="NAME",
                     help="validate a single skill by name")
+    ap.add_argument("--no-lint", action="store_true",
+                    help="hide authoring-guidance findings (they never fail the build)")
     ap.add_argument("--quiet", action="store_true",
                     help="print only findings and the summary line")
     args = ap.parse_args()
@@ -191,17 +288,22 @@ def main() -> int:
 
     errors = [f for f in all_findings if f.severity == "ERROR"]
     desktop = [f for f in all_findings if f.severity == "DESKTOP"]
+    lint = [f for f in all_findings if f.severity == "LINT"]
 
     for f in errors:
         print(f"ERROR   {f.skill}: {f.message}  [{f.path}]")
     for f in desktop:
         tag = "ERROR  " if args.strict else "desktop"
         print(f"{tag} {f.skill}: {f.message}  [{f.path}]")
+    if not args.no_lint:
+        for f in lint:
+            print(f"lint    {f.skill}: {f.message}  [{f.path}]")
 
     n = len(skill_files)
     if not args.quiet:
         print()
-    print(f"checked {n} skill(s): {len(errors)} error(s), {len(desktop)} desktop finding(s)")
+    print(f"checked {n} skill(s): {len(errors)} error(s), "
+          f"{len(desktop)} desktop finding(s), {len(lint)} lint")
 
     fail = bool(errors) or (args.strict and bool(desktop))
     return 1 if fail else 0
