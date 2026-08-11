@@ -1,0 +1,19 @@
+[
+  {"query": "5万字くらいの提案書をこれから書きます。何回かに分けて作業することになりそうですが、どう進めるのがいいですか", "should_trigger": true},
+  {"query": "書籍の原稿をAIと一緒に書いてるんだけど、章ごとに用語がぶれてきた", "should_trigger": true},
+  {"query": "長い技術文書を書いていて、後半が明らかに薄くなってる気がする", "should_trigger": true},
+  {"query": "章立てのある仕様書を数万字で書きたい。セッションをまたぐことになる", "should_trigger": true},
+  {"query": "I'm writing a 40k-word whitepaper with Claude across several sessions. How should I structure the work?", "should_trigger": true},
+  {"query": "My thesis chapters contradict each other and the terminology drifted. What do I do?", "should_trigger": true},
+  {"query": "直そうとしていた修正の目的が、途中から別のものにすり替わってしまう", "should_trigger": true},
+
+  {"query": "ブログ記事を1本、800字くらいで書いて", "should_trigger": false},
+  {"query": "この提案書の論理に穴がないかレビューして", "should_trigger": false},
+  {"query": "この文章のAIっぽさを消して自然にして", "should_trigger": false},
+  {"query": "この日本語のドキュメントを英訳して", "should_trigger": false},
+  {"query": "このPythonのクラスをリファクタリングして", "should_trigger": false},
+  {"query": "この論文3本を要約して比較表にして", "should_trigger": false},
+  {"query": "READMEにインストール手順のセクションを足して", "should_trigger": false},
+  {"query": "Fix the failing test in tests/test_parser.py", "should_trigger": false},
+  {"query": "この記事の参考文献が実在するか確認して", "should_trigger": false}
+]
