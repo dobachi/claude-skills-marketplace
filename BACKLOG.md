@@ -8,3 +8,4 @@
 - [x] 2026-08-11 longform-discipline: 数値・事実の章間不整合チェックを追加(MLなし・決定的・高精度) — 同一対象の数値を全章から抽出して突き合わせる(例 §2:200ms / §7:500ms)。単位正規化と全角半角の吸収が要る。「意味が要らない内容検査」の代表例で、内容観点の第一歩として最も費用対効果が高い #longform-discipline (done: 2026-08-11)
 - [x] 2026-08-11 longform-discipline: references/failure-modes.md に鮮度注記を入れる — ContraDoc(2023-11)等、1年以上前のベンチマーク結果を現行の状態として読ませない。設計メモの自ルール『load-bearingで1年以上古いものは再確認』を参照側にも適用 #longform-discipline (done: 2026-08-11)
 - [ ] 2026-08-11 longform-discipline: content-review.md の手順A/B/Cを実文書で1回まわして、問いの粒度と出力形式を調整する（設計しただけで運用実績が無い） #longform-discipline
+- [ ] 2026-08-11 longform-discipline: 意図台帳を実運用で1度まわす — 完了条件の書き方（どの粒度なら失敗判定できるか）と、D3の頻度（節ごと/5往復ごと）を実測で調整する #longform-discipline

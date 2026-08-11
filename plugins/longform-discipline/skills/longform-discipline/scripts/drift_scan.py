@@ -409,6 +409,7 @@ def parse_spine(path):
     rows, style = [], {"register": None, "digits": None,
                        "list_period": None, "banned": []}
     outline, claims, first_defined, audience = [], [], {}, None
+    intents = []
     section = None
     for ln in lines:
         if re.match(r"^#{1,6}\s", ln):
@@ -418,6 +419,8 @@ def parse_spine(path):
                 section = "style"
             elif re.search(r"(outline|アウトライン|章立て|構成)", ln, re.I):
                 section = "outline"
+            elif re.search(r"(意図台帳|intent)", ln, re.I):
+                section = "intent"
             elif re.search(r"(claims?|主張|クレーム)", ln, re.I):
                 section = "claims"
             elif re.search(r"(contract|契約|前提)", ln, re.I):
@@ -450,6 +453,13 @@ def parse_spine(path):
             if claim in {"-", "—", "", "..."} or claim.startswith("<"):
                 claim = ""
             outline.append({"num": cells[0], "title": cells[1], "claim": claim})
+
+        elif section == "intent" and ln.strip().startswith("|"):
+            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+            if len(cells) < 5 or re.match(r"^[-: ]+$", cells[0]) or _is_header_row(cells):
+                continue
+            intents.append({"id": cells[0], "target": cells[1], "why": cells[2],
+                            "exit": cells[3], "status": cells[4]})
 
         elif section == "claims" and ln.strip().startswith("|"):
             cells = [c.strip() for c in ln.strip().strip("|").split("|")]
@@ -495,7 +505,7 @@ def parse_spine(path):
                 style["banned"] = [i for i in items if len(i) >= 2]
     return {"glossary": rows, "style": style, "outline": outline,
             "claims": claims, "first_defined": first_defined,
-            "audience": audience}
+            "audience": audience, "intents": intents}
 
 
 # ------------------------------------------------------------------- checks
@@ -1220,9 +1230,107 @@ def check_unsourced_assertion(sections):
     return out
 
 
+
+# ------------------------------------------------------------ intent ledger
+# The generalisation of everything above. A spine anchors the document's state;
+# an intent ledger anchors what each piece of work was FOR. Written before the
+# work, an exit condition makes a silent change of aim visible: five turns in,
+# you can see that what you are producing no longer satisfies what you wrote
+# down. Held only in the conversation, the aim can be revised by drift and
+# nobody notices — the same reason the glossary lives in a file.
+#
+# Scale note: `loop-goal` covers the same idea for an automated loop, where the
+# 終了条件 must be a detector's exit code. Here the unit is one piece of writing
+# and the 完了条件 is prose, so it is checked for measurability, not executed.
+
+# Words an exit condition uses to talk ABOUT the document rather than about its
+# subject. "第4章の冒頭に結論が1文で置かれている" is a structural condition: none of
+# its words belong in the prose, so testing for their presence is meaningless.
+# Strip them; if nothing is left, the condition is purely structural and the
+# presence test does not apply to it at all.
+META_TERMS = {"章", "節", "項", "冒頭", "末尾", "先頭", "見出し", "段落", "文", "行",
+              "箇所", "記述", "明文", "本文", "以下", "上記", "下記", "一覧", "表",
+              "図", "注", "脚注", "付録", "序論", "結論", "要約", "書き出し", "締め",
+              "section", "paragraph", "sentence", "heading", "opening", "closing",
+              "appendix", "summary", "intro", "introduction", "conclusion", "list",
+              "table", "figure", "footnote", "line", "chapter"}
+
+
+def _subject_terms(text):
+    """Content terms with the document-structure vocabulary removed."""
+    out = []
+    for w in content_terms(text):
+        stripped = re.sub(r"^第?\d+", "", w)
+        if not stripped or stripped in META_TERMS or w in META_TERMS:
+            continue
+        out.append(w)
+    return out
+
+
+VAGUE_EXIT = ["良く", "よく", "改善", "ちゃんと", "きれい", "整える", "分かりやす",
+              "わかりやす", "読みやす", "自然に", "適切に", "しっかり", "ブラッシュ",
+              "better", "improve", "polish", "clean up", "nicer", "tighten",
+              "make it good", "enhance", "refine"]
+DONE_STATUS = {"完了", "済", "done", "closed", "ok", "yes", "対応済", "対応済み"}
+
+
+def check_intent_ledger(sections, intents):
+    """Three failures of an intent, each detectable without reading meaning."""
+    out = []
+    for row in intents:
+        rid = row.get("id") or "?"
+        target = row.get("target") or ""
+        exit_cond = (row.get("exit") or "").strip()
+        status = (row.get("status") or "").strip().lower()
+
+        # 1. An aim you cannot fail against is an aim you cannot notice drifting from.
+        if exit_cond in {"", "-", "—", "…", "..."} or exit_cond.startswith("<"):
+            out.append(finding(
+                "intent-unmeasurable", "high", target or "(document)", None,
+                "意図 %s に完了条件がありません。何が起きたら終わりかを書かないと、"
+                "5往復後に別のものを作っていても気づけません。" % rid,
+                {"id": rid}))
+            continue
+        terms = _subject_terms(exit_cond)
+        if any(v in exit_cond.lower() for v in VAGUE_EXIT) and len(terms) < 2:
+            out.append(finding(
+                "intent-unmeasurable", "high", target or "(document)", None,
+                "意図 %s の完了条件「%s」は測れません。何が本文に現れたら満たされたのか"
+                "を書いてください。" % (rid, exit_cond[:40]), {"id": rid}))
+            continue
+
+        # 2. The words of the exit condition are absent from what it points at.
+        idx = _section_index(sections, target)
+        if idx is None and target:
+            out.append(finding(
+                "intent-uncovered", "warn", target, None,
+                "意図 %s の対象「%s」に対応する見出しが本文にありません。" % (rid, target),
+                {"id": rid}))
+        elif idx is not None and terms:
+            body = _section_body(sections[idx])
+            missing = [w for w in terms if w not in body]
+            if len(missing) == len(terms):
+                out.append(finding(
+                    "intent-uncovered", "warn", sections[idx]["title"],
+                    sections[idx]["start"],
+                    "意図 %s の完了条件「%s」の語が対象に1つも現れません。作っているものが"
+                    "ずれていないか確認してください。" % (rid, exit_cond[:40]),
+                    {"id": rid, "missing": missing}))
+
+        # 3. Still open — this is the review list, not a defect.
+        if status not in DONE_STATUS:
+            out.append(finding(
+                "intent-open", "info", target or "(document)", None,
+                "未完了の意図 %s「%s」 完了条件: %s（状態: %s）"
+                % (rid, (row.get("why") or "")[:34], exit_cond[:40],
+                   row.get("status") or "—"), {"id": rid}))
+    return out
+
+
 # -------------------------------------------------------------------- driver
 
-CHECKS = ["claim-coverage", "unverified-claim", "term-before-definition",
+CHECKS = ["intent-unmeasurable", "intent-uncovered", "intent-open",
+          "claim-coverage", "unverified-claim", "term-before-definition",
           "unsourced-assertion",
           "style-mixing", "declared-style-violation", "long-sentence",
           "notation-drift", "glossary-violation", "numeric-inconsistency",
@@ -1253,9 +1361,13 @@ def run(path, spine_path=None, only=None, use_backend=True):
     outline = spine.get("outline") or []
     claims = spine.get("claims") or []
     first_defined = spine.get("first_defined") or {}
+    intents = spine.get("intents") or []
     enabled = set(only) if only else set(CHECKS)
 
     findings = []
+    if intents and enabled & {"intent-unmeasurable", "intent-uncovered", "intent-open"}:
+        findings += [f for f in check_intent_ledger(sections, intents)
+                     if f["check"] in enabled]
     if "claim-coverage" in enabled and outline:
         findings += check_claim_coverage(sections, outline)
     if "unverified-claim" in enabled and claims:

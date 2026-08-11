@@ -145,6 +145,58 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.4.0 — the intent ledger, which generalises the whole skill
+
+Prompted by an observation that named the skill's own centre: *while writing with an AI, the point of
+a correction slides into something else partway through* — and then, immediately, that it is not only
+corrections.
+
+That is one failure, and every other rule here is a special case of it. Terminology drifts because it
+lives only in the conversation; so does the **aim**. You set out to strengthen an argument, five turns
+later you are polishing wording, and nothing announced the change because nothing was written down
+that the new work would fail against.
+
+Three things get called the same thing and their fixes differ:
+
+- **意図のすり替わり** — the category changes. Fixing the argument becomes fixing the wording. A hard
+  target is replaced by a tractable proxy; structurally, Goodhart.
+- **意図の漂流** — the category holds, the target slides. "Make §3 clearer" becomes "make §3 shorter".
+- **訂正の増殖** — the fix is done and the editing keeps going.
+
+The measured mechanism behind the first is already in `failure-modes.md`: models "make assumptions in
+early turns and prematurely attempt to generate final solutions, on which they overly rely", and
+"when LLMs take a wrong turn in a conversation, they get lost and do not recover" (arXiv:2505.06120).
+That reframes it. Usually the aim does not drift *partway*; it was misread *early* and never
+recovered. Mid-course correction is not the fix — an anchor checkable from outside is.
+
+Hence **rule 8** and the spine's **意図台帳**: before the work, one row — 対象 / なぜ / 完了条件. Three
+deterministic checks follow, all about the *condition*, never about meaning:
+
+| Check | Catches |
+|---|---|
+| `intent-unmeasurable` | No exit condition, or one that cannot be failed against ("もっと良くする") |
+| `intent-uncovered` | The condition's subject words are absent from its target, or the target does not exist |
+| `intent-open` | Still open — the working list carried across sessions |
+
+`intent-unmeasurable` is the root-cause check. An aim you cannot fail against is an aim whose
+substitution you will not notice, so the scanner refuses the vague ones up front rather than trying to
+detect drift afterwards.
+
+One false positive shaped the design. Exit conditions are often *structural* — "§4の冒頭に結論が1文で
+置かれている" — and none of those words belong in the prose, so a presence test always fails on them. A
+META_TERMS filter strips document-structure vocabulary (章, 冒頭, 段落, 結論, section, heading…); if
+nothing is left, the condition is structural and the presence test does not apply at all.
+
+The procedural half is `content-review.md` 手順D, and **D3 is the whole point**: say in one line what
+you are making right now, and compare it to the 意図 column. If they differ, the drift already
+happened. Then choose deliberately — return to the original aim, or update the ledger **with a note**.
+Silently continuing is the only wrong answer, and rewriting the exit condition to match what you now
+have is not an update; it makes the drift official instead of visible.
+
+Scale boundary with `loop-goal`: same principle, different unit. There the 終了条件 must reduce to a
+detector's exit code because a machine consumes it. Here the unit is one piece of writing and the
+完了条件 is prose, so it is checked for *measurability*, not executed.
+
 ### 1.3.0 — the content layer, which was the actual gap
 
 Through 1.2.x the skill had eleven checks and every one of them was a *surface* check. The audit

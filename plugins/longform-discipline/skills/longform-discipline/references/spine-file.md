@@ -66,6 +66,23 @@ Load-bearing terms only. Every row is a `drift_scan.py --spine` check.
 | サーバー    | サーバ       | ...                                    | §2            |
 | データ空間  | データスペース | ...                                  | §1            |
 
+## 意図台帳 / Intent ledger
+書く前・直す前に1行。**完了条件を先に書く**のが要点で、後から書くと「今できているもの」に
+合わせて書いてしまい、ずれを固定するだけになる。
+
+| ID | 対象 | 意図（なぜ） | 完了条件（何が真になれば終わりか） | 状態 |
+|----|------|-------------|--------------------------------|------|
+| I-1 | §3 | 前提が明示されていない | §3が調達制度の制約を明文で1文以上述べている | 対応中 |
+| I-2 | §5 新規 | 主要な反論に答えていない | §5が反論3件に各1段落で答えている | 未着手 |
+
+- **完了条件は「失敗しうる形」で書く。** 「もっと良くする」は失敗できないので条件ではない。
+  `intent-unmeasurable` が弾く。
+- **途中で変えるなら、行を書き換えず注記して変える。** 上書きはずれを公式化するだけで、
+  見えなくする。
+- **構造の条件でよい。** 「§4の冒頭に結論が1文で置かれている」のような条件は、語が本文に
+  現れなくて当然なので presence テストの対象外になる。
+- 状態: `未着手 / 対応中 / 完了`。ループの終了条件として自動化する段になったら `loop-goal`。
+
 ## Claims
 Anything a reader could challenge. `unverified` rows are the human's review list.
 
@@ -84,14 +101,15 @@ One line per session. This is what a fresh context reads to know where it is.
 
 ## What the scanner actually reads
 
-`drift_scan.py --spine` parses **five** sections. Two of them are enforced as rules; three drive the
-content checks, which ask whether the draft does what the spine said it would.
+`drift_scan.py --spine` parses **six** sections. Two are enforced as rules; four drive the intent
+and content checks, which ask whether the draft does what the spine said it would.
 
 **Content — the spine is what makes these possible at all.** Without `--spine` they do not run,
 and the scan header says so rather than reading as a clean pass:
 
 | Spine section | Enforced as | Example finding |
 |---|---|---|
+| `## 意図台帳` → `完了条件` | Must exist and be failable; its subject words should appear in the target | `HIGH 意図 I-2 の完了条件「もっと良くする」は測れません` |
 | `## Outline` → `Claim it must land` | The section must at least name what its claim is about | `HIGH 主旨「遅延と可用性の両立が実証された」の語が本文に1つも現れません` |
 | `## Claims` → `Status` ≠ verified | Surfaced verbatim as the human's review list | `INFO 未検証の主張 K-2「可用性は99.9%を満たす」` |
 | `## Glossary` → `First defined` | The term must not appear in an earlier section | `WARN 用語「コネクタ」は 第2章 で定義される予定ですが…` |

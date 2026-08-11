@@ -1,6 +1,6 @@
 ---
 name: longform-discipline
-description: Guardrails and a minimal loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting, not by being written badly, so this targets three measured decay axes (long input, long output, long session) — never single-pass the document, keep a spine file (outline, glossary, style contract, claims) outside the context window, write sections sequentially, repair the seams decomposition creates, and gate on a deterministic scan plus a human review list, not AI self-scoring. drift_scan.py checks surface drift AND content — whether a section names what its claim is about, unverified claims, terms used before defined, unsourced assertions — and content-review.md is the procedure for what needs meaning. Bilingual JA/EN. Use when writing or continuing a long doc — 長文, 長編, 章立て, 数万字, 書籍, whitepaper, thesis — or on 用語がぶれる / 章がちぐはぐ / 後半が薄い / 主旨が伝わらない. Hands critique to doc-review, facts to verify-content.
+description: Guardrails and a minimal loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting — the terminology moves, and so does the aim. You set out to strengthen an argument and five turns later you are polishing wording, with nothing announcing the change. So write the exit condition before the work, keep a spine file (intent ledger, outline, glossary, style contract, claims) outside the context window, never single-pass, write sections sequentially, repair the seams decomposition creates, and gate on a deterministic scan plus a human review list, not AI self-scoring. drift_scan.py checks intent, content and surface; content-review.md is the procedure for what needs meaning. Bilingual JA/EN. 長文, 長編, 章立て, 数万字, 書籍, whitepaper, thesis — 用語がぶれる / 章がちぐはぐ / 後半が薄い / 主旨がすり替わる. Hands critique to doc-review, facts to verify-content.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -42,7 +42,7 @@ Three independent failure surfaces. Confusing them leads to fixing the wrong one
 | **Long output** | The text being generated | Single-pass generation stalls near ~2k words; quality, instruction-following and information density fall as output grows; repetition sets in | Never ask for the whole document in one pass. Bounded sections. |
 | **Long session** | The conversation carrying the work | Large drop from single-turn to multi-turn, driven by unreliability rather than lost skill; a wrong early turn is not recovered from; early errors raise the odds of later ones | Re-enter fresh per section from the spine. Do not let a long thread accumulate. |
 
-## The seven rules
+## The eight rules
 
 Non-negotiable unless the user overrides them knowingly.
 
@@ -72,6 +72,14 @@ Non-negotiable unless the user overrides them knowingly.
    are unverified, these 2 sections contradict, this term drifted in §7. The procedure that
    *produces* that list is `references/content-review.md` — without it this rule is a promise with
    no method behind it.
+8. **Before writing or fixing anything, write down what would make it done.** One line, in the
+   spine's intent ledger, before the work: *what* you are making or repairing, *why*, and **what has
+   to be true for it to be finished**. An aim held only in the conversation can be revised by drift
+   and nobody notices — you set out to strengthen an argument and five turns later you are polishing
+   wording, and nothing ever announced the change. An aim on disk makes the substitution visible,
+   for the same reason the glossary is on disk. "良くする" is not an exit condition; it cannot be
+   failed against. `loop-goal` is this rule at loop scale, where the 終了条件 must be a detector's
+   exit code.
 
 ## The loop
 
@@ -80,6 +88,9 @@ Per section. Everything below happens with the spine loaded and the rest of the 
 ```
 0. SPINE      Write/refresh the spine file. Purpose, audience, outline, glossary, style contract.
               No drafting until the outline exists and the glossary has the load-bearing terms.
+0b. INTENT    Add one row to the intent ledger for the work about to be done: 対象 / なぜ /
+              完了条件. If you cannot write the exit condition, you do not yet know what you
+              are making — that is the finding, not an obstacle to starting. (Rule 8)
 1. SITUATE    Load: spine + the outline entry for this section + the previous section's last
               ~300 words + any section this one must not repeat. Nothing else.
 2. DRAFT      Write this section only, to its budget. Mark unverified facts [要確認] / [unverified].
@@ -115,6 +126,14 @@ Stdlib only, Python 3.8+. Exit `0` clean, `1` findings, `2` usage error **or an 
 crash never exits `1`, so a gate cannot mistake a run that died for a run that found nothing. That is
 what makes it usable as a loop's stop condition (see `loop-goal`). What it detects, and the failure
 each maps to:
+
+**意図** — spine の意図台帳を読む。**作ろうとしたものと作ったものがずれていないか**を見る。
+
+| Check | Catches |
+|---|---|
+| `intent-unmeasurable` | An intent with no exit condition, or one made of words you cannot fail against ("もっと良くする"). The root cause: an aim you cannot check is an aim whose substitution you will not notice |
+| `intent-uncovered` | The exit condition's subject words are absent from what it points at — or it points at a section that does not exist. Structural conditions ("§4の冒頭に結論が置かれている") are exempt, since none of their words belong in the prose |
+| `intent-open` | Still not done — the working list, carried across sessions |
 
 **内容・コンテキスト** — spine を渡したときだけ走る。表層ではなく、**宣言したことを本文がやっているか**を見る。
 
@@ -171,6 +190,7 @@ spine said it would* — a different question, and the one a long document actua
 
 | Layer | Who does it | Reaches |
 |---|---|---|
+| intent ledger + `drift_scan.py --spine` | mechanical | Whether the aim was written down checkably at all, and whether what it points at exists and mentions its subject |
 | `drift_scan.py --spine` | mechanical | The claim's words are absent; the ledger says unverified; a term precedes its definition; an evidence claim carries no citation |
 | `references/content-review.md` | AI + human, per section | Whether the claim is actually *landed*; unstated leaps between sections; audience assumptions; paraphrased restatement; contradictions that are not numeric |
 | `doc-review` / `verify-content` | handoff | Argument quality; whether the facts are true |
@@ -192,6 +212,9 @@ and asking a model to rate its own long draft is the exact failure rule 6 exists
 | Asking the model whether the document contradicts itself | Automatic contradiction detection is unreliable on exactly the nuanced cases | Scan mechanically, then read the flagged pairs yourself |
 | Keeping a spine that contradicts itself | Contradictory persistent instructions get resolved arbitrarily | Prune the spine when the outline changes |
 | Repeating the glossary in the prompt instead of the spine | It falls out of context on compaction and drifts | One file on disk, re-read each session |
+| Starting to write with the aim only in your head | An aim in the context window can be revised by drift with no announcement; you notice three sections later | Rule 8 — one row, before the work |
+| "この章をもっと良くして" as the exit condition | Cannot be failed against, so the model substitutes something it *can* satisfy — usually wording | Name what has to be true: "§3が前提を明文で1文以上述べている" |
+| Rewriting the exit condition mid-work to match what you now have | Makes the drift official instead of visible | Change it deliberately, in the ledger, with the reason — the row is append-and-annotate, not overwrite |
 | "Is this chapter good? Score it 1-10" | A rating cannot be checked, and the model is grading its own output | Ask for a verbatim quote or "無し" (content-review.md) |
 | Comparing summaries of two chapters to find contradictions | The contradiction disappears in the summarising | Compare the two chapters' actual text |
 | A review list with no "checked, nothing found" line | Silence reads as clean; it is indistinguishable from unchecked | Record the sections you cleared |
