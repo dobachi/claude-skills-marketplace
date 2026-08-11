@@ -43,12 +43,13 @@
 #                                         the agents there too (warns; use --force to
 #                                         switch, or answer the prompt on a TTY)
 #     - a broken/missing source        -> migrates to SRC_DIR
-#   `--force` always switches to this run's SRC_DIR and cleans up the stale copy.
+#   `--force` always switches to this run's SRC_DIR.
+#   Every run deletes a leftover <name>.bak, whichever branch it took.
 #
 # Flags:
 #   --status        show what every agent currently points at, then exit (no changes)
 #   --force         switch all agents to THIS run's SRC_DIR, overriding a different
-#                   existing source; clean up stale .bak clones and stale symlinks;
+#                   existing source; clean up stale symlinks;
 #                   also re-run `claude plugin update` for every plugin, including ones
 #                   already at the marketplace's version (see SPEED below)
 #
@@ -355,8 +356,12 @@ claude plugin marketplace add "$SRC_DIR" 2>/dev/null \
   || claude plugin marketplace update "$MARKET_NAME" 2>/dev/null \
   || warn "could not (re)register marketplace; is Claude Code healthy?"
 
-# Clean the stale clone Claude leaves behind after a source switch.
-if [ -n "$migrate_reason" ] && [ -d "$MARKETPLACES_DIR/${MARKET_NAME}.bak" ]; then
+# Clean the stale clone Claude leaves behind after ANY (re)registration -- not just a
+# source switch. An idempotent re-run takes the no-op path (migrate_reason empty) and
+# still calls `marketplace add`, so gating this on migrate_reason left the .bak orphaned
+# for --status to warn about forever. Nothing ever points into it: agents' symlinks and
+# SRC_DIR resolve to the directory source itself, never into MARKETPLACES_DIR.
+if [ -d "$MARKETPLACES_DIR/${MARKET_NAME}.bak" ]; then
   rm -rf "$MARKETPLACES_DIR/${MARKET_NAME}.bak" && info "removed stale clone ${MARKET_NAME}.bak"
 fi
 
