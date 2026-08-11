@@ -275,8 +275,15 @@ def strip_code_fences(lines):
     return out
 
 
-def split_sections(lines):
-    """Split on ATX headings. Returns [{title, level, start, lines:[(lineno, text)]}]."""
+def split_sections(lines, keep_empty=False):
+    """Split on ATX headings. Returns [{title, level, start, lines:[(lineno, text)]}].
+
+    Body-less sections are dropped by default so the length and register checks
+    are not skewed by heading-only stubs. `keep_empty=True` keeps them, which
+    the outline checks need: in a nested document a chapter heading followed
+    immediately by its first subheading owns no lines of its own, and dropping
+    it makes the chapter unfindable by title.
+    """
     sections, cur = [], {"title": "(preamble)", "level": 0, "start": 1, "lines": []}
     for i, ln in enumerate(lines, start=1):
         m = re.match(r"^(#{1,6})\s+(.*)$", ln)
@@ -288,6 +295,8 @@ def split_sections(lines):
         else:
             cur["lines"].append((i, ln))
     sections.append(cur)
+    if keep_empty:
+        return sections
     return [s for s in sections if any(t.strip() for _, t in s["lines"])] or sections
 
 
@@ -1094,23 +1103,30 @@ def content_terms(text, limit=12):
 
 
 def _norm_title(s):
-    s = re.sub(r"\s+", "", s or "")
+    s = re.sub(r"\{[^}]*\}\s*$", "", (s or "").strip())  # Pandoc attrs: {#sec-x .cls}
+    s = re.sub(r"\s+", "", s)
     s = re.sub(r"^(第?\d+[章節話]|§\d+|\d+[.)]|Chapter\s*\d+)", "", s, flags=re.I)
     return s
 
 
 def _section_index(sections, ref):
-    """Index of the document section an outline row / '§3' reference points at."""
+    """Index of the document section an outline row / '§3' reference points at.
+
+    Shallowest heading wins. An outline row names a chapter, so a level-1
+    heading must beat a level-3 subheading that happens to contain the same
+    words — otherwise a claim gets checked against an unrelated subsection
+    elsewhere in the document and the finding reads as confident and is wrong.
+    """
     if not ref:
         return None
     named = [(i, s) for i, s in enumerate(sections) if s["title"] != "(preamble)"]
     ref_n = _norm_title(ref)
-    for i, s in named:                                   # exact, then substring
-        if ref_n and _norm_title(s["title"]) == ref_n:
-            return i
-    for i, s in named:
-        if ref_n and (ref_n in _norm_title(s["title"]) or _norm_title(s["title"]) in ref_n):
-            return i
+    if ref_n:
+        for pred in (lambda t: t == ref_n,                        # exact, then substring
+                     lambda t: ref_n in t or t in ref_n):
+            hits = [(s["level"], i) for i, s in named if pred(_norm_title(s["title"]))]
+            if hits:
+                return min(hits)[1]
     m = re.search(r"\d+", str(ref))                      # fall back to the number
     if m:
         want = m.group(0)
@@ -1122,6 +1138,23 @@ def _section_index(sections, ref):
 
 def _section_body(sec):
     return "\n".join(txt for _ln, txt in sec["lines"])
+
+
+def _subtree_body(sections, idx):
+    """A section's own lines plus every section nested under it.
+
+    An outline row names a chapter, but a chapter's own lines stop at its first
+    subheading — often after one lead sentence, sometimes after none at all.
+    Testing a claim against that tests the lead paragraph, not the chapter.
+    """
+    level = sections[idx]["level"]
+    parts = [_section_body(sections[idx])]
+    for s in sections[idx + 1:]:
+        if s["level"] <= level:
+            break
+        parts.append(s["title"])
+        parts.append(_section_body(s))
+    return "\n".join(parts)
 
 
 def check_claim_coverage(sections, outline):
@@ -1147,7 +1180,7 @@ def check_claim_coverage(sections, outline):
         terms = content_terms(claim)
         if not terms:
             continue
-        body = _section_body(sections[idx])
+        body = _subtree_body(sections, idx)
         missing = [w for w in terms if w not in body]
         hit = len(terms) - len(missing)
         title = sections[idx]["title"]
@@ -1356,6 +1389,9 @@ def run(path, spine_path=None, only=None, use_backend=True):
     lines = strip_code_fences(strip_frontmatter(raw.splitlines()))
     text = "\n".join(lines)
     sections = split_sections(lines)
+    # Outline rows are matched against a view that keeps body-less headings, so
+    # a chapter whose first line is its own subheading stays findable by title.
+    all_sections = split_sections(lines, keep_empty=True)
     spine = parse_spine(spine_path) if spine_path else {"glossary": [], "style": {}}
     glossary, style = spine["glossary"], spine["style"]
     outline = spine.get("outline") or []
@@ -1369,7 +1405,7 @@ def run(path, spine_path=None, only=None, use_backend=True):
         findings += [f for f in check_intent_ledger(sections, intents)
                      if f["check"] in enabled]
     if "claim-coverage" in enabled and outline:
-        findings += check_claim_coverage(sections, outline)
+        findings += check_claim_coverage(all_sections, outline)
     if "unverified-claim" in enabled and claims:
         findings += check_unverified_claims(claims)
     if "term-before-definition" in enabled and first_defined:
