@@ -15,7 +15,7 @@ purpose. Every hit is a prompt to look, not a verdict.
 
 Usage:
     python3 drift_scan.py DRAFT.md
-    python3 drift_scan.py DRAFT.md --spine DRAFT.spine.md
+    python3 drift_scan.py DRAFT.md --spine DRAFT.spine.md   # + glossary & style contract
     python3 drift_scan.py DRAFT.md --json
     python3 drift_scan.py DRAFT.md --only style-mixing,cross-section-dup
 
@@ -223,32 +223,85 @@ def prose_corpus(lines, drop_tables=True, drop_quotes=True):
     return "\n".join(keep)
 
 
+def _contract_value(raw):
+    """A style-contract value, or None if the template placeholder is unfilled.
+
+    The shipped template offers alternatives — `である調 | ですます調 | formal EN`.
+    A line still carrying two or more of them was never decided, and guessing
+    one would invent a rule the author did not write.
+    """
+    v = raw.strip().strip("`")
+    if v in ("", "-", "—", "…", "..."):
+        return None
+    if len([a for a in v.split("|") if a.strip()]) > 1:
+        return None
+    if v.startswith("<") and v.endswith(">"):
+        return None
+    return v
+
+
 def parse_spine(path):
-    """Pull the glossary out of a spine file. Returns [(canonical, [banned...])]."""
+    """Read a spine file. Returns {"glossary": [(canonical, [banned...])],
+    "style": {...}} — the two sections this scanner can enforce mechanically."""
     try:
         with open(path, encoding="utf-8") as fh:
             lines = fh.read().splitlines()
     except OSError as exc:
         sys.stderr.write("drift_scan: cannot read spine %s: %s\n" % (path, exc))
         raise SystemExit(2)
-    rows, in_gloss = [], False
+
+    rows, style = [], {"register": None, "digits": None,
+                       "list_period": None, "banned": []}
+    section = None
     for ln in lines:
         if re.match(r"^#{1,6}\s", ln):
-            in_gloss = bool(re.search(r"(glossary|用語|語彙)", ln, re.I))
+            if re.search(r"(glossary|用語|語彙)", ln, re.I):
+                section = "glossary"
+            elif re.search(r"(style contract|文体契約|スタイル)", ln, re.I):
+                section = "style"
+            else:
+                section = None
             continue
-        if not in_gloss or not ln.strip().startswith("|"):
-            continue
-        cells = [c.strip() for c in ln.strip().strip("|").split("|")]
-        if len(cells) < 2 or re.match(r"^[-: ]+$", cells[0]):
-            continue
-        if re.search(r"(canonical|正式|標準)", cells[0], re.I):
-            continue
-        canonical = cells[0]
-        banned = [b.strip() for b in re.split(r"[,、/／]", cells[1]) if b.strip()
-                  and b.strip() not in {"-", "—", "–"}]
-        if canonical and canonical not in {"-", "—"}:
-            rows.append((canonical, banned))
-    return rows
+
+        if section == "glossary" and ln.strip().startswith("|"):
+            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+            if len(cells) < 2 or re.match(r"^[-: ]+$", cells[0]):
+                continue
+            if re.search(r"(canonical|正式|標準)", cells[0], re.I):
+                continue
+            canonical = cells[0]
+            banned = [b.strip() for b in re.split(r"[,、/／]", cells[1]) if b.strip()
+                      and b.strip() not in {"-", "—", "–"}]
+            if canonical and canonical not in {"-", "—"}:
+                rows.append((canonical, banned))
+
+        elif section == "style":
+            m = re.match(r"^\s*[-*+]\s*(.+?)\s*[:：]\s*(.*)$", ln)
+            if not m:
+                continue
+            key, val = m.group(1), _contract_value(m.group(2))
+            if val is None:
+                continue
+            if re.search(r"(文体|register)", key, re.I):
+                if re.search(r"(である調|常体|plain)", val, re.I):
+                    style["register"] = "常体"
+                elif re.search(r"(ですます調|です・ます|敬体|polite)", val, re.I):
+                    style["register"] = "敬体"
+            elif re.search(r"(数字|digit|number)", key, re.I):
+                # "半角/全角" is the template offering both, not a decision.
+                if ("半角" in val) != ("全角" in val):
+                    style["digits"] = "半角" if "半角" in val else "全角"
+            elif re.search(r"(記号|箇条|list|punctuation)", key, re.I):
+                if re.search(r"句点(を付け)?(な|無)し|句点を付けない", val):
+                    style["list_period"] = False
+                elif re.search(r"句点(を付ける|あり|有り)", val):
+                    style["list_period"] = True
+            elif re.search(r"(banned|禁止|使わない)", key, re.I):
+                items = re.findall(r"[「『]([^」』]+)[」』]", val)
+                if not items:
+                    items = [p.strip() for p in re.split(r"[,、]", val) if p.strip()]
+                style["banned"] = [i for i in items if len(i) >= 2]
+    return {"glossary": rows, "style": style}
 
 
 # ------------------------------------------------------------------- checks
@@ -261,6 +314,100 @@ def finding(check, severity, section, line, message, detail=None):
     return f
 
 
+def classify_register(sent):
+    """敬体 / 常体 / None. 敬体 is tested first so ました beats the bare past た.
+
+    None means "not classifiable", not "neutral" — the failure direction is a
+    missed finding rather than a false alarm, which is the right way round.
+    """
+    core = re.sub(r"[。！？」』）\)\s]+$", "", sent)
+    if not core:
+        return None
+    if KEITAI.search(core):
+        return "敬体"
+    if JOTAI.search(core):
+        return "常体"
+    return None
+
+
+def check_declared_style(sections, prose, style):
+    """Check the draft against what the spine's Style contract DECLARED.
+
+    check_style_mixing only sees internal inconsistency: a document written
+    uniformly in 敬体 passes it even when the spine says である調. This is the
+    check that compares the text to the stated intent.
+    """
+    out = []
+    declared = style.get("register")
+    if declared:
+        counts, violations = Counter(), []
+        for sec in sections:
+            for lineno, sent, kind in sentences_of(sec):
+                if kind != "body" or not is_ja(sent):
+                    continue
+                reg = classify_register(sent)
+                if not reg:
+                    continue
+                counts[reg] += 1
+                if reg != declared:
+                    violations.append((sec["title"], lineno, sent))
+        if counts and counts[declared] == 0:
+            out.append(finding(
+                "declared-style-violation", "high", "(document)", None,
+                "スパインの宣言は「%s」ですが、本文に%sの文が1つもありません（%s %d文）。"
+                % (declared, declared,
+                   "常体" if declared == "敬体" else "敬体",
+                   sum(counts.values())),
+                {"declared": declared, "counts": dict(counts)}))
+        elif violations:
+            out.append(finding(
+                "declared-style-violation", "high", "(document)", None,
+                "スパインの宣言は「%s」ですが、%d文が宣言と異なります（%s %d文 / 全%d文）。"
+                % (declared, len(violations),
+                   "常体" if declared == "敬体" else "敬体",
+                   len(violations), sum(counts.values())),
+                {"declared": declared, "counts": dict(counts)}))
+        for title, lineno, sent in violations[:MINORITY_LIST_CAP]:
+            out.append(finding("declared-style-violation", "warn", title, lineno,
+                               "宣言(%s)と異なる文末: %s" % (declared, sent[:70])))
+
+    if style.get("digits"):
+        want = style["digits"]
+        pat, name = (r"[０-９]", "全角") if want == "半角" else (r"(?<![\w.])[0-9]", "半角")
+        hits = len(re.findall(pat, prose))
+        if hits:
+            out.append(finding(
+                "declared-style-violation", "warn", "(document)", None,
+                "数字は「%s」と宣言されていますが、%sの数字が%d件あります。"
+                % (want, name, hits), {"declared": want, "count": hits}))
+
+    if style.get("list_period") is not None:
+        want = style["list_period"]
+        bad = []
+        for sec in sections:
+            for lineno, sent, kind in sentences_of(sec):
+                if kind != "list" or not is_ja(sent):
+                    continue
+                ends = sent.rstrip().endswith("。")
+                if ends != want:
+                    bad.append((sec["title"], lineno))
+        if bad:
+            out.append(finding(
+                "declared-style-violation", "warn", "(document)", None,
+                "箇条書きの句点は「%s」と宣言されていますが、%d行が異なります（例 %s L%d）。"
+                % ("あり" if want else "なし", len(bad), bad[0][0], bad[0][1]),
+                {"declared_period": want, "count": len(bad)}))
+
+    for phrase in style.get("banned", []):
+        n = prose.count(phrase)
+        if n:
+            out.append(finding(
+                "declared-style-violation", "high", "(document)", None,
+                "スパインで禁止された表現「%s」が%d件あります。" % (phrase, n),
+                {"banned": phrase, "count": n}))
+    return out
+
+
 def check_style_mixing(sections):
     """建議: 一つの文書内では敬体と常体を混合しない。引用・箇条書きは除外。"""
     out = []
@@ -271,15 +418,10 @@ def check_style_mixing(sections):
         for lineno, sent, kind in sentences_of(sec):
             if kind != "body" or not is_ja(sent):
                 continue
-            core = re.sub(r"[。！？」』）\)\s]+$", "", sent)
-            if not core:
-                continue
-            if KEITAI.search(core):
-                counts["敬体"] += 1
-                hits["敬体"].append((lineno, sent))
-            elif JOTAI.search(core):
-                counts["常体"] += 1
-                hits["常体"].append((lineno, sent))
+            reg = classify_register(sent)
+            if reg:
+                counts[reg] += 1
+                hits[reg].append((lineno, sent))
         if counts:
             per_section[sec["title"]] = (counts, hits)
             doc.update(counts)
@@ -542,7 +684,8 @@ def check_repeated_openers(sections):
 
 # -------------------------------------------------------------------- driver
 
-CHECKS = ["style-mixing", "long-sentence", "notation-drift", "glossary-violation",
+CHECKS = ["style-mixing", "declared-style-violation", "long-sentence",
+          "notation-drift", "glossary-violation",
           "cross-section-dup", "section-imbalance", "redundant-expression",
           "open-marker", "repeated-opener"]
 SEV_ORDER = {"high": 0, "warn": 1, "info": 2}
@@ -559,11 +702,20 @@ def run(path, spine_path=None, only=None):
     lines = strip_code_fences(strip_frontmatter(raw.splitlines()))
     text = "\n".join(lines)
     sections = split_sections(lines)
-    glossary = parse_spine(spine_path) if spine_path else []
+    spine = parse_spine(spine_path) if spine_path else {"glossary": [], "style": {}}
+    glossary, style = spine["glossary"], spine["style"]
     enabled = set(only) if only else set(CHECKS)
 
     findings = []
-    if "style-mixing" in enabled:
+    if "declared-style-violation" in enabled and any(
+            style.get(k) is not None and style.get(k) != []
+            for k in ("register", "digits", "list_period", "banned")):
+        findings += check_declared_style(
+            sections, prose_corpus(lines, drop_tables=False, drop_quotes=True), style)
+    # A declared register makes the mixing check redundant and noisier: every
+    # sentence it would list is already reported against the declaration, more
+    # precisely. Fall back to mixing only when nothing was declared.
+    if "style-mixing" in enabled and not style.get("register"):
         findings += check_style_mixing(sections)
     if "long-sentence" in enabled:
         findings += check_long_sentences(sections)
@@ -591,6 +743,7 @@ def run(path, spine_path=None, only=None):
         "chars": len(re.sub(r"\s", "", text)),
         "sections": len([s for s in sections if s["title"] != "(preamble)"]),
         "glossary_terms": len(glossary),
+        "style_contract": {k: v for k, v in style.items() if v},
         "counts": dict(Counter(f["severity"] for f in findings)),
     }
     return findings, stats
@@ -599,9 +752,13 @@ def run(path, spine_path=None, only=None):
 def render(findings, stats):
     lines = []
     lines.append("drift_scan: %s" % stats["file"])
-    lines.append("  %d chars, %d sections, spine=%s (%d glossary terms)"
+    declared = stats.get("style_contract") or {}
+    lines.append("  %d chars, %d sections, spine=%s (%d glossary terms, %s)"
                  % (stats["chars"], stats["sections"],
-                    stats["spine"] or "none", stats["glossary_terms"]))
+                    stats["spine"] or "none", stats["glossary_terms"],
+                    "style contract: " + ", ".join(
+                        "%s=%s" % (k, v) for k, v in sorted(declared.items()))
+                    if declared else "no style contract declared"))
     c = stats["counts"]
     lines.append("  findings: high=%d warn=%d info=%d"
                  % (c.get("high", 0), c.get("warn", 0), c.get("info", 0)))

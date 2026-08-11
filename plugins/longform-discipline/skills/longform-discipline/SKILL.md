@@ -52,7 +52,9 @@ Non-negotiable unless the user overrides them knowingly.
 2. **Keep a spine file outside the context window.** One file beside the draft holding purpose,
    audience, outline with per-section status, glossary, style contract, claims, and open questions.
    It is the thing that is re-read at the start of every session and after every compaction — the
-   draft is the output, the spine is the state. Schema: `references/spine-file.md`.
+   draft is the output, the spine is the state. Two of its sections are not just notes: `drift_scan.py`
+   **parses the glossary and the style contract and enforces them**, so what you write there is
+   checked rather than hoped for. Schema: `references/spine-file.md`.
 3. **Write sections sequentially, with the previous section's tail in context.** Not in parallel.
    Parallel section generation measurably costs coherence even when it improves throughput.
 4. **Repair the seams, always.** Decomposition is not free: it buys length, breadth and depth and
@@ -109,7 +111,8 @@ stop condition (see `loop-goal`). What it detects, and the failure each maps to:
 
 | Check | Catches |
 |---|---|
-| `style-mixing` | です・ます and だ・である mixed within or across sections |
+| `declared-style-violation` | The draft contradicts what the spine's **Style contract** declared — register, digit width, list punctuation, banned phrasings. Supersedes `style-mixing` when a register is declared, because it reports the same sentences against the stated intent rather than against the majority |
+| `style-mixing` | です・ます and だ・である mixed within or across sections (runs when no register was declared) |
 | `long-sentence` | Japanese sentences past 60 / 100 characters; English past 40 / 60 words |
 | `notation-drift` | The same term spelled two ways (サーバ/サーバー, 行う/行なう, e-mail/email) |
 | `glossary-violation` | A banned variant of a spine glossary term, or a key term never defined |

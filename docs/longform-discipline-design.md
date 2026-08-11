@@ -145,6 +145,27 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.1.0 — enforcing the declaration, not just internal consistency
+
+`style-mixing` only ever saw *inconsistency*: a document written uniformly in 敬体 passed it even
+when the spine said である調. That is a real gap — the spine's Style contract was the one part of the
+control surface the scanner did not read, so it was advice rather than a rule.
+
+`declared-style-violation` closes it by parsing the Style contract and comparing the draft to the
+stated intent: register, digit width, list punctuation, and banned phrasings. When a register is
+declared, `style-mixing` stands down rather than double-reporting — the declared check lists the
+same sentences, measured against intent instead of against the document's own majority.
+
+The design risk here is guessing. The shipped template offers alternatives (`である調 | ですます調 |
+formal EN`, `半角/全角`), and a scanner that picked the first one would invent a rule the author never
+wrote. So an undecided line is skipped, and the scan header prints the contract it actually parsed —
+or `no style contract declared` — so a silently-skipped contract is visible rather than mistaken for
+a clean pass. Testing caught one hole in that guard: `半角/全角` was initially read as 半角, because
+only `|` alternatives were rejected.
+
+The section-level claim ("Claim it must land") stays unenforced on purpose. It needs meaning, which
+this scanner does not have; that belongs to `doc-review` and the human gate.
+
 One bug found the same way: `repeated-opener` never fired on Japanese, because an 8-character key
 diverges before two paragraphs with the same connective can match. It now keys on the leading
 connective up to the first 、.

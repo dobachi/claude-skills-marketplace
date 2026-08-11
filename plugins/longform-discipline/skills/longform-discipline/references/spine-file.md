@@ -40,7 +40,8 @@ it worth maintaining. Same reason `CLAUDE.md` exists, applied to one document. S
 ## Style contract
 Decide these BEFORE drafting. Deciding them at the end means rewriting everything.
 - 文体 / Register:  である調 | ですます調 | formal EN | ...
-- 表記:             漢字/かな basis, 送り仮名, カタカナ長音 (サーバー vs サーバ), 数字 (半角/全角)
+- 表記:             漢字/かな basis, 送り仮名, カタカナ長音 (サーバー vs サーバ)
+- 数字:             半角/全角
 - 記号:             括弧, 箇条書きの句点有無, ダッシュ
 - Person / voice:   first person plural | impersonal | ...
 - Citation style:   <style>, and where citations live
@@ -80,6 +81,30 @@ Anything a reader could challenge. `unverified` rows are the human's review list
 One line per session. This is what a fresh context reads to know where it is.
 - 2026-08-11 §1–§3 drafted. §4 outline revised. Terminology: fixed サーバー.
 ```
+
+## What the scanner actually reads
+
+`drift_scan.py --spine` parses **two** sections and enforces them. The rest is for the writer
+and the model; these are checked mechanically:
+
+| Spine line | Enforced as | Example finding |
+|---|---|---|
+| `- 文体 / Register: である調` | Every 敬体 sentence is a violation of the declared register | `HIGH 宣言は「常体」ですが、2文が宣言と異なります` |
+| `- 数字: 半角` | Full-width digits in prose | `WARN 全角の数字が2件` |
+| `- 記号: …箇条書きの句点なし` | List items ending in 。 | `WARN 2行が異なります` |
+| `- Banned: 「させていただく」` | Substring match in prose (quotes excluded) | `HIGH 禁止された表現「させていただく」が1件` |
+| `## Glossary` → `Never write` column | Banned variants of a canonical term | `HIGH 用語集違反:「サーバ」が1件` |
+
+Two things follow from that:
+
+- **Fill the alternatives in.** A line left as the template's `である調 \| ですます調 \| formal EN`
+  is treated as *undecided* and silently skipped — the scanner will not guess which one you meant.
+  Same for `半角/全角`. Check the header line of the scan output: it prints the contract it parsed,
+  or `no style contract declared`.
+- **A declared register replaces the mixing check.** With `文体` set, `style-mixing` stands down and
+  `declared-style-violation` reports the same sentences against your stated intent instead of
+  against the document's own majority. A document uniformly in the *wrong* register passes the
+  first check and fails the second — which is the point.
 
 ## Re-entry prompt
 
