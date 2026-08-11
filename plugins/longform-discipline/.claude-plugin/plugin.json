@@ -1,0 +1,6 @@
+{
+  "name": "longform-discipline",
+  "description": "Guardrails and a minimal working loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting rather than by being written badly, so this skill targets the three measured decay axes (long input, long output, long session) with rules that hold across whatever other skill is running: never single-pass the whole document, carry a spine file (purpose, outline, glossary, style contract, claims) outside the context window, write sections sequentially with the previous section's tail loaded, repair the seams that decomposition provably creates, keep the outline revisable, and gate on a deterministic scan plus a specific human review list rather than AI self-scoring. Every rule traces to a cited finding in references/failure-modes.md, including the disagreements. Ships a stdlib-only drift_scan.py that detects 文体 mixing, over-long sentences, notation drift, glossary violations, cross-section duplication, and section-length collapse, with exit codes suitable as a loop's stop condition. Bilingual JA/EN, with Japanese long-form rules sourced from 文化審議会建議「公用文作成の考え方」and the JTF style guide.",
+  "version": "1.0.0",
+  "author": {"name": "dobachi"}
+}
