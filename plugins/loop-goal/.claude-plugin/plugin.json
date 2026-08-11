@@ -1,0 +1,8 @@
+{
+  "name": "loop-goal",
+  "description": "Turn \"fix it until it's OK\" into a stopping condition a machine can decide. For document verification loops: put the exit criterion into a deterministic detector's exit code, gate on a SET of detectors (never one), keep a monotonicity floor so deletion can't satisfy the gate, and enforce the generator/grader boundary mechanically rather than by instruction. Ships 11 dependency-free detectors (63-120 lines each, meant to be edited), a template that wires the conventions into code, a test runner, and a fixed document format so the per-document setup cost is paid once. Deliberately narrow: it measures traceability, NOT correctness — and says so in every output. Pre-1.0.",
+  "version": "0.2.0",
+  "author": {
+    "name": "dobachi"
+  }
+}

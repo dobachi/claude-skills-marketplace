@@ -1,0 +1,58 @@
+# 架空の調査レポート（テスト用・正常版）
+
+この文書は検出器のテスト専用である。内容はすべて架空で、出典も実在しない。
+
+## 調査概要
+
+**調査期間**: 2026-01-15
+**手法**: 公開資料の読み取り
+
+## 主要な結果
+
+対象地域における導入率は 42% であったと報告されている [S-01]。
+
+> 
+
+前年比で 7 ポイントの増加であり、増加幅は過去最大である [S-02]。
+
+> 
+
+中小規模の事業者では導入率が 28% にとどまっている [S-03]。
+
+> 
+
+導入の障壁として初期費用を挙げた回答が 61% を占めた [S-04]。
+
+> 
+
+運用開始までの期間は平均 4.2 か月と報告されている [S-05]。
+
+> 
+
+満足度は5段階評価で平均 3.8 であったとされる [S-06]。
+
+> 
+
+## 考察
+
+導入率と事業規模の関係は [S-01] と [S-03] の双方から読み取れる。
+費用面の障壁は [S-04] に、運用面の負荷は [S-05] に対応する。
+利用者側の評価は [S-06]、経年の変化は [S-02] が示している。
+
+## 集計
+
+| 項目 | 件数 |
+|---|---|
+| 本文中の引用 | 6 |
+| 取得不能(FETCH-FAIL) | 0 |
+
+## 出典
+
+| ID | 出典 | Tier | 原文確認 |
+|---|---|---|---|
+| S-01 | Example Agency (2026) "Regional Adoption Survey" https://example.org/a | T1 | 済 |
+| S-02 | Example Institute (2026) "Year-on-Year Trends" https://example.org/b | T1 | 済 |
+| S-03 | Example Bureau (2026) "SME Adoption Report" https://example.org/c | T2 | 済 |
+| S-04 | Example Council (2026) "Barriers to Adoption" https://example.org/d | T2 | 済 |
+| S-05 | Example Lab (2026) "Deployment Timelines" https://example.org/e | T2 | 済 |
+| S-06 | Example Panel (2026) "User Satisfaction" https://example.org/f | T2 | 済 |

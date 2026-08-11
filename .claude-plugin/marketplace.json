@@ -6,224 +6,14 @@
   },
   "plugins": [
     {
-      "name": "fact-checker",
-      "source": "./plugins/fact-checker",
-      "description": "Automated fact-checking for AI-generated documents. Extracts claims, verifies via web search and headless browser (Puppeteer), and generates a Markdown report."
-    },
-    {
-      "name": "verify-content",
-      "source": "./plugins/verify-content",
-      "description": "Integrated content verification skill. Extracts claims, verifies against external sources, and compiles references in a single workflow."
-    },
-    {
-      "name": "build",
-      "source": "./plugins/build",
-      "description": "Detects and executes the appropriate build command for your project. Supports Node.js, Rust, Python, Go, Makefile, and other major project types."
-    },
-    {
-      "name": "checkpoint",
-      "source": "./plugins/checkpoint",
-      "description": "Checkpoint management for the AI instruction system. Tracks task start, progress, and completion, and manages instruction usage state."
-    },
-    {
-      "name": "commit-and-report",
-      "source": "./plugins/commit-and-report",
-      "description": "Commits changes, pushes to remote, and reports progress to a GitHub Issue in a single workflow."
-    },
-    {
-      "name": "commit-safe",
-      "source": "./plugins/commit-safe",
-      "description": "Guides a safe, selective commit and — when you say yes to the one question it asks up front — carries the change through to release: version bump, CHANGELOG, annotated tag, push, GitHub Release, and package publish, with an explicit approval gate at every outward-facing, irreversible step. Reviews changes before committing, suggests file-specific commits for large changesets, and prevents blanket 'git add -A'. Bundles a self-contained commit helper that blocks AI-signed commit messages and a read-only release preflight that checks tree state, upstream sync, tag collisions, version files, CHANGELOG, publish targets, and gh auth."
-    },
-    {
-      "name": "github-issues",
-      "source": "./plugins/github-issues",
-      "description": "Fetches GitHub Issues, aggregates by label, analyzes priorities, and organizes tasks with actionable suggestions."
-    },
-    {
-      "name": "reload-instructions",
-      "source": "./plugins/reload-instructions",
-      "description": "Updates the AI instruction submodule to the latest version and reloads ROOT_INSTRUCTION."
-    },
-    {
-      "name": "reload-and-reset",
-      "source": "./plugins/reload-and-reset",
-      "description": "Updates the AI instruction system to the latest version and resets AI behavior to align with the instructions."
-    },
-    {
-      "name": "evidence-check",
-      "source": "./plugins/evidence-check",
-      "description": "Verifies references and citations in reports and papers, performing evidence-based fact-checking."
-    },
-    {
-      "name": "web-api-dev",
-      "source": "./plugins/web-api-dev",
-      "description": "Expert assistant for designing and implementing production-ready RESTful Web APIs."
-    },
-    {
-      "name": "cli-tool-dev",
-      "source": "./plugins/cli-tool-dev",
-      "description": "CLI development expert that helps design and implement user-friendly command-line tools."
-    },
-    {
-      "name": "data-analyst",
-      "source": "./plugins/data-analyst",
-      "description": "Comprehensive data analysis expert covering statistical insights, visualization, and machine learning."
-    },
-    {
-      "name": "technical-writer",
-      "source": "./plugins/technical-writer",
-      "description": "Expert assistant for creating high-quality technical documents including API docs, user guides, and technical blog posts."
-    },
-    {
       "name": "academic-researcher",
       "source": "./plugins/academic-researcher",
       "description": "Comprehensive academic research expert covering paper writing, literature review, citation management, and research methodology."
     },
     {
-      "name": "business-consultant",
-      "source": "./plugins/business-consultant",
-      "description": "Comprehensive business consulting using McKinsey/BCG methodologies, from strategy planning to execution support."
-    },
-    {
-      "name": "project-manager",
-      "source": "./plugins/project-manager",
-      "description": "Project manager skill for comprehensive planning, execution, monitoring, and completion of projects."
-    },
-    {
-      "name": "startup-advisor",
-      "source": "./plugins/startup-advisor",
-      "description": "Startup advisor providing practical advice and strategic guidance from launch through growth stages."
-    },
-    {
-      "name": "python-expert",
-      "source": "./plugins/python-expert",
-      "description": "Python development expert supporting clean code practices, performance optimization, and test-driven development."
-    },
-    {
-      "name": "code-reviewer",
-      "source": "./plugins/code-reviewer",
-      "description": "Provides constructive code reviews focusing on quality, security, performance, and maintainability."
-    },
-    {
-      "name": "marp-slides",
-      "source": "./plugins/marp-slides",
-      "description": "Assists in creating effective, professional presentations using the Marp slide framework."
-    },
-    {
-      "name": "tauri-dev",
-      "source": "./plugins/tauri-dev",
-      "description": "Development expert for designing and building Tauri v2 desktop and mobile applications."
-    },
-    {
-      "name": "tauri-research",
-      "source": "./plugins/tauri-research",
-      "description": "Research assistant for investigating Tauri-related questions via web search and official documentation."
-    },
-    {
-      "name": "competitive-analysis",
-      "source": "./plugins/competitive-analysis",
-      "description": "Competitive analysis skill that researches competitor products via web search, compares features/pricing/differentiation, and generates comparison matrices."
-    },
-    {
-      "name": "business-model-canvas",
-      "source": "./plugins/business-model-canvas",
-      "description": "Business model design skill that generates structured documents following Business Model Canvas and Lean Canvas frameworks."
-    },
-    {
-      "name": "market-sizing",
-      "source": "./plugins/market-sizing",
-      "description": "Market sizing skill that estimates TAM/SAM/SOM using top-down and bottom-up approaches with evidence-backed reports."
-    },
-    {
-      "name": "strategy-memo",
-      "source": "./plugins/strategy-memo",
-      "description": "Strategy memo skill that structures business ideas into a 4-layer framework (Market/Value Proposition/Technology/Execution) and checks for logical gaps."
-    },
-    {
-      "name": "pptx-design",
-      "source": "./plugins/pptx-design",
-      "description": "Expert guidance for designing professional PowerPoint decks: typography, color, layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup. Advice only — hands file generation to pptx-build rather than hand-writing python-pptx."
-    },
-    {
-      "name": "pptx-build",
-      "source": "./plugins/pptx-build",
-      "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included."
-    },
-    {
-      "name": "faithful-translation",
-      "source": "./plugins/faithful-translation",
-      "description": "Faithful translation skill that produces source-faithful translations across any language pair, with a parallel sentence ledger for verification, terminology preservation, and translator's notes."
-    },
-    {
-      "name": "document-summary",
-      "source": "./plugins/document-summary",
-      "description": "Document and literature summarization skill with Executive and Professional modes, mandatory source-grounded Claim Ledger, and explicit Source vs Inference separation to prevent hallucinated content."
-    },
-    {
-      "name": "debrief-report",
-      "source": "./plugins/debrief-report",
-      "description": "Turns raw records of an international academic conference, a commercial/vendor conference or trade show, a standards meeting, a customer visit, or an internal discussion into a reader-targeted report: a Markdown report as the source of truth plus a derived executive .pptx. Fixes reader / ask / disclosure scope / original objective / event profile first, inventories every input (AI transcripts, photos, captured slides, proceedings, handouts, colleagues' notes) with reliability and confidentiality, restructures by issue rather than by session, and separates fact / interpretation / hearsay with a lightweight evidence ledger. Requires a coverage statement for multi-track events, counted evidence for trend claims, and a GA/Preview/roadmap classification for vendor announcements. Ships per-profile report and deck templates."
-    },
-    {
-      "name": "social-post",
-      "source": "./plugins/social-post",
-      "description": "Writes LinkedIn-first social posts announcing or reporting an article, a result, a release, a talk, or conference attendance — in a voice that reads as human. Establishes whose post it is (individual / company account / individual posting under an employer's name) and confirms the tone before drafting. Front-loads the conclusion into the ~140 characters visible before 'See more', requires a concrete specific, caps emoji, and bans the announcement tells: 'Thrilled to announce', emoji bullet lists, engagement bait, broetry line breaks. Bilingual JA/EN, rewritten per language rather than translated. Delivers two drafts, three alternative hooks, a first-comment link, hashtags, and a facts/permissions checklist; hands the final de-AI pass to ai-tell-reducer."
-    },
-    {
-      "name": "grounded-research",
-      "source": "./plugins/grounded-research",
-      "description": "Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged."
-    },
-    {
-      "name": "literature-search",
-      "source": "./plugins/literature-search",
-      "description": "Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services."
-    },
-    {
-      "name": "document-figures",
-      "source": "./plugins/document-figures",
-      "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."
-    },
-    {
-      "name": "pdf-extract",
-      "source": "./plugins/pdf-extract",
-      "description": "Extract information from PDFs reliably. Triages whether a text layer exists, routes to the right path (native text extraction / OCR + layout-aware parser / vision-model direct), serializes tables in a lossless form, and binds every extracted field to a page and a verbatim span. Covers scanned PDFs, multi-column layouts, tables, and schema-constrained extraction with citations."
-    },
-    {
-      "name": "doc-coauthoring",
-      "source": "./plugins/doc-coauthoring",
-      "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN."
-    },
-    {
-      "name": "longform-discipline",
-      "source": "./plugins/longform-discipline",
-      "description": "Guardrails and a minimal working loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting rather than by being written badly, so this skill targets the three measured decay axes (long input, long output, long session) with rules that hold across whatever other skill is running: never single-pass the whole document, carry a spine file (purpose, outline, glossary, style contract, claims) outside the context window, write sections sequentially with the previous section's tail loaded, repair the seams that decomposition provably creates, keep the outline revisable, and gate on a deterministic scan plus a specific human review list rather than AI self-scoring. Every rule traces to a cited finding, including the disagreements. Ships a stdlib-only drift_scan.py that reads the spine and enforces it — declared style-contract and glossary violations, 文体 mixing, over-long sentences, notation drift, cross-section duplication, and section-length collapse. Bilingual JA/EN."
-    },
-    {
-      "name": "doc-refactor",
-      "source": "./plugins/doc-refactor",
-      "description": "Refactor prose documents — restructure and de-duplicate without changing meaning, the way code refactoring preserves behavior. Runs a diagnose-first workflow (reverse outline → issue inventory → confirm structural moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them."
-    },
-    {
-      "name": "doc-review",
-      "source": "./plugins/doc-review",
-      "description": "Critical, read-only review of a prose document — the prose counterpart of /code-review. Hunts substantive weaknesses (unsound argument, buried conclusion, thin evidence, unstated assumptions, missing counterargument, audience mismatch, internal contradiction) across a genre-weighted rubric, adversarially verifies its own findings to kill sycophancy and nitpicks, and returns a prioritized findings report the author decides on — without editing the text. Hands off rewriting to doc-refactor, fact-checking to verify-content, restyling to ai-tell-reducer. Bilingual JA/EN."
-    },
-    {
-      "name": "essence-distiller",
-      "source": "./plugins/essence-distiller",
-      "description": "Find the essence of an artifact and strip away what is inessential — the via-negativa counterpart to doc-refactor, across prose/docs, specs & requirements, source code, and diagrams. Separates what is load-bearing for the artifact's ONE purpose and audience from redundancy, gold-plating, decoration, filler, speculative generality, premature detail, and scope creep, then proposes cuts with rationale and a 'what would be lost' note. Deliberately meaning-changing (unlike doc-refactor, which only rearranges): diagnose-first, non-destructive, propose-then-confirm. Anchors every cut to a stated purpose + audience, respects Chesterton's Fence, and preserves correctness/behavior. Hands off the code edit to /simplify or /code-review, the redraw to document-figures, a short derivative to document-summary. Bilingual JA/EN."
-    },
-    {
-      "name": "math-paper",
-      "source": "./plugins/math-paper",
-      "description": "Mathematical paper writing support: notation consistency (Symbol Ledger), theorem/proof structure, equation cross-references, and journal/arXiv submission preparation. Works with LaTeX and Markdown+math; delegates citations to literature-search and fact-checking to fact-checker."
-    },
-    {
-      "name": "humanize-prose",
-      "source": "./plugins/humanize-prose",
-      "description": "Rewrite AI-generated or AI-assisted text to read as human-authored. Reduces common AI tells (em-dash overuse, 'delve'/'leverage', tricolons, reflex bullet lists, 'いかがでしたでしょうか', generic openers/closers) while preserving meaning, register, and facts. Bilingual (English / Japanese), reader-experience focused — not detector evasion."
+      "name": "agent-delegate",
+      "source": "./plugins/agent-delegate",
+      "description": "Delegate a task to another CLI coding agent — Codex (codex-delegate), Antigravity/agy (agy-delegate), or Claude Code (claude-code-delegate) — from within your current agent. Explicit-invocation only, read-first routing, a preview→confirm→apply gate for any write, and an OS sandbox (bubblewrap) confining every write step. Bundles three skills."
     },
     {
       "name": "ai-tell-reducer",
@@ -241,19 +31,94 @@
       "description": "Brownfield ArchiMate: work conversationally on an EXISTING .archimate file (born in Archi) as the source of truth — read/understand, review (metamodel + quality), interpret, and surgically edit in place (round-trip-safe; ids/geometry/folders/styles preserved). Reuses the canonical ArchiMate 3.2 metamodel via a version-aware native vocabulary bridge; emits Markdown reports and PlantUML. Counterpart to archimate-ea (greenfield)."
     },
     {
-      "name": "requirements-stories",
-      "source": "./plugins/requirements-stories",
-      "description": "Conversational requirements-definition and user-story facilitator. Elicits requirements and grows a product backlog (personas, epics, user stories with Given-When-Then / rule acceptance criteria, EARS-worded NFRs, a story map, MoSCoW/WSJF prioritization) into one backlog.yaml source of truth, validated for INVEST/EARS/structure quality, then generate-forwards a Markdown backlog and Gherkin feature files. Traces every story back to an ArchiMate ea-model.yaml (read-only upstream) with a bidirectional coverage check, bridging archimate-ea to archimate-to-impl. Works standalone with no EA model."
-    },
-    {
-      "name": "tech-selector",
-      "source": "./plugins/tech-selector",
-      "description": "Select concrete middleware/runtime from an ArchiMate EA model's non-functional requirements: weighted, sensitivity-checked evaluation, an ADR for the rationale, and write-back of the decision into the model's Technology-layer elements. Bridges archimate-ea (design) to archimate-to-impl (implementation)."
-    },
-    {
       "name": "archimate-to-impl",
       "source": "./plugins/archimate-to-impl",
       "description": "Bridge an ArchiMate EA model's Application layer to implementation: derive a requirement→component→service→api→task traceability matrix, OpenAPI skeletons per ApplicationService, DataObject entity stubs, and a per-component task list, then check for orphans (unimplemented requirements, untraced components). Hands structured input to the dev skills."
+    },
+    {
+      "name": "backlog",
+      "source": "./plugins/backlog",
+      "description": "A lightweight, persistent do-it-later inbox. Park a task in one line and pick it up in a later session — hybrid storage (repo BACKLOG.md when inside a git repo, else ~/.claude/backlog.md), a merged list that shows repo + personal at once, and archive/grooming to clear out done items. Invocable as /backlog and on natural phrases like 「これ積んでおいて」 / 「add to backlog」. stdlib-only, cross-agent."
+    },
+    {
+      "name": "build",
+      "source": "./plugins/build",
+      "description": "Detects and executes the appropriate build command for your project. Supports Node.js, Rust, Python, Go, Makefile, and other major project types."
+    },
+    {
+      "name": "business-consultant",
+      "source": "./plugins/business-consultant",
+      "description": "Comprehensive business consulting using McKinsey/BCG methodologies, from strategy planning to execution support."
+    },
+    {
+      "name": "business-model-canvas",
+      "source": "./plugins/business-model-canvas",
+      "description": "Business model design skill that generates structured documents following Business Model Canvas and Lean Canvas frameworks."
+    },
+    {
+      "name": "checkpoint",
+      "source": "./plugins/checkpoint",
+      "description": "Checkpoint management for the AI instruction system. Tracks task start, progress, and completion, and manages instruction usage state."
+    },
+    {
+      "name": "cli-tool-dev",
+      "source": "./plugins/cli-tool-dev",
+      "description": "CLI development expert that helps design and implement user-friendly command-line tools."
+    },
+    {
+      "name": "code-reviewer",
+      "source": "./plugins/code-reviewer",
+      "description": "Provides constructive code reviews focusing on quality, security, performance, and maintainability."
+    },
+    {
+      "name": "commit-and-report",
+      "source": "./plugins/commit-and-report",
+      "description": "Commits changes, pushes to remote, and reports progress to a GitHub Issue in a single workflow."
+    },
+    {
+      "name": "commit-safe",
+      "source": "./plugins/commit-safe",
+      "description": "Guides a safe, selective commit and — when you say yes to the one question it asks up front — carries the change through to release: version bump, CHANGELOG, annotated tag, push, GitHub Release, and package publish, with an explicit approval gate at every outward-facing, irreversible step. Reviews changes before committing, suggests file-specific commits for large changesets, and prevents blanket 'git add -A'. Bundles a self-contained commit helper that blocks AI-signed commit messages and a read-only release preflight that checks tree state, upstream sync, tag collisions, version files, CHANGELOG, publish targets, and gh auth."
+    },
+    {
+      "name": "competitive-analysis",
+      "source": "./plugins/competitive-analysis",
+      "description": "Competitive analysis skill that researches competitor products via web search, compares features/pricing/differentiation, and generates comparison matrices."
+    },
+    {
+      "name": "data-analyst",
+      "source": "./plugins/data-analyst",
+      "description": "Comprehensive data analysis expert covering statistical insights, visualization, and machine learning."
+    },
+    {
+      "name": "debrief-report",
+      "source": "./plugins/debrief-report",
+      "description": "Turns raw records of an international academic conference, a commercial/vendor conference or trade show, a standards meeting, a customer visit, or an internal discussion into a reader-targeted report: a Markdown report as the source of truth plus a derived executive .pptx. Fixes reader / ask / disclosure scope / original objective / event profile first, inventories every input (AI transcripts, photos, captured slides, proceedings, handouts, colleagues' notes) with reliability and confidentiality, restructures by issue rather than by session, and separates fact / interpretation / hearsay with a lightweight evidence ledger. Requires a coverage statement for multi-track events, counted evidence for trend claims, and a GA/Preview/roadmap classification for vendor announcements. Ships per-profile report and deck templates."
+    },
+    {
+      "name": "doc-coauthoring",
+      "source": "./plugins/doc-coauthoring",
+      "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN."
+    },
+    {
+      "name": "doc-refactor",
+      "source": "./plugins/doc-refactor",
+      "description": "Refactor prose documents — restructure and de-duplicate without changing meaning, the way code refactoring preserves behavior. Runs a diagnose-first workflow (reverse outline → issue inventory → confirm structural moves → refactor → change log) that preserves every claim, fact, figure, and the author's voice, and flags substantive problems instead of silently fixing them."
+    },
+    {
+      "name": "doc-review",
+      "source": "./plugins/doc-review",
+      "description": "Critical, read-only review of a prose document — the prose counterpart of /code-review. Hunts substantive weaknesses (unsound argument, buried conclusion, thin evidence, unstated assumptions, missing counterargument, audience mismatch, internal contradiction) across a genre-weighted rubric, adversarially verifies its own findings to kill sycophancy and nitpicks, and returns a prioritized findings report the author decides on — without editing the text. Hands off rewriting to doc-refactor, fact-checking to verify-content, restyling to ai-tell-reducer. Bilingual JA/EN."
+    },
+    {
+      "name": "document-figures",
+      "source": "./plugins/document-figures",
+      "description": "Extract figures from existing documents (PDF / Word / PowerPoint / web) with provenance and create new structural diagrams (Mermaid-first), producing a Figure Ledger that chains into document-summary."
+    },
+    {
+      "name": "document-summary",
+      "source": "./plugins/document-summary",
+      "description": "Document and literature summarization skill with Executive and Professional modes, mandatory source-grounded Claim Ledger, and explicit Source vs Inference separation to prevent hallucinated content."
     },
     {
       "name": "ea-delivery",
@@ -261,14 +126,9 @@
       "description": "Thin conductor for end-to-end EA-driven delivery: sequences requirements → design → middleware selection → implementation → service across the specialist skills (archimate-ea, tech-selector, archimate-to-impl, dev skills), carries ea-model.yaml as the through-line, gates each handoff, and tracks progress and back-edges in a delivery ledger. Delegates all phase work."
     },
     {
-      "name": "optimization-modeling",
-      "source": "./plugins/optimization-modeling",
-      "description": "Mathematical optimization / decision-engineering expert: formulate decisions as LP/MILP/convex/stochastic models, pick and drive a solver, handle uncertainty (stochastic & robust), and validate solutions with feasibility and sensitivity checks. For decision-support algorithms beyond descriptive statistics/ML."
-    },
-    {
-      "name": "plugin-platform",
-      "source": "./plugins/plugin-platform",
-      "description": "Design a plugin / extension platform (e.g. an algorithm marketplace): a stable versioned contract (SDK), a registry with discovery and compatibility, and safe execution of untrusted code via sandboxing, resource limits, and denial of ambient authority."
+      "name": "essence-distiller",
+      "source": "./plugins/essence-distiller",
+      "description": "Find the essence of an artifact and strip away what is inessential — the via-negativa counterpart to doc-refactor, across prose/docs, specs & requirements, source code, and diagrams. Separates what is load-bearing for the artifact's ONE purpose and audience from redundancy, gold-plating, decoration, filler, speculative generality, premature detail, and scope creep, then proposes cuts with rationale and a 'what would be lost' note. Deliberately meaning-changing (unlike doc-refactor, which only rearranges): diagnose-first, non-destructive, propose-then-confirm. Anchors every cut to a stated purpose + audience, respects Chesterton's Fence, and preserves correctness/behavior. Hands off the code edit to /simplify or /code-review, the redraw to document-figures, a short derivative to document-summary. Bilingual JA/EN."
     },
     {
       "name": "event-driven-service",
@@ -276,19 +136,34 @@
       "description": "Design event-driven, asynchronous, and real-time services beyond request/response REST: messaging (queues/streams), async workers, scheduled/round-based jobs, and WebSocket/SSE push, with correctness under concurrency — idempotency, ordering, delivery guarantees, and backpressure."
     },
     {
-      "name": "simulation-harness",
-      "source": "./plugins/simulation-harness",
-      "description": "Build simulation and backtesting harnesses to evaluate algorithms and system behavior: generate scenarios, run discrete-event or time-stepped models, replay history, collect metrics, and compare variants (A/B) reproducibly under fixed seeds. Feeds scenarios to optimization-modeling."
+      "name": "evidence-check",
+      "source": "./plugins/evidence-check",
+      "description": "Verifies references and citations in reports and papers, performing evidence-based fact-checking."
     },
     {
-      "name": "web-frontend-dev",
-      "source": "./plugins/web-frontend-dev",
-      "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real implementation and consumes OpenAPI contracts."
+      "name": "fact-checker",
+      "source": "./plugins/fact-checker",
+      "description": "Automated fact-checking for AI-generated documents. Extracts claims, verifies via web search and headless browser (Puppeteer), and generates a Markdown report."
     },
     {
-      "name": "agent-delegate",
-      "source": "./plugins/agent-delegate",
-      "description": "Delegate a task to another CLI coding agent — Codex (codex-delegate), Antigravity/agy (agy-delegate), or Claude Code (claude-code-delegate) — from within your current agent. Explicit-invocation only, read-first routing, a preview→confirm→apply gate for any write, and an OS sandbox (bubblewrap) confining every write step. Bundles three skills."
+      "name": "faithful-translation",
+      "source": "./plugins/faithful-translation",
+      "description": "Faithful translation skill that produces source-faithful translations across any language pair, with a parallel sentence ledger for verification, terminology preservation, and translator's notes."
+    },
+    {
+      "name": "github-issues",
+      "source": "./plugins/github-issues",
+      "description": "Fetches GitHub Issues, aggregates by label, analyzes priorities, and organizes tasks with actionable suggestions."
+    },
+    {
+      "name": "grounded-research",
+      "source": "./plugins/grounded-research",
+      "description": "Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged."
+    },
+    {
+      "name": "humanize-prose",
+      "source": "./plugins/humanize-prose",
+      "description": "Rewrite AI-generated or AI-assisted text to read as human-authored. Reduces common AI tells (em-dash overuse, 'delve'/'leverage', tricolons, reflex bullet lists, 'いかがでしたでしょうか', generic openers/closers) while preserving meaning, register, and facts. Bilingual (English / Japanese), reader-experience focused — not detector evasion."
     },
     {
       "name": "knowledge-base",
@@ -296,9 +171,139 @@
       "description": "A persistent knowledge base any agent can use across sessions — plain Markdown, one KB per directory, no server and no database, so it travels by copying the folder and syncs via Git or OneDrive. Supports multiple KBs (prose and entities formats), curated-index-then-grep recall, and cross-agent adapters verified on Claude Code, Codex, and Antigravity (agy). Bundles a stdlib-only validator."
     },
     {
-      "name": "backlog",
-      "source": "./plugins/backlog",
-      "description": "A lightweight, persistent do-it-later inbox. Park a task in one line and pick it up in a later session — hybrid storage (repo BACKLOG.md when inside a git repo, else ~/.claude/backlog.md), a merged list that shows repo + personal at once, and archive/grooming to clear out done items. Invocable as /backlog and on natural phrases like 「これ積んでおいて」 / 「add to backlog」. stdlib-only, cross-agent."
+      "name": "literature-search",
+      "source": "./plugins/literature-search",
+      "description": "Literature search, citation chasing, snowballing, author analysis, and BibTeX export using free official APIs (Semantic Scholar + OpenAlex + CrossRef). Honest Google Scholar alternative — no scraping, no paid services."
+    },
+    {
+      "name": "longform-discipline",
+      "source": "./plugins/longform-discipline",
+      "description": "Guardrails and a minimal working loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting rather than by being written badly, so this skill targets the three measured decay axes (long input, long output, long session) with rules that hold across whatever other skill is running: never single-pass the whole document, carry a spine file (purpose, outline, glossary, style contract, claims) outside the context window, write sections sequentially with the previous section's tail loaded, repair the seams that decomposition provably creates, keep the outline revisable, and gate on a deterministic scan plus a specific human review list rather than AI self-scoring. Every rule traces to a cited finding, including the disagreements. Ships a stdlib-only drift_scan.py that reads the spine and enforces it — declared style-contract and glossary violations, 文体 mixing, over-long sentences, notation drift, cross-section duplication, and section-length collapse. Bilingual JA/EN."
+    },
+    {
+      "name": "loop-goal",
+      "source": "./plugins/loop-goal",
+      "description": "Turn \"fix it until it's OK\" into a stopping condition a machine can decide. For document verification loops: put the exit criterion into a deterministic detector's exit code, gate on a SET of detectors (never one), keep a monotonicity floor so deletion can't satisfy the gate, and enforce the generator/grader boundary mechanically rather than by instruction. Ships 11 dependency-free detectors (63-120 lines each, meant to be edited), a template that wires the conventions into code, a test runner, and a fixed document format so the per-document setup cost is paid once. Deliberately narrow: it measures traceability, NOT correctness — and says so in every output. Pre-1.0."
+    },
+    {
+      "name": "market-sizing",
+      "source": "./plugins/market-sizing",
+      "description": "Market sizing skill that estimates TAM/SAM/SOM using top-down and bottom-up approaches with evidence-backed reports."
+    },
+    {
+      "name": "marp-slides",
+      "source": "./plugins/marp-slides",
+      "description": "Assists in creating effective, professional presentations using the Marp slide framework."
+    },
+    {
+      "name": "math-paper",
+      "source": "./plugins/math-paper",
+      "description": "Mathematical paper writing support: notation consistency (Symbol Ledger), theorem/proof structure, equation cross-references, and journal/arXiv submission preparation. Works with LaTeX and Markdown+math; delegates citations to literature-search and fact-checking to fact-checker."
+    },
+    {
+      "name": "optimization-modeling",
+      "source": "./plugins/optimization-modeling",
+      "description": "Mathematical optimization / decision-engineering expert: formulate decisions as LP/MILP/convex/stochastic models, pick and drive a solver, handle uncertainty (stochastic & robust), and validate solutions with feasibility and sensitivity checks. For decision-support algorithms beyond descriptive statistics/ML."
+    },
+    {
+      "name": "pdf-extract",
+      "source": "./plugins/pdf-extract",
+      "description": "Extract information from PDFs reliably. Triages whether a text layer exists, routes to the right path (native text extraction / OCR + layout-aware parser / vision-model direct), serializes tables in a lossless form, and binds every extracted field to a page and a verbatim span. Covers scanned PDFs, multi-column layouts, tables, and schema-constrained extraction with citations."
+    },
+    {
+      "name": "plugin-platform",
+      "source": "./plugins/plugin-platform",
+      "description": "Design a plugin / extension platform (e.g. an algorithm marketplace): a stable versioned contract (SDK), a registry with discovery and compatibility, and safe execution of untrusted code via sandboxing, resource limits, and denial of ambient authority."
+    },
+    {
+      "name": "pptx-build",
+      "source": "./plugins/pptx-build",
+      "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included."
+    },
+    {
+      "name": "pptx-design",
+      "source": "./plugins/pptx-design",
+      "description": "Expert guidance for designing professional PowerPoint decks: typography, color, layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup. Advice only — hands file generation to pptx-build rather than hand-writing python-pptx."
+    },
+    {
+      "name": "project-manager",
+      "source": "./plugins/project-manager",
+      "description": "Project manager skill for comprehensive planning, execution, monitoring, and completion of projects."
+    },
+    {
+      "name": "python-expert",
+      "source": "./plugins/python-expert",
+      "description": "Python development expert supporting clean code practices, performance optimization, and test-driven development."
+    },
+    {
+      "name": "reload-and-reset",
+      "source": "./plugins/reload-and-reset",
+      "description": "Updates the AI instruction system to the latest version and resets AI behavior to align with the instructions."
+    },
+    {
+      "name": "reload-instructions",
+      "source": "./plugins/reload-instructions",
+      "description": "Updates the AI instruction submodule to the latest version and reloads ROOT_INSTRUCTION."
+    },
+    {
+      "name": "requirements-stories",
+      "source": "./plugins/requirements-stories",
+      "description": "Conversational requirements-definition and user-story facilitator. Elicits requirements and grows a product backlog (personas, epics, user stories with Given-When-Then / rule acceptance criteria, EARS-worded NFRs, a story map, MoSCoW/WSJF prioritization) into one backlog.yaml source of truth, validated for INVEST/EARS/structure quality, then generate-forwards a Markdown backlog and Gherkin feature files. Traces every story back to an ArchiMate ea-model.yaml (read-only upstream) with a bidirectional coverage check, bridging archimate-ea to archimate-to-impl. Works standalone with no EA model."
+    },
+    {
+      "name": "simulation-harness",
+      "source": "./plugins/simulation-harness",
+      "description": "Build simulation and backtesting harnesses to evaluate algorithms and system behavior: generate scenarios, run discrete-event or time-stepped models, replay history, collect metrics, and compare variants (A/B) reproducibly under fixed seeds. Feeds scenarios to optimization-modeling."
+    },
+    {
+      "name": "social-post",
+      "source": "./plugins/social-post",
+      "description": "Writes LinkedIn-first social posts announcing or reporting an article, a result, a release, a talk, or conference attendance — in a voice that reads as human. Establishes whose post it is (individual / company account / individual posting under an employer's name) and confirms the tone before drafting. Front-loads the conclusion into the ~140 characters visible before 'See more', requires a concrete specific, caps emoji, and bans the announcement tells: 'Thrilled to announce', emoji bullet lists, engagement bait, broetry line breaks. Bilingual JA/EN, rewritten per language rather than translated. Delivers two drafts, three alternative hooks, a first-comment link, hashtags, and a facts/permissions checklist; hands the final de-AI pass to ai-tell-reducer."
+    },
+    {
+      "name": "startup-advisor",
+      "source": "./plugins/startup-advisor",
+      "description": "Startup advisor providing practical advice and strategic guidance from launch through growth stages."
+    },
+    {
+      "name": "strategy-memo",
+      "source": "./plugins/strategy-memo",
+      "description": "Strategy memo skill that structures business ideas into a 4-layer framework (Market/Value Proposition/Technology/Execution) and checks for logical gaps."
+    },
+    {
+      "name": "tauri-dev",
+      "source": "./plugins/tauri-dev",
+      "description": "Development expert for designing and building Tauri v2 desktop and mobile applications."
+    },
+    {
+      "name": "tauri-research",
+      "source": "./plugins/tauri-research",
+      "description": "Research assistant for investigating Tauri-related questions via web search and official documentation."
+    },
+    {
+      "name": "tech-selector",
+      "source": "./plugins/tech-selector",
+      "description": "Select concrete middleware/runtime from an ArchiMate EA model's non-functional requirements: weighted, sensitivity-checked evaluation, an ADR for the rationale, and write-back of the decision into the model's Technology-layer elements. Bridges archimate-ea (design) to archimate-to-impl (implementation)."
+    },
+    {
+      "name": "technical-writer",
+      "source": "./plugins/technical-writer",
+      "description": "Expert assistant for creating high-quality technical documents including API docs, user guides, and technical blog posts."
+    },
+    {
+      "name": "verify-content",
+      "source": "./plugins/verify-content",
+      "description": "Integrated content verification skill. Extracts claims, verifies against external sources, and compiles references in a single workflow."
+    },
+    {
+      "name": "web-api-dev",
+      "source": "./plugins/web-api-dev",
+      "description": "Expert assistant for designing and implementing production-ready RESTful Web APIs."
+    },
+    {
+      "name": "web-frontend-dev",
+      "source": "./plugins/web-frontend-dev",
+      "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real implementation and consumes OpenAPI contracts."
     }
   ]
 }
