@@ -145,6 +145,39 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.4.1 / 1.4.2 — the nested-document bug, and why it reached three checks
+
+Every spine-driven check was written and validated against **flat** fixtures: `## 第1章` with prose
+directly underneath. A real book is nested — `## 第1章` followed immediately by `### 1.1` — and in
+that shape three defects compounded:
+
+1. `split_sections` drops body-less sections, so a chapter heading whose first line is its own
+   subheading did not exist as a section at all (12 of 23 chapters in the book this was found on).
+2. `_section_index` returned the first substring match, so a chapter reference landed on a
+   subsection of a *different* chapter.
+3. A chapter's own lines stop at its first subheading, so a claim was compared against the lead
+   sentence — sometimes against nothing.
+
+On a real book that produced **11 HIGH + 7 WARN confidently wrong findings**, and missed the one
+real problem. 1.4.1 fixed it for `claim-coverage` with a `keep_empty` section view, level-aware
+resolution (shallowest heading wins), and `_subtree_body`.
+
+1.4.2 applied the same fix to the two checks that shared the defect and had been left behind —
+`check_intent_ledger` and `check_term_before_definition`. On the nested fixture, `intent-uncovered`
+was reporting against `1.1 現状` for an intent targeting `第1章 背景` (a false positive), and
+`term-before-definition` was **silently missing a true positive**: with the chapter resolved too
+early in the document, uses that really did precede the definition fell outside the comparison. That
+second symptom is the worse one — a missed finding is indistinguishable from a clean pass.
+
+Two process lessons, both about how this repository validates:
+
+- **Fixture shape is a hidden assumption.** Every control here was flat because the repository's own
+  documents are flat, so dogfooding could not surface it. A nested fixture is now part of the control
+  set, and any check that resolves a spine reference to a section must be exercised against it.
+- **A shared helper spreads a defect silently.** `_section_index` and `_section_body` are used by
+  three checks; the fix landed on one. When a helper is corrected, every caller has to be re-tested,
+  not just the one whose symptom was reported.
+
 ### 1.4.0 — the intent ledger, which generalises the whole skill
 
 Prompted by an observation that named the skill's own centre: *while writing with an AI, the point of

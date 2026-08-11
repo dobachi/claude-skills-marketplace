@@ -1222,6 +1222,14 @@ def check_term_before_definition(sections, first_defined):
 
     The reader meets the word before its definition — an audience-assumption
     failure that no surface check sees.
+
+    `sections` must be the keep_empty view, for the same reason as above and
+    with a worse symptom: resolved against the filtered view the declared
+    chapter lands too early in the document, so uses that really do precede it
+    are silently not reported. A missed finding reads exactly like a clean pass.
+
+    Each candidate section is tested on its OWN body, not its subtree — a
+    chapter's subtree would include the defining section itself.
     """
     out = []
     for term, where in first_defined.items():
@@ -1308,7 +1316,13 @@ DONE_STATUS = {"完了", "済", "done", "closed", "ok", "yes", "対応済", "対
 
 
 def check_intent_ledger(sections, intents):
-    """Three failures of an intent, each detectable without reading meaning."""
+    """Three failures of an intent, each detectable without reading meaning.
+
+    `sections` must be the keep_empty view. An intent row names a chapter, and
+    in a nested document a chapter owns no lines of its own — resolved against
+    the filtered view it lands on some subsection, often in a different chapter,
+    and the finding reads as confident and is wrong.
+    """
     out = []
     for row in intents:
         rid = row.get("id") or "?"
@@ -1340,7 +1354,7 @@ def check_intent_ledger(sections, intents):
                 "意図 %s の対象「%s」に対応する見出しが本文にありません。" % (rid, target),
                 {"id": rid}))
         elif idx is not None and terms:
-            body = _section_body(sections[idx])
+            body = _subtree_body(sections, idx)
             missing = [w for w in terms if w not in body]
             if len(missing) == len(terms):
                 out.append(finding(
@@ -1402,14 +1416,14 @@ def run(path, spine_path=None, only=None, use_backend=True):
 
     findings = []
     if intents and enabled & {"intent-unmeasurable", "intent-uncovered", "intent-open"}:
-        findings += [f for f in check_intent_ledger(sections, intents)
+        findings += [f for f in check_intent_ledger(all_sections, intents)
                      if f["check"] in enabled]
     if "claim-coverage" in enabled and outline:
         findings += check_claim_coverage(all_sections, outline)
     if "unverified-claim" in enabled and claims:
         findings += check_unverified_claims(claims)
     if "term-before-definition" in enabled and first_defined:
-        findings += check_term_before_definition(sections, first_defined)
+        findings += check_term_before_definition(all_sections, first_defined)
     if "unsourced-assertion" in enabled:
         findings += check_unsourced_assertion(sections)
     if "declared-style-violation" in enabled and any(
