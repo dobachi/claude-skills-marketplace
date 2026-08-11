@@ -5,8 +5,11 @@ the source, so a reader can check the rule against the evidence rather than agai
 summary of it. Spans were string-matched against the live pages on 2026-08-11 (63 spans, 0 not
 found). Read this file when someone asks *why* a rule exists, or proposes breaking one.
 
-Confidence note: findings are reported as the sources state them. Benchmark numbers age fast —
-re-check anything load-bearing that is more than a year old before quoting it as current.
+Confidence note: findings are reported as the sources state them. **Benchmark numbers age fast, and
+several rows below are already old enough to need re-checking before they are quoted as the current
+state of the art.** Dates are given inline for that reason. A result about "GPT-4 in 2023" is
+evidence about a 2023 model, not about whatever you are using now — treat the *mechanism* as the
+durable part and the *number* as perishable.
 
 ---
 
@@ -280,7 +283,13 @@ hoping the model remembers:
 
 > "While GPT4 performs the best and can outperform humans on this task, we find that it is still
 > unreliable and struggles with self-contradictions that require more nuance and context."
-> — *ContraDoc*, https://arxiv.org/abs/2311.09182
+> — *ContraDoc*, https://arxiv.org/abs/2311.09182 (**2023-11 — stale; re-check before quoting**)
+
+Read both halves of that sentence. It says GPT-4 **can outperform humans** at finding document
+self-contradictions *and* that it remains unreliable on nuanced cases. It also measured a *prompted*
+model in 2023. It is not evidence about a fixed-weight NLI classifier, and it is not evidence about
+any model shipped since. Do not use it to rule out automated contradiction detection — use it to
+insist that whatever you use is measured at its operating point before it becomes a gate.
 
 **Model judges are biased in ways that survive prompting:**
 

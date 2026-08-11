@@ -106,6 +106,86 @@ OPEN_MARKERS = [
 ]
 
 
+# ---------------------------------------------------- optional morphological backend
+# A fixed-weight tokenizer is deterministic: same input, same output, no sampling,
+# no prompt or ordering sensitivity. That is what makes it eligible for a gate,
+# where a prompted model is not. It is optional — every check degrades to the
+# stdlib path without it, and the header says which path ran.
+
+KEIGO_AUX = {"です", "ます", "まし", "ませ", "ましょ", "ましょう", "ましたら", "でし"}
+FINAL_FORMS = ("終止形", "命令形", "意志推量形")
+
+
+class Morph:
+    """SudachiPy wrapper. `available` is False when the library is absent."""
+
+    def __init__(self):
+        self.name = None
+        self.version = None
+        self._tok = None
+        self._mode = None
+        try:
+            import sudachipy
+            from sudachipy import Dictionary, SplitMode
+            self._tok = Dictionary().create()
+            self._mode = SplitMode.C
+            self.name = "sudachipy"
+            self.version = getattr(sudachipy, "__version__", "?")
+        except Exception:
+            self._tok = None
+
+    @property
+    def available(self):
+        return self._tok is not None
+
+    def tokens(self, text):
+        """[(surface, normalized_form, pos, subpos, inflection)].
+
+        Both pos[0] and pos[1] are carried: the register rule keys on the
+        coarse class plus the inflection, the notation rule keys on 名詞 +
+        普通名詞/固有名詞. Collapsing them silently disables one of the two.
+        """
+        out = []
+        for m in self._tok.tokenize(text, self._mode):
+            pos = m.part_of_speech()
+            out.append((m.surface(), m.normalized_form(), pos[0],
+                        pos[1] if len(pos) > 1 else "",
+                        pos[5] if len(pos) > 5 else ""))
+        return out
+
+    def register(self, sent):
+        """敬体 / 常体 / None, from POS and inflection rather than a suffix regex.
+
+        Measured against the regex on a 24-sentence battery: 24/24 vs 23/24 —
+        it wins only on literary endings like 「…すべし。」. The regex anchors at
+        the sentence end, so mid-sentence noise (ますます) never fooled it in the
+        first place. Register is NOT why this backend earns its place; notation
+        drift is (0/8 -> 6/8 on unlisted variants). Kept because it is free once
+        the tokenizer is loaded and the regex still catches what it returns None
+        for.
+        """
+        toks = self.tokens(sent)
+        while toks and toks[-1][2] in ("補助記号", "記号"):
+            toks.pop()
+        if not toks:
+            return None
+        tail = toks[-3:]
+        for surface, _norm, pos, _subpos, _infl in tail:
+            if pos == "助動詞" and surface in KEIGO_AUX:
+                return "敬体"
+            if surface == "ください" and pos in ("動詞", "助動詞"):
+                return "敬体"
+        surface, _norm, pos, _subpos, infl = toks[-1]
+        if pos in ("動詞", "形容詞", "助動詞", "形状詞") and infl.startswith(FINAL_FORMS):
+            return "常体"
+        if pos in ("動詞", "形容詞", "助動詞") and any(infl.startswith(f) for f in FINAL_FORMS):
+            return "常体"
+        return None          # 体言止め and anything unclear: missed, never guessed
+
+
+MORPH = None                 # set once in run(); None means "stdlib path"
+
+
 # ------------------------------------------------------------------- parsing
 
 def is_ja(text, threshold=0.30):
@@ -317,9 +397,16 @@ def finding(check, severity, section, line, message, detail=None):
 def classify_register(sent):
     """敬体 / 常体 / None. 敬体 is tested first so ました beats the bare past た.
 
+    Uses the morphological backend when one is loaded and falls back to the
+    suffix regex when it returns None, so the backend can only add coverage.
+
     None means "not classifiable", not "neutral" — the failure direction is a
     missed finding rather than a false alarm, which is the right way round.
     """
+    if MORPH is not None and MORPH.available:
+        reg = MORPH.register(sent)
+        if reg:
+            return reg
     core = re.sub(r"[。！？」』）\)\s]+$", "", sent)
     if not core:
         return None
@@ -504,6 +591,160 @@ def check_notation_drift(text, sections):
                 "notation-drift", "warn", "(document)", None,
                 "表記ゆれ(長音): 「%s」%d件 / 「%s」%d件"
                 % (token, text.count(token), base, nb)))
+
+    # With a morphological backend, drift is found by grouping surface forms
+    # under their dictionary-normalized form — no hand-maintained pair table,
+    # so it catches variants the table above never listed.
+    #
+    # Normalized_form is a dictionary lemma, so it folds three things that are
+    # NOT notation drift, and each needs an explicit filter. Measured on real
+    # documents, the unfiltered version produced 31/12/41 findings that were
+    # almost entirely these:
+    #   conjugation   書け/書か/書い -> 書く      => nouns only
+    #   letter case   is/IS, plugin/Plugin       => ASCII must differ beyond case
+    #   translation   スタイル/style              => variants must share a script
+    # A fourth guard (character overlap) catches synonym folding not seen here.
+    if MORPH is not None and MORPH.available:
+        by_norm = defaultdict(Counter)
+        for surface, norm, pos, subpos, _infl in MORPH.tokens(text):
+            if pos != "名詞" or subpos not in ("普通名詞", "固有名詞"):
+                continue
+            if len(surface) < 2:
+                continue
+            by_norm[norm][surface] += 1
+        for norm, variants in sorted(by_norm.items()):
+            forms = [s for s, _ in variants.most_common()]
+            if len(forms) < 2:
+                continue
+            fset = set(forms)
+            # Skip only a pair the table already reports, not every group that
+            # happens to touch a tabled word: インターフェイス/インターフェース is a
+            # different pair from the table's インターフェース/インタフェース.
+            if any(a in fset and b in fset for a, b in NOTATION_PAIRS):
+                continue
+            if len({_script_class(f) for f in forms}) > 1:
+                continue                          # 和英ペア: not a notation choice
+            # The lemma must be written in the same script as the surfaces.
+            # reading/leading both normalize to リーディング — that is Sudachi
+            # translating, not folding a spelling, and it is a false positive.
+            if any(_script_class(norm) != _script_class(f) for f in forms):
+                continue
+            if all(_script_class(f) == "ascii" for f in forms):
+                if len({f.lower() for f in forms}) < 2:
+                    continue                      # case only: not notation drift
+            if not _mutually_similar(forms):
+                continue                          # unrelated synonyms folded together
+            listed = " / ".join("「%s」%d件" % (s, n) for s, n in variants.most_common())
+            out.append(finding(
+                "notation-drift", "warn", "(document)", None,
+                "表記ゆれ(正規化形「%s」): %s" % (norm, listed),
+                {"normalized": norm, "variants": dict(variants)}))
+    return out
+
+
+def _script_class(s):
+    if re.fullmatch(r"[A-Za-z0-9._+-]+", s):
+        return "ascii"
+    if re.fullmatch(r"[ァ-ヶー・]+", s):
+        return "kana"
+    return "ja"
+
+
+def _mutually_similar(forms, threshold=0.5):
+    """Every pair of variants must share at least half their characters.
+
+    A dictionary lemma can fold genuine synonyms, not just spellings. Requiring
+    surface overlap keeps 見積り/見積もり and ヴァイオリン/バイオリン while dropping
+    anything that merely means the same thing.
+    """
+    for i, a in enumerate(forms):
+        for b in forms[i + 1:]:
+            sa, sb = set(a), set(b)
+            if not sa | sb:
+                return False
+            if len(sa & sb) / len(sa | sb) < threshold:
+                return False
+    return True
+
+
+# Units that mean the same thing, folded before comparison.
+UNIT_ALIASES = {
+    "msec": "ms", "ミリ秒": "ms", "ミリセカンド": "ms",
+    "秒": "s", "sec": "s", "seconds": "s", "second": "s",
+    "分": "min", "minutes": "min", "minute": "min",
+    "時間": "h", "hours": "h", "hour": "h",
+    "％": "%", "パーセント": "%", "percent": "%",
+    "文字": "字", "chars": "字", "characters": "字", "character": "字",
+    "words": "語", "word": "語", "ワード": "語",
+    "tokens": "token", "トークン": "token",
+    "円": "JPY", "ドル": "USD", "usd": "USD",
+    "人": "人", "件": "件", "回": "回", "倍": "倍", "個": "個",
+}
+UNIT_RE = (r"(?:ms|msec|ミリ秒|秒|sec|seconds?|分|minutes?|時間|hours?|日|週間|"
+           r"ヶ月|か月|年|%|％|パーセント|percent|円|ドル|USD|usd|GB|MB|KB|TB|"
+           r"件|人|回|倍|個|字|文字|chars?|characters?|語|words?|ワード|"
+           r"トークン|tokens?)")
+FULLWIDTH = str.maketrans("０１２３４５６７８９．％", "0123456789.%")
+LABEL_STOP = {"これ", "それ", "この", "その", "以下", "以上", "次", "上記", "下記",
+              "例", "図", "表", "計", "合計", "うち", "本書", "本章", "など",
+              "the", "a", "an", "of", "is", "was", "are", "were", "to", "at",
+              "in", "on", "for", "and", "or", "about", "than", "over", "under"}
+
+
+def _measure_label(text, start, japanese):
+    """The noun phrase a measurement is attached to, taken from what precedes it."""
+    win = text[max(0, start - 26):start]
+    if japanese:
+        parts = [p for p in re.split(r"[。、（）()「」『』\[\]|:：=＝\s]+", win) if p]
+        if not parts:
+            return ""
+        label = parts[-1]
+        label = re.sub(r"(は|が|を|に|で|と|の|も|へ|より|から|まで)$", "", label)
+        label = re.sub(r"(約|およそ|最大|最小|平均|合計|計|およそ)$", "", label)
+        return label.strip()
+    words = re.split(r"[\s(),:;=\[\]|]+", win)
+    words = [w for w in words if w]
+    while words and words[-1].lower() in LABEL_STOP:
+        words.pop()
+    return " ".join(words[-3:]).strip().lower()
+
+
+def check_numeric_inconsistency(sections):
+    """The same labelled quantity given two different values in two sections.
+
+    A content check that needs no meaning: §2 saying 200ms and §7 saying 500ms
+    for the same thing is an inconsistency whatever the sentences around it say.
+    Tables and quotes are excluded — tabulating different values is their job.
+    """
+    pat = re.compile(r"([0-9０-９]+(?:[.．][0-9０-９]+)?)\s*(" + UNIT_RE + r")")
+    seen = defaultdict(list)          # (label, unit) -> [(value, section, line)]
+    for sec in sections:
+        for lineno, sent, kind in sentences_of(sec):
+            if kind in ("table", "quote"):
+                continue
+            japanese = is_ja(sent)
+            for m in pat.finditer(sent):
+                raw_val, raw_unit = m.group(1), m.group(2)
+                value = raw_val.translate(FULLWIDTH)
+                unit = UNIT_ALIASES.get(raw_unit.lower(), UNIT_ALIASES.get(raw_unit, raw_unit))
+                label = _measure_label(sent, m.start(), japanese)
+                if len(label) < 2 or label.lower() in LABEL_STOP:
+                    continue
+                if re.fullmatch(r"[0-9０-９.．,、]+", label):
+                    continue
+                seen[(label, unit)].append((value, sec["title"], lineno))
+
+    out = []
+    for (label, unit), hits in sorted(seen.items()):
+        values = {v for v, _, _ in hits}
+        sects = {s for _, s, _ in hits}
+        if len(values) < 2 or len(sects) < 2:
+            continue
+        where = " / ".join("%s%s (%s L%d)" % (v, unit, s, l) for v, s, l in hits[:6])
+        out.append(finding(
+            "numeric-inconsistency", "high", "(document)", hits[0][2],
+            "「%s」の数値が章をまたいで食い違っています: %s" % (label, where),
+            {"label": label, "unit": unit, "values": sorted(values)}))
     return out
 
 
@@ -685,19 +926,25 @@ def check_repeated_openers(sections):
 # -------------------------------------------------------------------- driver
 
 CHECKS = ["style-mixing", "declared-style-violation", "long-sentence",
-          "notation-drift", "glossary-violation",
+          "notation-drift", "glossary-violation", "numeric-inconsistency",
           "cross-section-dup", "section-imbalance", "redundant-expression",
           "open-marker", "repeated-opener"]
 SEV_ORDER = {"high": 0, "warn": 1, "info": 2}
 
 
-def run(path, spine_path=None, only=None):
+def run(path, spine_path=None, only=None, use_backend=True):
     try:
         with open(path, encoding="utf-8") as fh:
             raw = fh.read()
     except OSError as exc:
         sys.stderr.write("drift_scan: cannot read %s: %s\n" % (path, exc))
         raise SystemExit(2)
+
+    global MORPH
+    if use_backend and MORPH is None:
+        MORPH = Morph()
+    elif not use_backend:
+        MORPH = None
 
     lines = strip_code_fences(strip_frontmatter(raw.splitlines()))
     text = "\n".join(lines)
@@ -725,6 +972,8 @@ def run(path, spine_path=None, only=None):
     if "glossary-violation" in enabled and glossary:
         findings += check_glossary(
             prose_corpus(lines, drop_tables=False, drop_quotes=True), sections, glossary)
+    if "numeric-inconsistency" in enabled:
+        findings += check_numeric_inconsistency(sections)
     if "cross-section-dup" in enabled:
         findings += check_cross_section_dup(sections)
     if "section-imbalance" in enabled:
@@ -744,6 +993,8 @@ def run(path, spine_path=None, only=None):
         "sections": len([s for s in sections if s["title"] != "(preamble)"]),
         "glossary_terms": len(glossary),
         "style_contract": {k: v for k, v in style.items() if v},
+        "backend": (MORPH.name + " " + MORPH.version)
+                   if (MORPH is not None and MORPH.available) else None,
         "counts": dict(Counter(f["severity"] for f in findings)),
     }
     return findings, stats
@@ -759,6 +1010,14 @@ def render(findings, stats):
                     "style contract: " + ", ".join(
                         "%s=%s" % (k, v) for k, v in sorted(declared.items()))
                     if declared else "no style contract declared"))
+    if stats.get("backend"):
+        lines.append("  backends: %s — 文体判定は品詞ベース、表記ゆれは正規化形も照合"
+                     % stats["backend"])
+    else:
+        lines.append("  backends: none — 文体判定は語尾マッチ、表記ゆれは既知パターンのみ "
+                     "(sudachipy を入れると両方が品詞・正規化形ベースになります)")
+    lines.append("  not checked by any backend: 章間の矛盾・主旨の達成・根拠の有無"
+                 "（意味が要るため人手 / doc-review）")
     c = stats["counts"]
     lines.append("  findings: high=%d warn=%d info=%d"
                  % (c.get("high", 0), c.get("warn", 0), c.get("info", 0)))
@@ -786,6 +1045,8 @@ def main():
     ap.add_argument("draft", help="Markdown draft to scan")
     ap.add_argument("--spine", help="Spine file, for glossary checks")
     ap.add_argument("--only", help="Comma-separated subset of: " + ",".join(CHECKS))
+    ap.add_argument("--no-backend", action="store_true",
+                    help="Force the stdlib path even if sudachipy is installed")
     ap.add_argument("--json", action="store_true", help="Emit JSON")
     args = ap.parse_args()
 
@@ -797,7 +1058,8 @@ def main():
             sys.stderr.write("drift_scan: unknown check(s): %s\n" % ", ".join(unknown))
             return 2
 
-    findings, stats = run(args.draft, args.spine, only)
+    findings, stats = run(args.draft, args.spine, only,
+                          use_backend=not args.no_backend)
     if args.json:
         print(json.dumps({"stats": stats, "findings": findings},
                          ensure_ascii=False, indent=2))

@@ -145,6 +145,71 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.2.0 — a correction, a content check, and a measured backend
+
+**The correction first, because it changed the policy.** 1.1.0 shipped with an argument that
+statistical/ML tooling did not belong in the gate, resting on ContraDoc's finding that GPT-4 is
+"still unreliable" at document self-contradiction. That argument was wrong in three ways, and the
+user caught all three:
+
+1. **Category error.** ContraDoc measured a *prompted* model. A fixed-weight NLI classifier is the
+   same kind of artifact as a sentence embedder: deterministic, calibratable, with published
+   precision/recall. The same paragraph of this document had already argued embeddings belong in the
+   gate *because* they are deterministic — and then excluded NLI on grounds that only apply to
+   prompted models.
+2. **Stale evidence.** ContraDoc is a 2023-11 preprint being used to settle a 2026 design decision,
+   against this document's own rule that anything load-bearing and older than a year gets re-checked.
+3. **Half a quote.** The span reads "While GPT4 performs the best and **can outperform humans on
+   this task**, we find that it is still unreliable…". Only the second clause was used.
+
+The corrected line is not "AI vs tools" but **"fixed weights vs prompted"**. A tokenizer, an
+embedder, and an NLI classifier are all eligible for a gate; a prompted judge is not. What decides
+whether an eligible tool *ships* is its measured precision at the operating point, nothing else.
+
+**Applying that policy immediately produced a check that needs no ML at all.** Numeric
+cross-section inconsistency — §2 saying 200ms and §7 saying 500ms for the same labelled quantity —
+is a genuine *content* check, deterministic, and cheap. It had been missed because "content needs
+meaning" had been treated as one undifferentiated category. Tables and blockquotes are excluded
+(tabulating different values is what a table is for), and a label must repeat verbatim across
+sections, which keeps precision high.
+
+**The optional SudachiPy backend was then measured rather than assumed, and the measurement moved
+the recommendation.** The backlog had ranked janome first for being pure-Python. That was wrong:
+
+| Capability | stdlib | SudachiPy |
+|---|---|---|
+| notation drift on variants outside the built-in table | 0 / 8 | **6 / 8** |
+| register classification, 24-sentence battery | 23 / 24 | 24 / 24 |
+
+The backend earns its place on **terminology, not register** — the suffix regex was already at
+23/24 and gains one literary ending (「…すべし。」). Only SudachiPy has `normalized_form`, which is the
+capability that matters, so the janome-first ranking was dropped.
+
+The first cut of that backend was unusable and only testing showed it: grouping by lemma produced
+**31 / 12 / 41 findings on three real documents, nearly all false**. A dictionary lemma folds three
+things that are not notation drift, and each needed an explicit filter — verb conjugation
+(書け/書か/書い → 書く), letter case (`is`/`IS`), and translation (`reading`/`leading` both normalize
+to リーディング, and スタイル/`style`). After filtering: **6/8 recall, zero false positives across six
+real documents**.
+
+Two bugs surfaced in that same loop, both invisible from the output alone:
+
+- The token tuple conflated `pos[1]` (subtype) with `pos[5]` (inflection), so the noun filter never
+  matched and the whole notation check was **silently disabled**. Precision looked perfect because
+  nothing ran. Recall and precision have to be measured together or a disabled check reads as a
+  clean one.
+- The "already in the table" guard skipped a group if *any* member appeared in the built-in pair
+  table, so インターフェイス/インターフェース was dropped because インターフェース appears in the
+  unrelated インターフェース/インタフェース pair.
+
+The scan header now names the active backend and, either way, states what is **not** being looked at
+(章間の矛盾・主旨の達成・根拠の有無). `--no-backend` forces the stdlib path for comparison.
+
+Still deliberately absent: embeddings and NLI. Not on principle now — on sequence. Cross-section
+contradiction is O(n²) in sentences, so it needs embedding-based candidate retrieval before entailment
+is affordable; the two are one pipeline, not two options. Neither ships before its precision is
+measured the way the tokenizer's was.
+
 ### 1.1.0 — enforcing the declaration, not just internal consistency
 
 `style-mixing` only ever saw *inconsistency*: a document written uniformly in 敬体 passed it even

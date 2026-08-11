@@ -116,6 +116,7 @@ stop condition (see `loop-goal`). What it detects, and the failure each maps to:
 | `long-sentence` | Japanese sentences past 60 / 100 characters; English past 40 / 60 words |
 | `notation-drift` | The same term spelled two ways (サーバ/サーバー, 行う/行なう, e-mail/email) |
 | `glossary-violation` | A banned variant of a spine glossary term, or a key term never defined |
+| `numeric-inconsistency` | The same labelled quantity given different values in different sections (§2 says 200ms, §7 says 500ms). A **content** check that needs no meaning. Tables and quotes excluded — tabulating different values is their job |
 | `cross-section-dup` | Near-identical sentences in *different* sections — the restatement signature |
 | `section-imbalance` | Sections far below the document's median length — the thinning-tail signature |
 | `redundant-expression` | 重言 and double negatives |
@@ -124,6 +125,26 @@ stop condition (see `loop-goal`). What it detects, and the failure each maps to:
 
 It **points, it never edits**, and it cannot see meaning: a flagged repetition may be a deliberate
 callback, and a short section may be short on purpose. Judge every hit.
+
+### Optional backend
+
+`pip install sudachipy sudachidict_core` upgrades two checks. Nothing requires it; without it the
+scanner runs the stdlib path and **says so in its header**, along with what is consequently not
+being looked at. `--no-backend` forces the stdlib path.
+
+A fixed-weight tokenizer is deterministic — same input, same output, no sampling or ordering
+sensitivity — so it belongs in a gate on exactly the grounds a prompted model does not. What it is
+worth, measured rather than assumed:
+
+| Check | stdlib | with sudachipy |
+|---|---|---|
+| `notation-drift` on variants outside the built-in table (見積り/見積もり, 取扱い, 打ち合せ, インターフェイス…) | 0 / 8 | **6 / 8** |
+| `style-mixing` register classification (24-sentence battery) | 23 / 24 | 24 / 24 |
+
+So the backend is worth installing **for terminology, not for register** — the suffix regex was
+already good enough there. False positives on six real documents: zero, after filtering out the
+three things a dictionary lemma folds that are not notation drift (verb conjugation, letter case,
+and translation — `reading`/`leading` both normalize to リーディング).
 
 ## Anti-patterns
 
