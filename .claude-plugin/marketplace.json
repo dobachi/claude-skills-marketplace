@@ -33,7 +33,7 @@
     {
       "name": "commit-safe",
       "source": "./plugins/commit-safe",
-      "description": "Assists with safe, selective commits: reviews changes before committing, suggests file-specific commits for large changesets, and prevents blanket 'git add -A'. Bundles a self-contained commit helper that blocks AI-signed commit messages."
+      "description": "Guides a safe, selective commit and — when you say yes to the one question it asks up front — carries the change through to release: version bump, CHANGELOG, annotated tag, push, GitHub Release, and package publish, with an explicit approval gate at every outward-facing, irreversible step. Reviews changes before committing, suggests file-specific commits for large changesets, and prevents blanket 'git add -A'. Bundles a self-contained commit helper that blocks AI-signed commit messages and a read-only release preflight that checks tree state, upstream sync, tag collisions, version files, CHANGELOG, publish targets, and gh auth."
     },
     {
       "name": "github-issues",
