@@ -1,6 +1,6 @@
 ---
 name: longform-discipline
-description: Guardrails and a minimal loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting, not by being written badly, so this targets the three measured decay axes (long input, long output, long session) — never single-pass the whole document, keep a spine file (outline, glossary, style contract) outside the context window, write sections sequentially with the prior section's tail loaded, repair the seams decomposition creates, keep the outline revisable, and gate on a deterministic scan plus a human review list, not AI self-scoring. Ships drift_scan.py (文体 mixing, sentence length, terminology drift, cross-section duplication). Bilingual JA/EN. Use when writing or continuing a long doc — 長文, 長編, 章立て, 数万字, 書籍, whitepaper, thesis — or on 用語がぶれる / 章がちぐはぐ / 後半が薄い / 同じことを何度も書いている / 'it lost the thread'. Hands drafting to doc-coauthoring, restructuring to doc-refactor, critique to doc-review, AI tells to ai-tell-reducer.
+description: Guardrails and a minimal loop for co-writing a LONG document with an AI — tens of thousands of characters to book length, including academic long-form. Long documents fail by drifting, not by being written badly, so this targets three measured decay axes (long input, long output, long session) — never single-pass the document, keep a spine file (outline, glossary, style contract, claims) outside the context window, write sections sequentially, repair the seams decomposition creates, and gate on a deterministic scan plus a human review list, not AI self-scoring. drift_scan.py checks surface drift AND content — whether a section names what its claim is about, unverified claims, terms used before defined, unsourced assertions — and content-review.md is the procedure for what needs meaning. Bilingual JA/EN. Use when writing or continuing a long doc — 長文, 長編, 章立て, 数万字, 書籍, whitepaper, thesis — or on 用語がぶれる / 章がちぐはぐ / 後半が薄い / 主旨が伝わらない. Hands critique to doc-review, facts to verify-content.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -69,7 +69,9 @@ Non-negotiable unless the user overrides them knowingly.
    the human is the judgment gate.
 7. **Give the human something specific to check.** People given AI output review it worse *and
    trust it more*. "Please review" gets nodded through. Hand over a numbered list: these 4 claims
-   are unverified, these 2 sections contradict, this term drifted in §7.
+   are unverified, these 2 sections contradict, this term drifted in §7. The procedure that
+   *produces* that list is `references/content-review.md` — without it this rule is a promise with
+   no method behind it.
 
 ## The loop
 
@@ -93,9 +95,12 @@ Then, once the sections exist:
               resolve terminology that moved. This is rule 4 and it is not optional.
 6. SCAN       python3 scripts/drift_scan.py <draft.md> --spine <draft>.spine.md
               Fix or consciously accept every finding. It reports; it never edits.
-7. HANDOFF    doc-review (argument), verify-content (facts), essence-distiller (cuts),
+7. CONTENT    references/content-review.md の手順A/B/C。章ごとに新しい文脈で、
+              答えは講評ではなく原文の引用か「無し」。点検済みで指摘なしの章も記録する。
+8. HANDOFF    doc-review (argument), verify-content (facts), essence-distiller (cuts),
               ai-tell-reducer (AI tells), doc-refactor (structure).
-8. HUMAN      Numbered, specific review list. Not "please review".
+9. HUMAN      6と7を1本にした番号付きリスト。章順、1項目1行、機械の指摘と判断を区別。
+              Not "please review".
 ```
 
 ## The drift scan
@@ -110,6 +115,17 @@ Stdlib only, Python 3.8+. Exit `0` clean, `1` findings, `2` usage error **or an 
 crash never exits `1`, so a gate cannot mistake a run that died for a run that found nothing. That is
 what makes it usable as a loop's stop condition (see `loop-goal`). What it detects, and the failure
 each maps to:
+
+**内容・コンテキスト** — spine を渡したときだけ走る。表層ではなく、**宣言したことを本文がやっているか**を見る。
+
+| Check | Catches |
+|---|---|
+| `claim-coverage` | A section never even names what its outline claim is about. Absence is strong evidence the claim does not land; presence proves nothing |
+| `unverified-claim` | The spine's claim ledger still says `unverified` — extracted verbatim as the human's review list |
+| `term-before-definition` | A glossary term used in a section earlier than the one the spine says defines it — the reader meets the word before its meaning |
+| `unsourced-assertion` | A sentence asserting established fact ("実証されている", "studies show") with no citation and no `[要確認]` beside it |
+
+**表層** — spine なしでも走る。
 
 | Check | Catches |
 |---|---|
@@ -148,6 +164,21 @@ already good enough there. False positives on six real documents: zero, after fi
 three things a dictionary lemma folds that are not notation drift (verb conjugation, letter case,
 and translation — `reading`/`leading` both normalize to リーディング).
 
+## Content and context
+
+The surface checks ask *is the draft internally consistent*. These ask *does the draft do what the
+spine said it would* — a different question, and the one a long document actually fails.
+
+| Layer | Who does it | Reaches |
+|---|---|---|
+| `drift_scan.py --spine` | mechanical | The claim's words are absent; the ledger says unverified; a term precedes its definition; an evidence claim carries no citation |
+| `references/content-review.md` | AI + human, per section | Whether the claim is actually *landed*; unstated leaps between sections; audience assumptions; paraphrased restatement; contradictions that are not numeric |
+| `doc-review` / `verify-content` | handoff | Argument quality; whether the facts are true |
+
+The middle row is a **procedure, not a score**. Every question in it is answered with a verbatim
+quote from the draft or the word "無し" — never a rating. A quote can be checked; a rating cannot,
+and asking a model to rate its own long draft is the exact failure rule 6 exists to prevent.
+
 ## Anti-patterns
 
 | Anti-pattern | Why it fails | Instead |
@@ -161,6 +192,9 @@ and translation — `reading`/`leading` both normalize to リーディング).
 | Asking the model whether the document contradicts itself | Automatic contradiction detection is unreliable on exactly the nuanced cases | Scan mechanically, then read the flagged pairs yourself |
 | Keeping a spine that contradicts itself | Contradictory persistent instructions get resolved arbitrarily | Prune the spine when the outline changes |
 | Repeating the glossary in the prompt instead of the spine | It falls out of context on compaction and drifts | One file on disk, re-read each session |
+| "Is this chapter good? Score it 1-10" | A rating cannot be checked, and the model is grading its own output | Ask for a verbatim quote or "無し" (content-review.md) |
+| Comparing summaries of two chapters to find contradictions | The contradiction disappears in the summarising | Compare the two chapters' actual text |
+| A review list with no "checked, nothing found" line | Silence reads as clean; it is indistinguishable from unchecked | Record the sections you cleared |
 | Letting the draft grow without the spine | The state lives only in a context window that is about to be summarized away | Rule 2 |
 
 ## Japanese long-form
@@ -175,4 +209,5 @@ rewriting everything.
 
 - `references/failure-modes.md` — every rule above, with the measured finding, a verbatim span, and the source
 - `references/spine-file.md` — spine file schema and a filled example
+- `references/content-review.md` — the meaning/context procedure and how the review list is built
 - `references/japanese.md` — Japanese long-form rules and their primary sources

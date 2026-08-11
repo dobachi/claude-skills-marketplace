@@ -84,8 +84,23 @@ One line per session. This is what a fresh context reads to know where it is.
 
 ## What the scanner actually reads
 
-`drift_scan.py --spine` parses **two** sections and enforces them. The rest is for the writer
-and the model; these are checked mechanically:
+`drift_scan.py --spine` parses **five** sections. Two of them are enforced as rules; three drive the
+content checks, which ask whether the draft does what the spine said it would.
+
+**Content — the spine is what makes these possible at all.** Without `--spine` they do not run,
+and the scan header says so rather than reading as a clean pass:
+
+| Spine section | Enforced as | Example finding |
+|---|---|---|
+| `## Outline` → `Claim it must land` | The section must at least name what its claim is about | `HIGH 主旨「遅延と可用性の両立が実証された」の語が本文に1つも現れません` |
+| `## Claims` → `Status` ≠ verified | Surfaced verbatim as the human's review list | `INFO 未検証の主張 K-2「可用性は99.9%を満たす」` |
+| `## Glossary` → `First defined` | The term must not appear in an earlier section | `WARN 用語「コネクタ」は 第2章 で定義される予定ですが…` |
+| `## Contract` → `Audience` | Read for the content-review procedure, not enforced mechanically | — |
+
+Fill the `Claim it must land` column. An outline row without it is skipped silently — the check
+cannot invent what a section was supposed to establish.
+
+**Rules — these are checked whether or not you meant them as rules:**
 
 | Spine line | Enforced as | Example finding |
 |---|---|---|

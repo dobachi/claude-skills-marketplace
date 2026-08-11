@@ -355,6 +355,21 @@ def prose_corpus(lines, drop_tables=True, drop_quotes=True):
     return "\n".join(keep)
 
 
+HEADER_LABELS = {"#", "id", "section", "claim", "claim it must land", "budget",
+                 "status", "must not repeat", "source", "definition", "canonical",
+                 "never write", "first defined", "章", "節", "主旨", "状態", "出典"}
+
+
+def _is_header_row(cells):
+    """True when two or more cells are column labels rather than data.
+
+    One label can legitimately be a value ("Status" as a term); two in one row
+    is a header. Letting the header through made the outline check report a
+    missing section called "Section".
+    """
+    return sum(1 for c in cells if c.strip().lower() in HEADER_LABELS) >= 2
+
+
 def _contract_value(raw):
     """A style-contract value, or None if the template placeholder is unfilled.
 
@@ -373,8 +388,17 @@ def _contract_value(raw):
 
 
 def parse_spine(path):
-    """Read a spine file. Returns {"glossary": [(canonical, [banned...])],
-    "style": {...}} — the two sections this scanner can enforce mechanically."""
+    """Read a spine file.
+
+    Returns {"glossary": [(canonical, [banned...])], "style": {...},
+             "outline": [{"num","title","claim"}], "claims": [{...}],
+             "audience": str|None}.
+
+    Glossary and style are enforced as rules. Outline claims, the claim ledger
+    and the audience line drive the CONTENT checks — the ones that ask whether
+    the draft does what the spine said it would, rather than whether its surface
+    is consistent.
+    """
     try:
         with open(path, encoding="utf-8") as fh:
             lines = fh.read().splitlines()
@@ -384,6 +408,7 @@ def parse_spine(path):
 
     rows, style = [], {"register": None, "digits": None,
                        "list_period": None, "banned": []}
+    outline, claims, first_defined, audience = [], [], {}, None
     section = None
     for ln in lines:
         if re.match(r"^#{1,6}\s", ln):
@@ -391,6 +416,12 @@ def parse_spine(path):
                 section = "glossary"
             elif re.search(r"(style contract|文体契約|スタイル)", ln, re.I):
                 section = "style"
+            elif re.search(r"(outline|アウトライン|章立て|構成)", ln, re.I):
+                section = "outline"
+            elif re.search(r"(claims?|主張|クレーム)", ln, re.I):
+                section = "claims"
+            elif re.search(r"(contract|契約|前提)", ln, re.I):
+                section = "contract"
             else:
                 section = None
             continue
@@ -406,6 +437,35 @@ def parse_spine(path):
                       and b.strip() not in {"-", "—", "–"}]
             if canonical and canonical not in {"-", "—"}:
                 rows.append((canonical, banned))
+                if len(cells) >= 4 and cells[3] not in {"-", "—", ""}:
+                    first_defined[canonical] = cells[3]
+
+        elif section == "outline" and ln.strip().startswith("|"):
+            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+            if len(cells) < 3 or re.match(r"^[-: ]+$", cells[0]):
+                continue
+            if _is_header_row(cells):
+                continue
+            claim = cells[2]
+            if claim in {"-", "—", "", "..."} or claim.startswith("<"):
+                claim = ""
+            outline.append({"num": cells[0], "title": cells[1], "claim": claim})
+
+        elif section == "claims" and ln.strip().startswith("|"):
+            cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+            if len(cells) < 5 or re.match(r"^[-: ]+$", cells[0]):
+                continue
+            if _is_header_row(cells):
+                continue
+            claims.append({"id": cells[0], "claim": cells[1], "section": cells[2],
+                           "source": cells[3], "status": cells[4]})
+
+        elif section == "contract":
+            m = re.match(r"^\s*[-*+]\s*(.+?)\s*[:：]\s*(.*)$", ln)
+            if m and re.search(r"(audience|読者|対象)", m.group(1), re.I):
+                val = _contract_value(m.group(2))
+                if val:
+                    audience = val
 
         elif section == "style":
             m = re.match(r"^\s*[-*+]\s*(.+?)\s*[:：]\s*(.*)$", ln)
@@ -433,7 +493,9 @@ def parse_spine(path):
                 if not items:
                     items = [p.strip() for p in re.split(r"[,、]", val) if p.strip()]
                 style["banned"] = [i for i in items if len(i) >= 2]
-    return {"glossary": rows, "style": style}
+    return {"glossary": rows, "style": style, "outline": outline,
+            "claims": claims, "first_defined": first_defined,
+            "audience": audience}
 
 
 # ------------------------------------------------------------------- checks
@@ -975,9 +1037,194 @@ def check_repeated_openers(sections):
     return out
 
 
+
+# ------------------------------------------------------- content / context
+# These ask a different question from every check above. The surface checks ask
+# "is the draft internally consistent?"; these ask "does the draft do what the
+# spine said it would?" — which is why they need the spine and report nothing
+# without one. None of them judges meaning: they check whether the words the
+# claim is about are even present, whether the ledger still says unverified,
+# whether a term is used before it is defined. A section can mention every term
+# in its claim and still fail to land it; that judgement is the human's, and
+# `references/content-review.md` is the procedure for it.
+
+# Markers that assert EVIDENCE, not markers that sound strong. Measured on seven
+# real documents, the obvious list ("必ず", "常に", "always", "never") fired 13
+# times and every hit was a prescriptive rule — "never parallel", "必ず確認する
+# こと" — which needs no source. A rule is not a claim. Narrowed to phrases that
+# assert something was established about the world: zero false positives on the
+# same seven documents.
+STRONG_JA = ["証明されている", "実証されている", "実証された", "例外なく",
+             "疑いの余地は", "統計的に有意", "研究によれば", "調査によれば",
+             "明らかになった", "確立されている"]
+STRONG_EN = ["proven", "undoubtedly", "definitively", "without exception",
+             "studies show", "research shows", "it is established that",
+             "demonstrably", "guarantees that"]
+CITE_MARKERS = ["http://", "https://", "doi:", "出典", "参照", "引用", "注)", "脚注",
+                "[^", "et al", "参考文献"]
+
+
+def content_terms(text, limit=12):
+    """The words a claim is *about*, for presence testing. Not meaning."""
+    if MORPH is not None and MORPH.available and is_ja(text):
+        terms = [s for s, _n, pos, sub, _i in MORPH.tokens(text)
+                 if pos == "名詞" and sub in ("普通名詞", "固有名詞") and len(s) >= 2]
+    else:
+        terms = (re.findall(r"[一-龥]{2,}", text)
+                 + re.findall(r"[ァ-ヶー]{3,}", text)
+                 + re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", text))
+    seen, out = set(), []
+    for w in terms:
+        k = w.lower()
+        if k in seen or k in LABEL_STOP:
+            continue
+        seen.add(k)
+        out.append(w)
+    return out[:limit]
+
+
+def _norm_title(s):
+    s = re.sub(r"\s+", "", s or "")
+    s = re.sub(r"^(第?\d+[章節話]|§\d+|\d+[.)]|Chapter\s*\d+)", "", s, flags=re.I)
+    return s
+
+
+def _section_index(sections, ref):
+    """Index of the document section an outline row / '§3' reference points at."""
+    if not ref:
+        return None
+    named = [(i, s) for i, s in enumerate(sections) if s["title"] != "(preamble)"]
+    ref_n = _norm_title(ref)
+    for i, s in named:                                   # exact, then substring
+        if ref_n and _norm_title(s["title"]) == ref_n:
+            return i
+    for i, s in named:
+        if ref_n and (ref_n in _norm_title(s["title"]) or _norm_title(s["title"]) in ref_n):
+            return i
+    m = re.search(r"\d+", str(ref))                      # fall back to the number
+    if m:
+        want = m.group(0)
+        for i, s in named:
+            if re.search(r"(?<!\d)%s(?!\d)" % want, s["title"]):
+                return i
+    return None
+
+
+def _section_body(sec):
+    return "\n".join(txt for _ln, txt in sec["lines"])
+
+
+def check_claim_coverage(sections, outline):
+    """Does each section even mention what its outline claim is about?
+
+    Absence is strong: a section that never names the claim's subject is not
+    landing it. Presence proves nothing, which is why a pass here is not a pass.
+    """
+    out = []
+    for entry in outline:
+        claim = entry.get("claim")
+        if not claim:
+            continue
+        idx = _section_index(sections, entry.get("title")) 
+        if idx is None:
+            idx = _section_index(sections, entry.get("num"))
+        if idx is None:
+            out.append(finding(
+                "claim-coverage", "warn", entry.get("title") or entry.get("num"), None,
+                "スパインのアウトライン「%s」に対応する見出しが本文に見つかりません。"
+                % (entry.get("title") or entry.get("num"))))
+            continue
+        terms = content_terms(claim)
+        if not terms:
+            continue
+        body = _section_body(sections[idx])
+        missing = [w for w in terms if w not in body]
+        hit = len(terms) - len(missing)
+        title = sections[idx]["title"]
+        if hit == 0:
+            out.append(finding(
+                "claim-coverage", "high", title, sections[idx]["start"],
+                "この章が述べるはずの主旨「%s」の語が本文に1つも現れません。" % claim[:50],
+                {"claim": claim, "missing": missing}))
+        elif hit / len(terms) < 0.5:
+            out.append(finding(
+                "claim-coverage", "warn", title, sections[idx]["start"],
+                "主旨「%s」の主要語のうち %d/%d が本文にありません（%s）。"
+                % (claim[:40], len(missing), len(terms), "、".join(missing[:5])),
+                {"claim": claim, "missing": missing}))
+    return out
+
+
+def check_unverified_claims(claims):
+    """The spine's own claim ledger, surfaced as the human's review list."""
+    out = []
+    # Exact membership, not substring: "unverified" contains "verified", and a
+    # substring test silently marked every open claim as done.
+    ok = {"verified", "検証済", "検証済み", "確認済", "確認済み", "済", "done", "ok", "yes"}
+    for row in claims:
+        status = (row.get("status") or "").strip().lower()
+        if status in ok:
+            continue
+        out.append(finding(
+            "unverified-claim", "info", row.get("section") or "(document)", None,
+            "未検証の主張 %s「%s」（出典: %s / 状態: %s）"
+            % (row.get("id"), (row.get("claim") or "")[:50],
+               row.get("source") or "—", row.get("status") or "—"),
+            {"id": row.get("id"), "section": row.get("section")}))
+    return out
+
+
+def check_term_before_definition(sections, first_defined):
+    """A glossary term used before the section the spine says defines it.
+
+    The reader meets the word before its definition — an audience-assumption
+    failure that no surface check sees.
+    """
+    out = []
+    for term, where in first_defined.items():
+        declared = _section_index(sections, where)
+        if declared is None:
+            continue
+        for i, sec in enumerate(sections):
+            if sec["title"] == "(preamble)" or i >= declared:
+                continue
+            if term in _section_body(sec):
+                out.append(finding(
+                    "term-before-definition", "warn", sec["title"], sec["start"],
+                    "用語「%s」は %s で定義される予定ですが、それより前のこの章で使われています。"
+                    % (term, where), {"term": term, "declared": where}))
+                break
+    return out
+
+
+def check_unsourced_assertion(sections):
+    """Absolute assertions with no citation and no [要確認] beside them."""
+    out = []
+    for sec in sections:
+        for lineno, sent, kind in sentences_of(sec):
+            if kind in ("table", "quote"):
+                continue
+            low = sent.lower()
+            markers = [m for m in STRONG_JA if m in sent]
+            markers += [m for m in STRONG_EN if m in low]
+            if not markers:
+                continue
+            if any(c in sent or c in low for c in CITE_MARKERS):
+                continue
+            if any(m in sent for m in OPEN_MARKERS):
+                continue
+            out.append(finding(
+                "unsourced-assertion", "info", sec["title"], lineno,
+                "断定「%s」に出典も [要確認] もありません: %s"
+                % (markers[0], sent[:60]), {"marker": markers[0]}))
+    return out
+
+
 # -------------------------------------------------------------------- driver
 
-CHECKS = ["style-mixing", "declared-style-violation", "long-sentence",
+CHECKS = ["claim-coverage", "unverified-claim", "term-before-definition",
+          "unsourced-assertion",
+          "style-mixing", "declared-style-violation", "long-sentence",
           "notation-drift", "glossary-violation", "numeric-inconsistency",
           "cross-section-dup", "section-imbalance", "redundant-expression",
           "open-marker", "repeated-opener"]
@@ -1003,9 +1250,20 @@ def run(path, spine_path=None, only=None, use_backend=True):
     sections = split_sections(lines)
     spine = parse_spine(spine_path) if spine_path else {"glossary": [], "style": {}}
     glossary, style = spine["glossary"], spine["style"]
+    outline = spine.get("outline") or []
+    claims = spine.get("claims") or []
+    first_defined = spine.get("first_defined") or {}
     enabled = set(only) if only else set(CHECKS)
 
     findings = []
+    if "claim-coverage" in enabled and outline:
+        findings += check_claim_coverage(sections, outline)
+    if "unverified-claim" in enabled and claims:
+        findings += check_unverified_claims(claims)
+    if "term-before-definition" in enabled and first_defined:
+        findings += check_term_before_definition(sections, first_defined)
+    if "unsourced-assertion" in enabled:
+        findings += check_unsourced_assertion(sections)
     if "declared-style-violation" in enabled and any(
             style.get(k) is not None and style.get(k) != []
             for k in ("register", "digits", "list_period", "banned")):
@@ -1068,8 +1326,14 @@ def render(findings, stats):
     else:
         lines.append("  backends: none — 文体判定は語尾マッチ、表記ゆれは既知パターンのみ "
                      "(sudachipy を入れると両方が品詞・正規化形ベースになります)")
-    lines.append("  not checked by any backend: 章間の矛盾・主旨の達成・根拠の有無"
-                 "（意味が要るため人手 / doc-review）")
+    if stats.get("spine"):
+        lines.append("  content: 主旨の語の不在 / 未検証の主張 / 定義前の用語 / 無出典の断定 "
+                     "— 語の有無までで、主旨を landing しているかは見ていません")
+    else:
+        lines.append("  content: スパイン未指定のため、主旨・未検証の主張・定義前の用語は "
+                     "一切見ていません（--spine を渡すと有効）")
+    lines.append("  still human-only: 主旨を実際に述べているか・章間の論理接続・読者前提との齟齬"
+                 "・数値以外の矛盾（references/content-review.md の手順 / doc-review）")
     c = stats["counts"]
     lines.append("  findings: high=%d warn=%d info=%d"
                  % (c.get("high", 0), c.get("warn", 0), c.get("info", 0)))

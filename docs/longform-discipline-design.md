@@ -145,6 +145,55 @@ fixed rather than documented away:
   against `##` chapters, making every chapter an outlier. It now compares peers at one heading
   level only.
 
+### 1.3.0 — the content layer, which was the actual gap
+
+Through 1.2.x the skill had eleven checks and every one of them was a *surface* check. The audit
+that prompted this release was blunt: technical metrics 8/8, meaning-and-context metrics 0 complete,
+2 partial, 5 not started. Worse, rule 7 ("hand the human a numbered list") had no method behind it —
+the loop said to produce the list and nothing said how. A rule with no procedure is a promise.
+
+**Four deterministic content checks.** These ask a different question from everything above: not
+*is the draft internally consistent* but *does the draft do what the spine said it would*. They read
+the spine's `Outline`, `Claims`, `Glossary → First defined` and `Contract → Audience`, and they do
+not run at all without `--spine` — the header says so rather than reading as a clean pass.
+
+| Check | What it can actually tell you |
+|---|---|
+| `claim-coverage` | The section never names what its outline claim is about. Absence is strong; presence proves nothing |
+| `unverified-claim` | The claim ledger still says unverified — extraction, not judgement, so it cannot be wrong |
+| `term-before-definition` | A glossary term appears earlier than the section that defines it |
+| `unsourced-assertion` | A sentence asserting established fact with no citation and no `[要確認]` |
+
+None of them judges meaning. `claim-coverage` in particular is a *presence* test: a section can name
+every term in its claim and still fail to land it. That limit is stated in the check's own message.
+
+**`references/content-review.md` is the part that was mandatory.** Three procedures — per section
+(A1–A5), per adjacent pair (B1–B3), whole document (C1–C3) — plus the rules for assembling the review
+list. Its central constraint: **every question is answered with a verbatim quote from the draft or
+the word 無し, never a rating.** A quote can be checked; a rating cannot, and asking a model to rate
+its own long draft is precisely what rule 6 exists to prevent. The list is ordered by section rather
+than severity (sorting by importance means the tail goes unread), one line per item, machine findings
+and judgement findings tagged differently because their reliability differs, and sections cleared
+with no findings are recorded explicitly — silence is otherwise indistinguishable from unchecked.
+
+**`unsourced-assertion` was narrowed by measurement, not intuition.** The obvious marker list —
+必ず / 常に / always / never — fired 13 times across seven real documents and *every hit was a
+prescriptive rule*: "never parallel", "the scanner reports, never edits". A rule is not a claim and
+needs no source. Narrowed to phrases that assert something was established (実証されている, proven,
+studies show): zero false positives on the same seven documents, and 4/4 on seeded assertions, with
+the cited one correctly silent.
+
+Two bugs, both of the kind that reads as success:
+
+- `"unverified"` contains `"verified"`, and the status test used substring matching — so every open
+  claim in the ledger was silently marked done and the check reported nothing.
+- The outline table's header row was not filtered (the guard looked at column 0, which is `#`), so
+  the scan reported a missing section named "Section".
+
+And the corrected `term-before-definition` immediately caught a real mismatch in this project's own
+test fixtures, where the spine claimed a term was first defined in §3 while the draft used it in §1.
+The fixture was wrong, not the check.
+
 ### 1.2.0 — a correction, a content check, and a measured backend
 
 **The correction first, because it changed the policy.** 1.1.0 shipped with an argument that

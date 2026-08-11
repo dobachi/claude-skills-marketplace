@@ -2,8 +2,9 @@
 - [x] 2026-08-11 longform-discipline: 形態素解析の任意バックエンド(janome優先/sudachipy)を drift_scan.py に追加 — 文体判定を語尾正規表現から品詞・活用ベースへ、表記ゆれをSudachi正規化表記で辞書化不要に、係り受け距離を建議どおり実測(現在は一文長で代理)。既定は stdlib のまま、あれば使い無ければ縮退 #longform-discipline (done: 2026-08-11)
 - [ ] 2026-08-11 longform-discipline: 文埋め込みの要否を実測で判断 — 実際の長文で「トライグラムJaccardが逃した言い換え重複」の件数を数えてから導入可否を決める(計測なしに2GB依存を足さない)。判断材料が出るまで cross-section-dup は逐語重複のみ #longform-discipline
 - [x] 2026-08-11 longform-discipline: 任意バックエンドの縮退を可視化 — スキャン冒頭に backends 行(例 sudachipy OK / embeddings 未導入=逐語重複のみ)を出し、見ていない項目が『合格』と区別できるようにする。style contract の未宣言表示と同じ方針 #longform-discipline (done: 2026-08-11)
-- [ ] 2026-08-11 longform-discipline: テクニカル指標(文字数・語尾・重複率)だけでなく、内容とコンテキストの観点・機能を入れる — 例: 章がスパインで宣言した主旨(Claim it must land)を実際に述べているか、根拠のない主張の所在、読者前提と本文の齟齬、章間の論理接続、目的に寄与しない節。決定的スキャンでは扱えないので、スキャナではなくスキル側の手順(節ごとの点検プロンプト/レビュー項目生成)として設計する #longform-discipline
+- [x] 2026-08-11 longform-discipline: テクニカル指標(文字数・語尾・重複率)だけでなく、内容とコンテキストの観点・機能を入れる — 例: 章がスパインで宣言した主旨(Claim it must land)を実際に述べているか、根拠のない主張の所在、読者前提と本文の齟齬、章間の論理接続、目的に寄与しない節。決定的スキャンでは扱えないので、スキャナではなくスキル側の手順(節ごとの点検プロンプト/レビュー項目生成)として設計する #longform-discipline (done: 2026-08-11)
 - [ ] 2026-08-11 longform-discipline: NLI分類器をゲート候補として再評価する(旧項目の「入れない」判断を撤回) — ContraDocは2023年11月のプロンプトされたGPT-4を測ったもので、固定重みのNLI分類器(deterministic・閾値較正可・precision/recall公表)とは別カテゴリ。埋め込みと同じ扱いで、実測した適合率で判断する。なおContraDocは「GPT-4は人間を上回りうる」とも述べており、否定側だけを引くのは片手落ち #longform-discipline
 - [ ] 2026-08-11 longform-discipline: 埋め込みとNLIは独立候補ではなく一つのパイプライン(候補検索→含意判定)。章跨ぎ矛盾は総当たりだとN^2で破綻するため、埋め込みによる候補絞り込みが前提。導入順序を1本の設計として扱う #longform-discipline
 - [x] 2026-08-11 longform-discipline: 数値・事実の章間不整合チェックを追加(MLなし・決定的・高精度) — 同一対象の数値を全章から抽出して突き合わせる(例 §2:200ms / §7:500ms)。単位正規化と全角半角の吸収が要る。「意味が要らない内容検査」の代表例で、内容観点の第一歩として最も費用対効果が高い #longform-discipline (done: 2026-08-11)
 - [x] 2026-08-11 longform-discipline: references/failure-modes.md に鮮度注記を入れる — ContraDoc(2023-11)等、1年以上前のベンチマーク結果を現行の状態として読ませない。設計メモの自ルール『load-bearingで1年以上古いものは再確認』を参照側にも適用 #longform-discipline (done: 2026-08-11)
+- [ ] 2026-08-11 longform-discipline: content-review.md の手順A/B/Cを実文書で1回まわして、問いの粒度と出力形式を調整する（設計しただけで運用実績が無い） #longform-discipline
