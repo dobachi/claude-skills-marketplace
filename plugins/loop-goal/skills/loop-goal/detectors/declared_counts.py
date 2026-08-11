@@ -63,7 +63,8 @@ def main():
             ok = declared == actual
             total += 0 if ok else 1
             print(f"  {'OK' if ok else 'NG':<4} {label:<22} 申告 {declared} / 実測 {actual}"
-                  + ("" if ok else "  ← 不一致"))
+                  + ("" if ok else "  ← 不一致")
+                  + ("  ← 0 申告。一致するが何も数えていない" if ok and declared == 0 else ""))
         if not found:
             print("  申告が1つも見つからない。一致を検査する相手が無く、測定できない")
             if REQUIRE_APPLICABLE:
@@ -76,6 +77,8 @@ def main():
     print("  - 申告が見つからないことは合格ではない。REQUIRE_APPLICABLE で落とすが、")
     print("    CHECKS の一部だけ消した場合は残りの項目で通ってしまう")
     print("  - 引用が原文に実在するか・出典が妥当かは見ない（別工程）")
+    print("  - **0 と申告すれば実測0と一致して通る。** 数字は出すが NG にはしない")
+    print("    （0 が妥当な文書もあるため。実測: 上限を迫った条件でこの経路が選ばれた）")
     print(f"\n判定: {'NG' if total else 'OK'}（{total}件）")
     return 1 if total else 0
 
