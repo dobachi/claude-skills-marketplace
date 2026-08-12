@@ -18,9 +18,23 @@ case "$NAME" in
 esac
 case "$NAME" in *anthropic*|*claude*) echo "new_skill: name contains a reserved word (anthropic/claude)" >&2; exit 2;; esac
 
-REPO="$(cd "$(dirname "$0")" && pwd)"
-while [ "$REPO" != "/" ] && [ ! -f "$REPO/.claude-plugin/marketplace.json" ]; do REPO="$(dirname "$REPO")"; done
-[ -f "$REPO/.claude-plugin/marketplace.json" ] || { echo "new_skill: marketplace.json not found" >&2; exit 2; }
+# Repo root. Search from the CURRENT DIRECTORY first, then from the script.
+# When the skill fires, this script runs from the installed plugin cache
+# (~/.claude/plugins/cache/...), which has no marketplace above it — but the
+# user is standing in the repo. Script-location-first fails in exactly the
+# normal case.
+find_repo() {
+  local d="$1"
+  while [ "$d" != "/" ]; do
+    [ -f "$d/.claude-plugin/marketplace.json" ] && { printf '%s' "$d"; return 0; }
+    d="$(dirname "$d")"
+  done
+  return 1
+}
+REPO="$(find_repo "$PWD" || find_repo "$(cd "$(dirname "$0")" && pwd)" || true)"
+[ -f "${REPO:-/nonexistent}/.claude-plugin/marketplace.json" ] || {
+  echo "new_skill: marketplace.json が見つかりません (探した場所: $PWD と $(dirname "$0"))" >&2
+  echo "           マーケットプレイスのリポジトリ内で実行してください" >&2; exit 2; }
 cd "$REPO" || exit 2
 
 PLUGIN="plugins/$NAME"

@@ -18,13 +18,23 @@ if [ -z "$NAME" ]; then
   exit 2
 fi
 
-# Repo root: walk up from this script until marketplace.json is found.
-REPO="$(cd "$(dirname "$0")" && pwd)"
-while [ "$REPO" != "/" ] && [ ! -f "$REPO/.claude-plugin/marketplace.json" ]; do
-  REPO="$(dirname "$REPO")"
-done
-if [ ! -f "$REPO/.claude-plugin/marketplace.json" ]; then
-  echo "release_check: marketplace.json not found above $(dirname "$0")" >&2
+# Repo root. Search from the CURRENT DIRECTORY first, then from the script.
+# When the skill fires, this script runs from the installed plugin cache
+# (~/.claude/plugins/cache/...), which has no marketplace above it — but the
+# user is standing in the repo. Script-location-first fails in exactly the
+# normal case.
+find_repo() {
+  local d="$1"
+  while [ "$d" != "/" ]; do
+    [ -f "$d/.claude-plugin/marketplace.json" ] && { printf '%s' "$d"; return 0; }
+    d="$(dirname "$d")"
+  done
+  return 1
+}
+REPO="$(find_repo "$PWD" || find_repo "$(cd "$(dirname "$0")" && pwd)" || true)"
+if [ ! -f "${REPO:-/nonexistent}/.claude-plugin/marketplace.json" ]; then
+  echo "release_check: marketplace.json が見つかりません (探した場所: $PWD と $(dirname "$0"))" >&2
+  echo "               マーケットプレイスのリポジトリ内で実行してください" >&2
   exit 2
 fi
 cd "$REPO" || exit 2
