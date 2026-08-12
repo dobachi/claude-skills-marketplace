@@ -22,7 +22,7 @@ Claude Code 用の個人スキルマーケットプレイス。さらに `instal
 | **reload-and-reset** | AI指示書システムを最新版に更新し、AIの振る舞いを指示書に従った状態にリセット。 |
 | **verify-content** | 文章の事実確認と参照検証を行う統合スキル。主張の洗い出し、外部ソースでの検証、参考文献の整備まで一貫実行。 |
 | **agent-delegate** | 現在のエージェントから別のCLIコーディングエージェント（Codex=`codex-delegate`、Antigravity/agy=`agy-delegate`、Claude Code=`claude-code-delegate`）へタスクを委譲。明示指示のみ・読み取り優先・書き込みは preview→確認→apply ゲートを経由し、各書き込みを OS サンドボックス（bubblewrap）で隔離。3スキルを同梱。 |
-| **knowledge-base** | セッションをまたいで、どのエージェントからも使える永続ナレッジベース。プレーンMarkdown・1ディレクトリ=1KB・サーバもDBも不要なので、フォルダのコピーで持ち運べGit/OneDriveで同期できる。複数KB（`prose`/`entities` 形式）、索引→grep の想起、Claude Code / Codex / Antigravity(`agy`) で検証済みのエージェント横断アダプタを備える。stdlibのみの検証器を同梱。 |
+| **knowledge-base** | セッションをまたいで、どのエージェントからも使える永続ナレッジベース。プレーンMarkdown・1ディレクトリ=1KB・サーバもDBも不要なので、フォルダのコピーで持ち運べGit/OneDriveで同期できる。複数KB（`prose`/`entities` 形式）、レコード間の型付き関係（1方向だけ書き、逆向きは導出して両方向に辿れる）、索引→grep の想起、Claude Code / Codex / Antigravity(`agy`) で検証済みのエージェント横断アダプタを備える。stdlibのみの検証器とグラフツールを同梱。 |
 | **skill-authoring** | **このマーケットプレイス**にスキルを追加・更新・リリースするための取り決め。一般的なスキル指南が扱わないリポジトリ固有の部分を持つ。`new_skill.sh` が雛形生成と登録、`release_check.sh` が出荷前ゲート — description の長さとYAML安全性、説明文を揃えるべき4箇所、バージョン更新、サイトカタログの鮮度、validator、同梱ハーネスの実行。忘れても症状が出ない項目だけを機械化してある。執筆ガイドと登録手順書を references として同梱。測定（evals・トリガ精度・版のA/B）は公式の `skill-creator` に委譲。 |
 
 ### 役割スキル (Role Skills)

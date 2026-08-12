@@ -1,0 +1,5 @@
+kb: kitchen
+format: prose
+format_version: 1
+index: INDEX.md
+title: Kitchen notes (defect-injected fixture)

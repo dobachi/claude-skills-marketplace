@@ -54,11 +54,21 @@ reinstalling it never touches your KBs.
 ### Two kinds of knowledge (more later)
 
 - **prose** — ordinary notes: memos, how-tos, decisions, meeting notes.
-- **entities** — structured things and their relationships: people, terms, products,
-  and how they connect.
+- **entities** — structured things: people, terms, products.
 
 Each KB says which kind it is in its `manifest.yaml`. Future kinds can be added without
 changing anything you already have.
+
+### Notes that know how they relate
+
+Knowledge is not a flat list. A note can say that it **applies** a principle another note
+states, that it is **part of** a checklist, that it **contrasts with** a lookalike, or is
+simply **related**. You write each connection once, on one side; the reverse direction is
+worked out for you when you ask, so nothing has to be kept in sync by hand.
+
+That is what lets your agent answer with the general rule behind a specific note, instead
+of only the one page that matched your words. A bundled tool shows what points at a note,
+what is not connected to anything yet, and — if you want to look at it — the whole graph.
 
 ### Finding things
 
@@ -94,9 +104,10 @@ runs on all of these agents, not just Claude Code.)
 
 ## Status & roadmap
 
-Version 0.1.0. The convention, both formats, the recall/creation workflow, the adapters,
-and a validator are in place; the adapters are verified on three agents. A throwaway local
-index for very large KBs is deliberately out of scope for this release.
+Version 0.2.0. The convention, both formats, typed relations with derived reverse
+links, the recall/creation workflow, the adapters, a validator, and a graph tool are in
+place; the adapters are verified on three agents. A throwaway local index for very large
+KBs is deliberately out of scope for this release.
 
 The design rationale — why there is no vector database, why the KB never contains a
 database, and how the adapter/skill split delivers cross-agent use — is in

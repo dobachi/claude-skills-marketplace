@@ -3,6 +3,13 @@
 The rules that define a knowledge base for this skill. Self-contained: everything a
 person or agent needs to create, read, and search a KB by hand, with no external tools.
 
+## Contents
+
+0. Where a KB lives · 1. A KB is a directory · 2. `manifest.yaml` · 3. `INDEX.md` ·
+4. `prose` format · 5. `entities` format · **6. `relations` — how records connect** ·
+7. IDs and references · 8. Multiple KBs · 9. Invariants · 10. Search, staged ·
+11. Portability rules · Minimal example
+
 ## 0. Where a KB lives
 
 A KB is separate from this skill. The skill is installed and updated under the plugin
@@ -83,6 +90,8 @@ Body — free Markdown.
 
 Only `id` is required. Subfolders are free; `id` must be unique within the KB.
 
+Prose records may also carry `relations:` to link to other records — see §6.
+
 ## 5. `entities` format
 
 Typed entities and relationships (a light knowledge graph). One record = one entity = one
@@ -121,7 +130,67 @@ does not change what the bundled validator enforces.
 - If the entity a relation should point to does not exist yet, **do not invent the
   relation** — leave it out until that entity exists.
 
-## 6. IDs and references
+The full rules for `relations` — shared by both formats — are §6.
+
+## 6. `relations` — how records connect (both formats)
+
+Knowledge is not a flat list: a note applies a principle stated in another note, a pitfall
+is one item of a checklist, two notes look alike and are not. That structure lives in a
+`relations:` map in the frontmatter, **in `prose` records as well as `entities` records**.
+
+```yaml
+---
+id: ci-env-differs-from-local
+relations:
+  applies: [verification-not-exit-code]     # this note applies that note's principle
+  related: [repo-publication-checklist]
+---
+```
+
+### Rules
+
+1. **Targets are records, nothing else.** A value is an `id` (same KB) or `kb/id` (another
+   KB). Concepts, URLs, tool names, files in some repo are body prose or top-level fields —
+   never relations. If the target record does not exist yet, **do not write the relation**;
+   note the gap in the body instead.
+2. **Write each relation once, in one direction.** The inverse is *derived* by tooling
+   (`scripts/kb-graph.py`), never stored. Two stored copies of one fact drift the moment a
+   record is renamed or deleted. Which side writes it is fixed by the table below — for the
+   asymmetric ones it is always the **more specific side** (the example, the part, the newer
+   record), because that is the side being written when the connection is noticed.
+3. **Stay in the vocabulary.** A small closed set keeps relations comparable across records;
+   an open one degrades into a second tag namespace. Unknown names are a warning, not an
+   error, so a KB with its own vocabulary still validates.
+4. **Frontmatter states, the body explains.** The machine-readable truth is `relations`;
+   a `## Related` (`## 関連`) section in the body carries the one line of *why* — which is
+   what makes the link worth following. Keep them consistent: a body link to a record that
+   no relation covers, in either direction, is a warning.
+5. **No self-relations**, and no relation whose target is the record itself via `kb/id`.
+
+### Vocabulary (v1)
+
+| Relation | Inverse (derived) | Written on | Meaning |
+|---|---|---|---|
+| `related` | `related` | either side, once | Adjacent topic: same tool, same area, read one after the other |
+| `applies` | `applied_by` | the concrete side | This record applies a general principle or technique that the target states |
+| `part_of` | `has_part` | the part | This record is one item of a larger procedure or checklist the target holds |
+| `contrasts_with` | `contrasts_with` | either side, once | Same symptom, different cause — the pair is easy to confuse |
+| `supersedes` | `superseded_by` | the newer record | This record replaces the target |
+
+`related` is the fallback. Reach for a specific relation only when it is true; a wrong type
+is worse than a general one.
+
+### Using them
+
+- `python3 scripts/kb-graph.py <kb-root> --neighbors <id>` prints one hop in **both**
+  directions (stored and derived), which is the recall move: find a record, then look at
+  what it connects to before answering.
+- `--backlinks`, `--orphans`, `--hubs`, and `--mermaid` cover the maintenance questions
+  (what points here, what is unreachable, what is central, show me the graph).
+- Nothing is precomputed or cached: the graph is read from the Markdown every time, so
+  there is still no index to keep in sync (§9 invariant 1 holds).
+
+## 7. IDs and references
 
 - Record ids are **KB-local**. There is no global unique id.
 - Same-KB reference: `id` (e.g. `storage-format`).
@@ -130,7 +199,7 @@ does not change what the bundled validator enforces.
 - An unresolved reference is treated like a search returning nothing — **it is not a fatal
   error**. Copying one KB alone must not break it.
 
-## 7. Multiple KBs: separate by default, federate at query time
+## 8. Multiple KBs: separate by default, federate at query time
 
 The core does not merge stores. To search across KBs, do it as an explicit operation:
 
@@ -142,7 +211,7 @@ The core does not merge stores. To search across KBs, do it as an explicit opera
 
 Build a helper script for this only once the by-hand procedure proves insufficient.
 
-## 8. Invariants every format must satisfy
+## 9. Invariants every format must satisfy
 
 The core relies only on these five. Check them whenever a new format is added.
 
@@ -155,7 +224,7 @@ The core relies only on these five. Check them whenever a new format is added.
 Format-specific structure stays inside the KB, opaque to the core. Format-aware search
 (e.g. querying metrics) layers on top as a format tool — never in the core.
 
-## 9. Search, staged
+## 10. Search, staged
 
 Do not reach for a vector DB first. Add capability only when a real need is shown.
 
@@ -164,7 +233,7 @@ Do not reach for a vector DB first. Add capability only when a real need is show
 - **Stage 2 (only if proven necessary):** a throwaway, git-ignored local index (BM25, or a
   vector index as a last resort), rebuilt per machine. The Markdown stays the source of truth.
 
-## 10. Portability rules
+## 11. Portability rules
 
 - Everything is text, so Git / OneDrive / Dropbox all work and conflicts are readable.
 - **No symbolic links** (they break on Windows/OneDrive sync).

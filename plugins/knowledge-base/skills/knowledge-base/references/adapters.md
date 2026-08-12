@@ -4,6 +4,12 @@ A KB is just files, so any agent can read it. An **adapter** is a thin pointer y
 into your project (or your home config) that tells a given agent *where the KB is* and
 *how to use it*. It is a few dozen lines of text — not code, not a server.
 
+## Contents
+
+Adapter vs. this skill · Install it with the script · The adapter body ·
+Where to put it (project vs user level) · Per-agent placement (Claude Code, Codex,
+Antigravity, Gemini CLI) · Sharing one body across agents · Pointing at multiple KBs
+
 ## Adapter vs. this skill — read this first
 
 They are different things, and **the adapter is the load-bearing one**:

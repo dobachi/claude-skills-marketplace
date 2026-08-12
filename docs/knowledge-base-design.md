@@ -62,6 +62,31 @@ A KB that is only text therefore survives Git, OneDrive, and Dropbox alike, and 
 conflicts are readable. For the same reason the skill uses **no symbolic links** — Dropbox
 on Windows does not sync them.
 
+### Why relations are stored once and reversed on read
+
+Records are not a flat list, and the connections carry knowledge the records do not: that a
+specific pitfall is an instance of a general principle, that a note is one item of a
+checklist, that two notes describe the same symptom with different causes. Without those,
+recall only ever returns what matched the user's words — never the rule behind it.
+
+The obvious implementations both fail on the constraints above. A graph database is the
+same trade the vector DB was rejected for. Backlinks written into both files are worse than
+they look: two copies of one fact, kept in sync by hand, that silently disagree the first
+time a record is renamed or deleted.
+
+So: **a relation is written once, on one side, in a closed vocabulary** (`related`,
+`applies`, `part_of`, `contrasts_with`, `supersedes`), and the reverse direction is
+*derived at read time* by `kb-graph.py`. There is nothing to keep in sync, because the
+inverse is never stored. Which side writes it is fixed by the vocabulary — always the more
+specific record (the instance, the part, the newer note) — so two people filing the same
+connection file it the same way. The vocabulary is closed on purpose: an open one becomes a
+second tag namespace, and relations stop being comparable across records.
+
+The body still carries a `## Related` line saying *why* the two connect, since that is what
+makes a link worth following; the frontmatter is the machine-readable half. Those two can
+drift, so the validator warns when a body links to a record that no relation covers in
+either direction.
+
 ### Why multiple KBs, separate by default
 
 Different knowledge has different structure, and forcing it into one store is what makes
@@ -101,6 +126,12 @@ The design was dogfooded and measured rather than asserted:
   Doing so exposed a real defect — attributes had been modelled as `relations`, producing
   links that resolved to nothing — which is why the convention now separates record-to-record
   `relations` from top-level attribute fields.
+- **Relations** were added after a 16-record personal `prose` KB showed the gap in practice:
+  it had grown 22 body links between records by hand, in two different link syntaxes, with
+  no type, no reverse direction, and no validation — one of them pointing at a record that
+  was never written. Retrofitting the spec onto that KB produced 21 typed relations and, in
+  the same pass, the drift check found a body link no relation could justify. The bundled
+  fixtures cover the same ground from a domain unlike this repo's own documents.
 - **Cross-KB references** resolve in practice (`kb/id` from one KB into another).
 - **Adapters**: from a neutral empty directory, with the adapter only at user level and no
   pointer in the prompt, **Claude Code, Codex, and Antigravity (`agy`) each auto-loaded the
@@ -111,5 +142,8 @@ The design was dogfooded and measured rather than asserted:
 ## Cost
 
 Effectively zero at rest: the KB is text on disk, and recall is one index read plus, at
-most, a `grep`. The validator (`scripts/kb-check.py`) is stdlib-only Python. There is no
-service to run, nothing to pay for, and nothing to keep warm.
+most, a `grep`. The validator (`scripts/kb-check.py`) and the graph tool
+(`scripts/kb-graph.py`) are stdlib-only Python, and the graph is re-read from the Markdown
+on every invocation rather than cached — which is affordable precisely because a personal
+KB is small, and which keeps the "no index inside the KB" rule intact. There is no service
+to run, nothing to pay for, and nothing to keep warm.

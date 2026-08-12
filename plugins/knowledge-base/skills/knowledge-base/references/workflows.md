@@ -4,6 +4,12 @@ The step-by-step an agent follows when using a knowledge base. Assumes the rules
 [`kb-convention.md`](kb-convention.md). Everything here is plain file operations plus
 `grep` — no server, no database.
 
+## Contents
+
+When this skill applies · Setup: install the adapters · 0. Locate the KB(s) ·
+1. Create a KB · 2. Add a record · 3. Recall / answer from a KB · 4. Cross-KB search ·
+5. Maintain · 6. When to escalate
+
 ## When this skill applies
 
 Use it when the user wants to **save, organize, or recall durable knowledge** that should
@@ -56,11 +62,17 @@ Tell the user to start a new agent session to pick it up.
 3. **Add an `INDEX.md` entry with aliases** — synonyms and related terms someone might
    search by. This is stage-0 recall; skipping it is the most common way a record becomes
    unfindable.
+4. **Connect it (`relations:`, `kb-convention.md` §6).** Before finishing, ask what the new
+   record hangs off: which principle does it apply, which checklist is it part of, which
+   record is it confusable with? Write those in the frontmatter — one direction only, using
+   the vocabulary — and put the *why* in a `## Related` line in the body. A record with no
+   relation is reachable only by search; `kb-graph.py --orphans` lists the ones that ended
+   up that way.
 
 **entities**
 1. Frontmatter requires `id`, `type`, `name`.
 2. Put scalar properties as **top-level fields** (`storage:`, `requires:`, `runtime:`…).
-   Put **only record-to-record links** under `relations:`, with values that are an `id`
+   Put **only record-to-record links** under `relations:` (§6), with values that are an `id`
    (same KB) or `kb/id` (another KB). Do **not** invent a relation to an entity that does
    not exist yet.
 3. Add an `INDEX.md` entry with aliases.
@@ -71,9 +83,15 @@ Tell the user to start a new agent session to pick it up.
 
 1. **Read `INDEX.md` first.** Use its topics and aliases to find candidate records.
 2. If the index is not enough, `grep -rn <term> <kb-root>`.
-3. Read the record and answer **only from KB content**. If the KB has no basis, say "not
-   in the KB" — do not fill from outside knowledge.
-4. Cite the record path or `kb/id`.
+3. **Follow one hop.** Once you have a record, look at what it connects to — its
+   `relations:` block, or
+   `python3 <skill-dir>/scripts/kb-graph.py <kb-root> --neighbors <id>` for both
+   directions at once. The record that answers the question is often not the one the
+   search hit: a specific pitfall usually `applies` a general principle that the user
+   also needs, and `contrasts_with` names the lookalike they may actually be facing.
+4. Read the record(s) and answer **only from KB content**. If the KB has no basis, say
+   "not in the KB" — do not fill from outside knowledge.
+5. Cite the record path or `kb/id`.
 
 ## 4. Cross-KB search (federation at query time)
 
@@ -88,7 +106,12 @@ Tell the user to start a new agent session to pick it up.
 - **Keep INDEX aliases current** when you add or rename records — stage-0 recall depends on
   it.
 - Run `python3 <skill-dir>/scripts/kb-check.py <kb-root>` after edits: it checks the five
-  invariants, the `entities` required fields, and dangling relations (warnings, not errors).
+  invariants, the `entities` required fields, dangling relations, unknown relation names,
+  and body links that no relation covers (warnings, not errors).
+- `python3 <skill-dir>/scripts/kb-graph.py <kb-root>` is the periodic health read: relation
+  counts by type, hubs, and orphans. An orphan is either a record that needs connecting or
+  a topic that does not belong in this KB. `--mermaid` renders the whole graph when you
+  want to look at the shape of what you know.
 - Never add a database, lock file, or binary index **inside** the KB. Never use symlinks.
 - Commit / sync the KB as plain files (Git, OneDrive, …) — it needs nothing else.
 

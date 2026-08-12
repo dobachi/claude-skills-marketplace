@@ -21,10 +21,14 @@ works by copying the folder, with no server and no database.
 Read it before creating or editing a KB. Summary of the contract:
 
 - **One KB = one directory** with `manifest.yaml` + `INDEX.md` + records.
-- **Formats**: `prose` (narrative Markdown) and `entities` (typed entities + relations;
+- **Formats**: `prose` (narrative Markdown) and `entities` (typed entities;
   the format is stated in [`references/entities-schema.json`](references/entities-schema.json)).
   Reserved for later: `ossie` (metrics/semantic layer), only if a warehouse-backed KB is
   needed.
+- **Records connect**: a `relations:` map in the frontmatter, in **both** formats, from a
+  closed vocabulary (`related`, `applies`, `part_of`, `contrasts_with`, `supersedes`).
+  Each relation is written **once, in one direction**; the inverse is derived by
+  `scripts/kb-graph.py`, never stored.
 - **Five invariants** every format keeps: text files · a manifest · an INDEX · `kb/id`
   addressing · grep works. New formats add nothing to the core.
 - **Search is staged**: curated INDEX (aliases absorb vocabulary gaps) → grep → a
@@ -52,10 +56,27 @@ only from KB content, and keep the index's aliases current.
 ## Validating a KB
 
 `scripts/kb-check.py` (stdlib only) checks the five invariants, the `entities` required
-fields, and whether `relations` resolve to real records. The path is relative to **this
-skill's directory**, so invoke it with the full path:
+fields, whether `relations` resolve to real records, the relation vocabulary, and body
+links that no relation covers. The path is relative to **this skill's directory**, so
+invoke it with the full path:
 
 ```bash
 python3 <skill-dir>/scripts/kb-check.py <kb-root>
 ```
+
+## Traversing a KB
+
+`scripts/kb-graph.py` (stdlib only) reads the relations straight from the Markdown — no
+index, nothing cached — and answers the questions the files alone cannot:
+
+```bash
+python3 <skill-dir>/scripts/kb-graph.py <kb-root>                  # counts, hubs, orphans
+python3 <skill-dir>/scripts/kb-graph.py <kb-root> --neighbors <id> # one hop, BOTH directions
+python3 <skill-dir>/scripts/kb-graph.py <kb-root> --backlinks <id> # what points here
+python3 <skill-dir>/scripts/kb-graph.py <kb-root> --path <id> <id> # how are these connected
+python3 <skill-dir>/scripts/kb-graph.py <kb-root> --mermaid        # the whole graph
+```
+
+`--neighbors` during recall is the point of relations: it surfaces the general principle
+behind a specific record, and the lookalike the user may actually be hitting.
 
