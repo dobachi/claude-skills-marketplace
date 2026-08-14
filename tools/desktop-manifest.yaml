@@ -62,6 +62,11 @@ experimental:
   - doc-refactor        # ships diagnose.py; skill works without it, but verify
   - essence-distiller   # ships distill_scan.py; same
   - pptx-build          # ships build_deck.py needing python-pptx; generator won't run without the package
+  - longform-discipline # the discipline itself is prose, but the gate is drift_scan.py (python3,
+                        # optional SudachiPy); without it the loop falls back to human review
+  - loop-goal           # ships gate.sh + python detectors, and assumes a loop controller
+                        # (/loop, /goal) plus detector files that persist on disk — neither
+                        # exists on claude.ai; package it, but verify before trusting
 
 # Never package. Documented so the decision is not re-litigated.
 excluded:
@@ -89,6 +94,8 @@ excluded:
     reason: "reads and writes a knowledge base on the local filesystem (~/.kb, ./kb) with file tools and grep, and depends on adapter files in the user's home config; the sandbox has neither, and nothing persists between sessions."
   - name: backlog
     reason: "reads/writes a backlog file on the local filesystem (./BACKLOG.md, ~/.claude/backlog.md), routes by the local git repo, and runs a python helper on disk; the sandbox has none of these, and nothing persists between sessions."
+  - name: skill-authoring
+    reason: "the contract for adding a skill to THIS repo — scaffolds into plugins/, edits marketplace.json and both READMEs, and gates on scripts run against the checkout; there is no repo in the sandbox."
   - name: reload-instructions
     reason: "updates git submodules in a local checkout."
   - name: reload-and-reset
