@@ -277,7 +277,11 @@ def main() -> int:
 
     write_checklist(out, packed, prev)
 
-    ledger = {"skills": {p["name"]: p for p in packed}}
+    # Merge, never replace. A subset run (--only, or a run without --experimental
+    # after one with it) packs a few skills; replacing the ledger would drop every
+    # other skill's entry, and the next full pack would report all of them NEW —
+    # losing exactly the "what do I need to re-upload" signal the ledger exists for.
+    ledger = {"skills": {**prev.get("skills", {}), **{p["name"]: p for p in packed}}}
     ledger_path.write_text(json.dumps(ledger, indent=2, ensure_ascii=False) + "\n")
 
     changed = sum(
