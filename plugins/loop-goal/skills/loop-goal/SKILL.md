@@ -1,8 +1,8 @@
 ---
 name: loop-goal
-version: 0.3.0
 description: "文書の検証ループで、終了条件を決定的な検出器の終了コードに落とす。検出器の集合でゲートを組み、削除で満たせないよう下限を添え、検出器を作る側と満たす側を機構で分離する。ゴール設計・ループ設計・検証ループを組むとき、/goal や /loop に渡す停止条件を書くとき、『OKになるまで直して』と頼みたくなったときに使う。対象は文書に限る（コードは既製の判定器があり事情が違う）。測るのは追跡可能性であって正しさではない。"
 metadata:
+  version: 0.3.1
   requires:
     bins: [python3]
 ---
@@ -217,9 +217,3 @@ python3 detectors/matrix_freshness.py references/vendor-matrix.md   # 既定14�
 
 通る例:「検証器を目標にすると最短経路が『消す』になりうる」「span照合は引用の忠実さで
 あって事実の正しさではない」。落ちる例:「ゴールは明確に」「上限を設けましょう」。
-
-## 根拠
-
-- 設計の由来と実験記録: [`../notes/2026-08-08-design-implications.md`](../notes/2026-08-08-design-implications.md)（§10・§11）
-- 一次情報からの地図: [`../notes/2026-08-02-landscape.md`](../notes/2026-08-02-landscape.md)
-- 経緯と未確定事項: [`../HANDOVER.md`](../HANDOVER.md)
