@@ -11,9 +11,11 @@ It does NOT upload. Upload stays manual by design — the only programmatic path
 is the Skills API, whose store is separate from claude.ai and does not surface
 there, so it wouldn't help.
 
-Flow:  validate (strict) -> select from manifest -> zip -> checklist + ledger
+Flow:  validate (strict) -> select from manifest -> zip -> order -> checklist,
+       index + ledger
 
-Output: dist/desktop/<skill>.zip, UPLOAD.md, .manifest.json
+Output: dist/desktop/<skill>.zip, UPLOAD.md (ordered checklist), INDEX.md (what
+each package is), .manifest.json
 
 Standard library only (plus PyYAML, already a repo dependency).
 """
@@ -141,33 +143,102 @@ def content_hash(name: str) -> str:
     return h.hexdigest()
 
 
-def last_updated(name: str) -> str:
-    """Author date (YYYY-MM-DD) of the last commit touching this skill's plugin, or '—'."""
-    plugin = plugin_dir_for_name(name)
-    if plugin is None:
-        return "—"
+def git_dates(name: str) -> tuple[str, str]:
+    """(added, updated) as YYYY-MM-DD for the skill directory, or ('—', '—').
+
+    Both dates come from the skill directory — the exact tree that goes into the
+    zip — so "updated" means "the packaged content changed", not "something
+    elsewhere in the plugin changed".
+    """
+    src = skill_dir(name)
     try:
         out = subprocess.run(
-            ["git", "-C", str(REPO), "log", "-1", "--format=%cs", "--",
-             str(plugin.relative_to(REPO))],
+            ["git", "-C", str(REPO), "log", "--format=%cs", "--",
+             str(src.relative_to(REPO))],
             capture_output=True, text=True, timeout=10,
         )
     except (OSError, subprocess.SubprocessError):
-        return "—"
-    return out.stdout.strip() or "—"
+        return "—", "—"
+    dates = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+    if not dates:
+        return "—", "—"
+    return dates[-1], dates[0]  # git log is newest-first
 
 
-def plugin_dir_for_name(name: str):
-    sd = skill_dir(name)
-    return sd.parent.parent  # plugins/<plugin>/skills/<skill> -> plugins/<plugin>
+ORDERS = ("updated", "added", "manifest")
 
 
-def write_checklist(dest_dir: Path, packed: list[dict], prev: dict) -> None:
+def order_packed(packed: list[dict], how: str) -> list[dict]:
+    """Newest first for the date orders; manifest order is left untouched."""
+    if how == "manifest":
+        return packed
+    key = "updated" if how == "updated" else "added"
+    # '—' (no git history) sorts last, not first.
+    return sorted(packed, key=lambda p: (p.get(key) or "—") != "—" and p[key] or "",
+                  reverse=True)
+
+
+def summary_of(name: str) -> str:
+    """First sentence of the skill's frontmatter description, for the index."""
+    text = (skill_dir(name) / "SKILL.md").read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return ""
+    end = text.find("\n---", 3)
+    if end == -1:
+        return ""
+    try:
+        meta = yaml.safe_load(text[3:end]) or {}
+    except yaml.YAMLError:
+        return ""
+    desc = " ".join(str(meta.get("description", "")).split())
+    if not desc:
+        return ""
+    # Cut at the first sentence end, but only if that leaves something readable.
+    # Descriptions are full of abbreviations and dotted filenames ("e.g.", ".pptx"),
+    # so a naive ". " split produces fragments like "pluggable units (e.g.".
+    abbrevs = ("e.g.", "i.e.", "etc.", "cf.", "vs.", "approx.", "resp.", "al.")
+    for i, ch in enumerate(desc):
+        if ch == "。":
+            if 40 <= i <= 240:
+                return desc[: i + 1]
+            break
+        if ch != "." or not desc[i + 1: i + 2].isspace():
+            continue
+        head = desc[: i + 1]
+        initial = len(head) >= 2 and head[-2].isupper() and (len(head) == 2 or head[-3].isspace())
+        if head.endswith(abbrevs) or initial:
+            continue  # abbreviation or a single-letter initial — not a sentence end
+        if 40 <= i <= 240:
+            return head
+        if i > 240:
+            break
+    return desc if len(desc) <= 240 else desc[:237].rstrip() + "…"
+
+
+def status_of(item: dict, prev: dict) -> str:
+    """NEW / CHANGED / unchanged, judged against the previous pack's ledger."""
+    prior = prev.get("skills", {}).get(item["name"], {}).get("content")
+    if prior is None:
+        return "NEW"
+    if prior != item["content"]:
+        return "CHANGED"
+    return "unchanged"
+
+
+def write_checklist(dest_dir: Path, packed: list[dict], prev: dict, order: str) -> None:
+    ordering = {
+        "updated": "newest first (most recently changed skill at the top)",
+        "added": "newest first (most recently added skill at the top)",
+        "manifest": "manifest order",
+    }[order]
     lines = [
         "# Claude Desktop — skill upload checklist",
         "",
         "One zip per skill; upload is manual (there is no bulk path and no sync",
-        "from Claude Code). Work top to bottom.",
+        f"from Claude Code). Ordered {ordering} —",
+        "work top to bottom, so stopping halfway still leaves you with the newest.",
+        "",
+        "See `INDEX.md` for what each skill does.",
         "",
         "## Prerequisites",
         "",
@@ -183,15 +254,14 @@ def write_checklist(dest_dir: Path, packed: list[dict], prev: dict) -> None:
         "## Upload",
         "",
     ]
-    for i, item in enumerate(packed, 1):
+    tags = {
+        "NEW": "NEW",
+        "CHANGED": "CHANGED — re-upload (replace existing)",
+        "unchanged": "unchanged since last pack",
+    }
+    for item in packed:
         n = item["name"]
-        prior = prev.get("skills", {}).get(n, {}).get("content")
-        if prior is None:
-            tag = "NEW"
-        elif prior != item["content"]:
-            tag = "CHANGED — re-upload (replace existing)"
-        else:
-            tag = "unchanged since last pack"
+        tag = tags[status_of(item, prev)]
         flag = "  *(experimental — verify it runs)*" if item["experimental"] else ""
         upd = item.get("updated", "—")
         lines.append(f"- [ ] **{n}** — `{n}.zip`  ·  updated {upd}  ·  {tag}{flag}")
@@ -208,6 +278,43 @@ def write_checklist(dest_dir: Path, packed: list[dict], prev: dict) -> None:
     (dest_dir / "UPLOAD.md").write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_index(dest_dir: Path, packed: list[dict], prev: dict, order: str) -> None:
+    """A table of what is in this pack: same order as the checklist, plus what each skill does."""
+    sorted_by = {
+        "updated": "last change to the packaged skill (newest first)",
+        "added": "date the skill first appeared (newest first)",
+        "manifest": "manifest order",
+    }[order]
+    lines = [
+        "# Claude Desktop skill packages — index",
+        "",
+        f"{len(packed)} zip(s) in this directory, sorted by {sorted_by}.",
+        "Upload order and status live in `UPLOAD.md`; this file is what each one is for.",
+        "",
+        "| # | Skill | Zip | Added | Updated | Status | Kind | What it does |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for i, item in enumerate(packed, 1):
+        n = item["name"]
+        kind = "experimental" if item["experimental"] else "stable"
+        desc = summary_of(n).replace("|", "\\|")
+        lines.append(
+            f"| {i} | **{n}** | `{n}.zip` | {item.get('added', '—')} | "
+            f"{item.get('updated', '—')} | {status_of(item, prev)} | {kind} | {desc} |"
+        )
+    lines += [
+        "",
+        "**Status** is against the previous pack in this directory: `NEW` was not packed",
+        "before, `CHANGED` differs from what you last uploaded, `unchanged` is already",
+        "current if you uploaded it last time.",
+        "",
+        "**Kind**: `experimental` skills bundle scripts or assume tools that may not exist",
+        "in the claude.ai sandbox — upload them, then run one real task to check.",
+        "",
+    ]
+    (dest_dir / "INDEX.md").write_text("\n".join(lines), encoding="utf-8")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Package skills as zips for Claude Desktop.")
     ap.add_argument("--experimental", action="store_true",
@@ -217,6 +324,9 @@ def main() -> int:
                          "but still validates")
     ap.add_argument("--out", type=Path, default=OUT_DIR,
                     help=f"output dir (default {OUT_DIR.relative_to(REPO)})")
+    ap.add_argument("--order", choices=ORDERS, default="updated",
+                    help="order of the checklist and index: 'updated' (default) and "
+                         "'added' list newest first; 'manifest' keeps the manifest's order")
     args = ap.parse_args()
 
     man = load_manifest()
@@ -265,17 +375,21 @@ def main() -> int:
     for n in selected:
         chash = content_hash(n)
         zpath, zhash = zip_skill(n, out)
+        added, updated = git_dates(n)
         packed.append({
             "name": n,
             "zip": zpath.name,
             "content": chash,
             "zip_sha256": zhash,
             "experimental": n in exp_set,
-            "updated": last_updated(n),
+            "added": added,
+            "updated": updated,
         })
         print(f"packed {n} -> {zpath.relative_to(REPO)}")
 
-    write_checklist(out, packed, prev)
+    packed = order_packed(packed, args.order)
+    write_checklist(out, packed, prev, args.order)
+    write_index(out, packed, prev, args.order)
 
     # Merge, never replace. A subset run (--only, or a run without --experimental
     # after one with it) packs a few skills; replacing the ledger would drop every
@@ -289,7 +403,8 @@ def main() -> int:
         if prev.get("skills", {}).get(p["name"], {}).get("content") != p["content"]
     )
     print(f"\n{len(packed)} zip(s) in {out.relative_to(REPO)}  "
-          f"({changed} new/changed).  Checklist: {(out / 'UPLOAD.md').relative_to(REPO)}")
+          f"({changed} new/changed).  Checklist: {(out / 'UPLOAD.md').relative_to(REPO)}  "
+          f"Index: {(out / 'INDEX.md').relative_to(REPO)}")
     return 0
 
 

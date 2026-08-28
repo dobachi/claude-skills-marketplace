@@ -52,6 +52,9 @@ viable:
   - tauri-dev
   - tauri-research
   - grounded-research   # subagent fan-out is optional; the ledger discipline stands alone
+  - social-post
+  - debrief-report      # Markdown report is the source of truth; the .pptx hand-off to
+                        # pptx-build degrades to a deck spec, which is still useful output
 
 # Package only with --experimental. These bundle scripts or assume tools that
 # may not exist on claude.ai. Upload to verify empirically before trusting.
@@ -62,6 +65,9 @@ experimental:
   - doc-refactor        # ships diagnose.py; skill works without it, but verify
   - essence-distiller   # ships distill_scan.py; same
   - pptx-build          # ships build_deck.py needing python-pptx; generator won't run without the package
+  - pdf-extract         # triage_pdf.py wants poppler/pypdf, and the routing assumes OCR and
+                        # layout parsers that may not exist in the sandbox; the file-upload
+                        # path may cover it — verify empirically
   - longform-discipline # the discipline itself is prose, but the gate is drift_scan.py (python3,
                         # optional SudachiPy); without it the loop falls back to human review
   - loop-goal           # ships gate.sh + python detectors, and assumes a loop controller

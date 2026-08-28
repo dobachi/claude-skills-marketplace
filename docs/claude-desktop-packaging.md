@@ -55,12 +55,13 @@ step for [registration-runbook.md](../plugins/skill-authoring/skills/skill-autho
 
 Validates (in `--strict` mode), then writes correctly shaped per-skill zips —
 one top-level `<skill>/` folder with `SKILL.md` inside — plus an upload
-checklist and a hash ledger.
+checklist, an index, and a hash ledger.
 
 ```bash
 python3 tools/pack-desktop.py                 # the 'viable' set
 python3 tools/pack-desktop.py --experimental  # also the script-bearing ones
 python3 tools/pack-desktop.py --only fact-checker
+python3 tools/pack-desktop.py --order added   # order by first appearance instead
 ```
 
 Output lands in `dist/desktop/` (git-ignored):
@@ -69,8 +70,14 @@ Output lands in `dist/desktop/` (git-ignored):
 dist/desktop/
   <skill>.zip …
   UPLOAD.md        # ordered checklist; NEW / CHANGED / unchanged per skill
+  INDEX.md         # same order, plus added/updated dates and what each skill does
   .manifest.json   # content hashes, so a re-pack tells you what to re-upload
 ```
+
+Both lists are **newest first** by default, because upload is a manual slog and
+stopping halfway should still leave the newest skills in. `--order` picks the
+key: `updated` (default — last commit touching the packaged skill directory),
+`added` (first commit), or `manifest` (the manifest's own order).
 
 Zips are deterministic — an unchanged skill hashes identically across runs, so
 `UPLOAD.md` can flag exactly which skills changed and need re-uploading.
@@ -94,8 +101,13 @@ packer refuses to run (this is how a newly added skill gets noticed):
 ## Uploading
 
 1. `python3 tools/pack-desktop.py` (add `--experimental` if you want those too).
-2. Open `dist/desktop/UPLOAD.md` and work down the list.
+2. Open `dist/desktop/UPLOAD.md` and work down the list — newest first, so a
+   half-finished session still leaves you current. `INDEX.md` says what each one is.
 3. In the Claude app, upload each `.zip` at the skills entry point.
+
+On Windows with the repo in WSL, the zips are reachable from Explorer and from
+the app's file picker at `\\wsl.localhost\<distro>\home\<user>\...\dist\desktop`
+(or copy the directory to the Windows side with `--out /mnt/c/Users/<you>/...`).
 
 ## Open questions to confirm on first real upload
 
