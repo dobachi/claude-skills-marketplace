@@ -7,12 +7,18 @@ for registering them in the Claude Code marketplace, see
 
 ## What's possible, and what isn't
 
-Custom skills **do not sync across surfaces**. A skill in Claude Code's
+**The direction we need has no sync.** A skill in Claude Code's
 `~/.claude/skills` (or this marketplace) is not visible in claude.ai or the
-Desktop app, and vice versa — Anthropic's docs state this explicitly and tell
-you to "implement your own synchronization process." The Skills API
-(`POST /v1/skills`) is a *separate* store again: skills uploaded there are not
-available on claude.ai, so it isn't a backdoor either.
+Desktop app; Anthropic's docs tell you to "implement your own synchronization
+process." The Skills API (`POST /v1/skills`) is a *separate* store again: skills
+uploaded there do not surface on claude.ai, so it isn't a backdoor either.
+
+The *reverse* direction does now exist, and it's easy to mistake for a solution:
+with `CLAUDE_CODE_SYNC_SKILLS` set, Claude Code pulls the skills you enabled on
+claude.ai down into `~/.claude/skills/synced/` (the name `synced` is reserved
+in every skills location). That is claude.ai → Claude Code. It does nothing for
+getting *this repo's* skills into the Desktop app, which is what this tooling is
+for.
 
 That leaves two real paths, both **manual, one zip per skill**:
 
@@ -103,21 +109,25 @@ packer refuses to run (this is how a newly added skill gets noticed):
 1. `python3 tools/pack-desktop.py` (add `--experimental` if you want those too).
 2. Open `dist/desktop/UPLOAD.md` and work down the list — newest first, so a
    half-finished session still leaves you current. `INDEX.md` says what each one is.
-3. In the Claude app, upload each `.zip` at the skills entry point.
+3. In the Claude app, upload each `.zip` at **Customize → Skills → +**.
+   Uploaded skills are private to your account; toggle them under
+   **Settings → Capabilities → Skills**, where **code execution** must also be
+   enabled — skills do not run without it.
+
+The zip must contain the skill *folder* at its root (`doc-review/SKILL.md`, not
+a bare `SKILL.md`); `pack-desktop.py` already builds them this way.
 
 On Windows with the repo in WSL, the zips are reachable from Explorer and from
 the app's file picker at `\\wsl.localhost\<distro>\home\<user>\...\dist\desktop`
 (or copy the directory to the Windows side with `--out /mnt/c/Users/<you>/...`).
 
-## Open questions to confirm on first real upload
+## Open question to confirm on first real upload
 
-Two things the docs don't settle — resolve them empirically, don't guess:
+**Do experimental skills actually run?** claude.ai's sandbox has
+settings-dependent network access, so `fact-checker` (Puppeteer) and
+`literature-search` (Node + external APIs) may not work. `fact-checker` also
+uses the Task tool for parallel verification, which claude.ai doesn't have — so
+even if it loads, that path won't fan out. Upload one, run it, see.
 
-1. **Do experimental skills actually run?** claude.ai's sandbox has
-   settings-dependent network access, so `fact-checker` (Puppeteer) and
-   `literature-search` (Node + external APIs) may not work. `fact-checker` also
-   uses the Task tool for parallel verification, which claude.ai doesn't have —
-   so even if it loads, that path won't fan out. Upload one, run it, see.
-2. **The upload UI path.** Official sources disagree on the label — "Customize >
-   Skills", "Settings > Features", "Settings > Capabilities > Skills". Find the
-   one your build shows and update `UPLOAD.md`'s prerequisites if useful.
+(The other former open question — the upload UI label — is settled above:
+Customize → Skills.)

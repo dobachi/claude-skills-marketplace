@@ -42,6 +42,19 @@ SKIP_NAMES = {"__pycache__", ".DS_Store", ".git"}
 SKIP_SUFFIXES = {".pyc", ".pyo", ".bak"}
 
 
+def rel(p: Path) -> Path:
+    """Display path: repo-relative inside the repo, absolute outside it.
+
+    --out can legitimately point outside the repo (packing straight into a
+    Windows-side directory so the Claude Desktop file picker can reach it), and
+    Path.relative_to raises there.
+    """
+    try:
+        return p.relative_to(REPO)
+    except ValueError:
+        return p
+
+
 def skill_dir(name: str) -> Path:
     hits = list((REPO / "plugins").glob(f"*/skills/{name}"))
     if not hits:
@@ -244,12 +257,12 @@ def write_checklist(dest_dir: Path, packed: list[dict], prev: dict, order: str) 
         "",
         "- A plan that allows custom-skill upload (Pro / Max / Team / Enterprise;",
         "  **not** Free).",
-        "- **Code execution / file creation** enabled in settings — skills do not",
+        "- **Code execution** enabled under Settings > Capabilities — skills do not",
         "  run without it.",
-        "- The upload entry point in the Claude app. The docs disagree on the exact",
-        "  label (\"Customize > Skills\", \"Settings > Features\", \"Settings >",
-        "  Capabilities > Skills\") — find the one your build shows; it is where you",
-        "  \"Upload a skill\" / \"Create skill\" and pick a .zip.",
+        "",
+        "Upload at **Customize > Skills > +**, then pick the .zip. Uploaded skills",
+        "are private to your account; toggle them on and off under",
+        "Settings > Capabilities > Skills.",
         "",
         "## Upload",
         "",
@@ -385,7 +398,7 @@ def main() -> int:
             "added": added,
             "updated": updated,
         })
-        print(f"packed {n} -> {zpath.relative_to(REPO)}")
+        print(f"packed {n} -> {rel(zpath)}")
 
     packed = order_packed(packed, args.order)
     write_checklist(out, packed, prev, args.order)
@@ -402,9 +415,9 @@ def main() -> int:
         1 for p in packed
         if prev.get("skills", {}).get(p["name"], {}).get("content") != p["content"]
     )
-    print(f"\n{len(packed)} zip(s) in {out.relative_to(REPO)}  "
-          f"({changed} new/changed).  Checklist: {(out / 'UPLOAD.md').relative_to(REPO)}  "
-          f"Index: {(out / 'INDEX.md').relative_to(REPO)}")
+    print(f"\n{len(packed)} zip(s) in {rel(out)}  "
+          f"({changed} new/changed).  Checklist: {rel(out / 'UPLOAD.md')}  "
+          f"Index: {rel(out / 'INDEX.md')}")
     return 0
 
 
