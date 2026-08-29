@@ -33,7 +33,7 @@
 | when | 読むもの | 状態 |
 |---|---|---|
 | 成果物がまだ存在しない | 何も読まず第3節へ | — |
-| 既存の `.pptx` を直す・作り直す・レビューする | `playbooks/pptx-mode-refactor.md` を**先に**読み、そのあと第3節へ | 未作成 |
+| 既存の `.pptx` を直す・作り直す・レビューする | `playbooks/pptx-mode-refactor.md` を**先に**読み、そのあと第3節へ | v0.1 |
 
 ## 3. デッキのジャンル（必ず1つだけ）
 
@@ -43,7 +43,7 @@
 |---|---|---|---|
 | `pptx-deck-decision` | 聞き手に**決めて**ほしい（決裁・承認・予算・採用可否） | `playbooks/pptx-deck-decision.md` | v0.1 |
 | `pptx-deck-explain` | 聞き手に**分かって**ほしい。決裁は求めない | `playbooks/pptx-deck-explain.md` | v0.1 |
-| `pptx-deck-pitch` | 聞き手に**関心を持って**ほしい（次の接点を作る。社外・短時間） | `playbooks/pptx-deck-pitch.md` | 未作成 |
+| `pptx-deck-pitch` | 聞き手に**関心を持って**ほしい（次の接点を作る。社外・短時間） | `playbooks/pptx-deck-pitch.md` | v0.1 |
 
 **2つ以上に当てはまるとき**: 最終スライドで相手に求める行動を1つだけ書き出し、
 それに対応するものを選ぶ。2つ選んではならない。
@@ -56,15 +56,15 @@
 
 | id | when | ファイル | 状態 |
 |---|---|---|---|
-| `pptx-element-table` | 表を置く | `playbooks/pptx-element-table.md` | 未作成 |
-| `pptx-element-chart` | 定量データをグラフで示す | `playbooks/pptx-element-chart.md` | 未作成 |
-| `pptx-element-diagram` | 構造・関係・流れを図で示す | `playbooks/pptx-element-diagram.md` | 未作成 |
+| `pptx-element-table` | 表を置く | `playbooks/pptx-element-table.md` | v0.1 |
+| `pptx-element-chart` | 定量データをグラフで示す | `playbooks/pptx-element-chart.md` | v0.1 |
+| `pptx-element-diagram` | 構造・関係・流れを図で示す | `playbooks/pptx-element-diagram.md` | v0.1 |
 
 ## 5. 制約（該当する分だけ。0本以上）
 
 | id | when | ファイル | 状態 |
 |---|---|---|---|
-| `pptx-constraint-template` | 指定の `.pptx` / `.potx` テンプレートがある | `playbooks/pptx-constraint-template.md` | 未作成 |
+| `pptx-constraint-template` | 指定の `.pptx` / `.potx` テンプレートがある | `playbooks/pptx-constraint-template.md` | v0.1 |
 
 ## 6. 生成の直前に必ず読む
 
