@@ -70,6 +70,15 @@ dm = re.search(r"(?m)^description:[ \t]*(.*)$", fm)
 if not dm:
     print("  NG   description がありません"); sys.exit(1)
 desc = dm.group(1)
+# 折り畳みスカラー (>- | |-) のときは、続く字下げ行が本体。1行目だけを見ると
+# 常に 2 字と数え、上限チェックが素通りする。
+if desc.strip() in (">", ">-", ">+", "|", "|-", "|+"):
+    folded = []
+    for line in fm[dm.end():].split("\n")[1:]:
+        if line.strip() and not line[:1].isspace():
+            break
+        folded.append(line.strip())
+    desc = " ".join(x for x in folded if x)
 bad = 0
 if len(desc) > 1024:
     print("  NG   description が %d 字 (上限 1024)" % len(desc)); bad = 1
