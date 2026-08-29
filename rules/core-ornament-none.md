@@ -3,7 +3,7 @@ id: core-ornament-none
 status: active
 tier: HOUSE
 media: [pptx]
-topic: layout
+topic: ornament
 statement: "意味を担わない図形・効果を置かない"
 values:
   - "置かないもの: グラデーション、ドロップシャドウ、ベベル、光彩、反射、WordArt、クリップアート、装飾的な角丸枠、六角形、何も表さないコネクタ、タイトル背景の全幅カラーバンド"

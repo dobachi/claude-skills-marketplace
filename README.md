@@ -15,6 +15,16 @@ AIエージェントは資料やUIを日常的に生成するが、その出来�
 - 設計思想: [CONCEPT.md](CONCEPT.md)
 - 書式仕様（ファイルを追加する前に読む）: [docs/format-spec.md](docs/format-spec.md)
 - 用語集: [glossary.md](glossary.md)
+- 出典台帳: [docs/sources.md](docs/sources.md)
+
+## 検査
+
+```
+python3 tools/lint.py
+```
+
+書式仕様のチェックリストを機械的に確認する。標準ライブラリのみ。
+終了コードは 0=違反なし / 1=違反あり / 2=検査できない。
 - 現在の状態: v0.1 策定中（対象媒体: PowerPoint）。
   `INDEX.md` が指す先はまだ大半が未作成であり、状態列に明示している
 
