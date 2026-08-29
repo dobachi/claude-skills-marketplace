@@ -51,3 +51,49 @@
 | Miller 1956「7±2」 | 短期記憶の項目数に関する研究であり、スライドの箇条書き数の根拠ではない。後続研究（Cowan 2001）は約4としており、いずれにせよスライド設計の規範として引くのは誤用 |
 | 「学習定着率のピラミッド」（見た10%、聞いた20%…） | 出所不明の数値であり、原典が存在しない |
 | 「人は視覚から情報の80%を得る」等の割合 | 出所不明 |
+
+---
+
+## 本リポジトリが決めていない問いに当たったとき
+
+以下は**ルールの出典ではない**。本リポジトリが決めていない問いに当たったときに、
+どこを1つ見ればよいかの対応表である。ここに挙げたものを rule が引くときは、
+先に上の台帳へ登録する。
+
+**症状から入る。** 書棚から選ばない。該当する行が無いなら、答えはたいてい
+`playbooks/` か `rules/` に既にある。
+
+| 開いている問い | 見るもの |
+|---|---|
+| 論に背骨が無い。結論が埋もれている | Minto『考える技術・書く技術』／Duarte *Resonate* |
+| この資料は誰に向けたもので、相手は何を既に信じているか | Duarte *slide:ology*（聴衆の章） |
+| 投資家向けピッチ: 何枚を、どの順で | Sequoia "Writing a Business Plan"／Y Combinator Library |
+| 営業資料: 製品から始めずにどう開くか | Andy Raskin "The Greatest Sales Deck I've Ever Seen" |
+| これはスライドではなく文書ではないか | Duarte *Slidedocs*／Tufte *The Cognitive Style of PowerPoint* |
+| 研究発表・技術講演の構成 | Simon Peyton Jones "How to Give a Great Research Talk"／Doumont *Trees, Maps, and Theorems* |
+| このデータにどのグラフ型か | FT Visual Vocabulary <https://github.com/Financial-Times/chart-doctor/tree/main/visual-vocabulary> |
+| このグラフから何を消せるか | Tufte *The Visual Display of Quantitative Information*／Few *Show Me the Numbers* |
+| 系列が4つを超える。色が足りない | Knaflic（強調以外を灰にする）／ColorBrewer <https://colorbrewer2.org> |
+| この軸の取り方は誠実か | Cairo *How Charts Lie*／Wong *WSJ Guide to Information Graphics* |
+| 表とグラフのどちらが勝つか | Few *Show Me the Numbers*／Schwabish *Better Data Visualizations* |
+| 「スライドを読み上げるな」の根拠が要る | Mayer *Multimedia Learning*（冗長性原理）／Sweller の認知負荷理論 |
+| 1枚にどれだけ載せてよいか、根拠を示したい | Sweller／Mayer。**Miller の 7±2 は引かない**（本ファイル冒頭の「引いてはいけないもの」） |
+| 書体の選定と組み方 | Butterick *Practical Typography* <https://practicaltypography.com> |
+| グリッドが効いていない | Müller-Brockmann *Grid Systems in Graphic Design* |
+| 図が構造なのか装飾なのか判断できない | 本リポジトリの `core-diagram-information-test`／Bertin *Semiology of Graphics* |
+| アーキテクチャ図の詳細度 | C4 model <https://c4model.com> |
+| コントラスト比の正確な要件 | WCAG 2.2 SC 1.4.3 <https://www.w3.org/TR/WCAG22/>／WebAIM Contrast Checker |
+| 色覚多様性で読めるか確認したい | Color Oracle <https://colororacle.org>／Coblis |
+| PowerPoint のアクセシビリティを実務的に | Microsoft "Make your PowerPoint presentations accessible…"／W3C WAI |
+| 写真の選び方 | Reynolds *Presentation Zen Design*／Duarte *slide:ology* |
+| 日本語スライドの体裁 | 伝わるデザイン <https://tsutawarudesign.com> |
+
+### 使うときの規則
+
+1. **実際に参照したものだけを引く。** URL のあるものは取得して引用できる。
+   書籍は開けないので、著者に薦めるだけにする
+2. **読んでいない本に、具体的な数値・規則・引用を帰属させない**（本ファイル冒頭の規則1）
+3. **1つの問いに1つの出典。** 参考文献の一覧を求められたのでなければ、束ねて渡さない
+4. **「規則は何か」には一次規範を優先する。** 解説ではなく WCAG そのものを見る
+5. **URL は入口であって恒久リンクではない。** 失敗したら、題名と著者で探し直す。
+   記憶から言い換えず、リンクが切れていたことを伝える

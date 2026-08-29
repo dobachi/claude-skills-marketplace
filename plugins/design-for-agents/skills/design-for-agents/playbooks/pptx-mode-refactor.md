@@ -20,6 +20,11 @@ uses_rules:
   - core-a11y-alt-text
   - core-a11y-reading-order
   - pptx-master-placeholder
+  - core-layout-one-alignment
+  - core-color-one-background
+  - core-image-earns-place
+  - pptx-master-theme-colors
+  - pptx-master-no-stock-theme
 done_when:
   - id: claims-unchanged
     applies_to: deck

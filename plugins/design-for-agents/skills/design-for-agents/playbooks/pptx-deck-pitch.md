@@ -22,6 +22,17 @@ uses_rules:
   - core-a11y-contrast-body
   - core-a11y-alt-text
   - pptx-master-placeholder
+  - core-type-sans-projection
+  - core-type-two-families-max
+  - core-type-leading
+  - core-layout-one-alignment
+  - core-color-one-background
+  - core-image-earns-place
+  - core-image-resolution
+  - core-image-license-verified
+  - pptx-master-theme-colors
+  - pptx-master-no-stock-theme
+  - pptx-file-embed-fonts
 done_when:
   - id: within-slide-budget
     applies_to: deck

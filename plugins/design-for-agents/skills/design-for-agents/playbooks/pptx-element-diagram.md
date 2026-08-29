@@ -15,6 +15,7 @@ uses_rules:
   - core-a11y-alt-text
   - pptx-diagram-smartart-none
   - pptx-master-placeholder
+  - core-image-icon-one-family
 done_when: []
 needs_human:
   - "その図が実際に構造を伝えているか（描いた側では判定できない）"

@@ -279,6 +279,25 @@ def check_antipatterns(report: Report, rule_ids: set[str]) -> None:
         check_banned(report, rel, fm)
 
 
+def check_orphan_rules(report: Report, rule_ids: set[str]) -> None:
+    """どの playbook からも参照されていないルールを検出する。
+
+    参照されないルールは、どの経路でも読まれない。書いてあるだけで効かない
+    ものを残さない（追加するときに playbook へ繋ぐことを強制する）。
+    """
+    directory = ROOT / "playbooks"
+    if not directory.exists() or not rule_ids:
+        return
+    used: set[str] = set()
+    for path in directory.glob("*.md"):
+        fm, _ = read_frontmatter(path)
+        if fm:
+            used |= set(fm.get("uses_rules") or [])
+    for orphan in sorted(rule_ids - used):
+        report.error(f"rules/{orphan}.md",
+                     "どの playbook からも参照されていない（uses_rules に繋ぐこと）")
+
+
 def check_antipattern_index(report: Report) -> None:
     """各アンチパターンが一覧ファイルに載っているか（転記の取りこぼしを防ぐ）。"""
     directory = ROOT / "antipatterns"
@@ -378,6 +397,7 @@ def main() -> int:
     check_playbooks(report, rule_ids)
     check_antipatterns(report, rule_ids)
     check_antipattern_index(report)
+    check_orphan_rules(report, rule_ids)
     check_cross_references(report, rule_ids)
     check_tokens(report)
     if args.vocab:

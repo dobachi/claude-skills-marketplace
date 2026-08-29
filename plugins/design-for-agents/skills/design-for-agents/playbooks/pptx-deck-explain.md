@@ -23,6 +23,16 @@ uses_rules:
   - core-a11y-alt-text
   - core-a11y-reading-order
   - pptx-master-placeholder
+  - core-type-sans-projection
+  - core-type-two-families-max
+  - core-type-leading
+  - core-layout-one-alignment
+  - core-color-one-background
+  - core-image-earns-place
+  - core-image-icon-one-family
+  - pptx-master-theme-colors
+  - pptx-master-no-stock-theme
+  - pptx-file-embed-fonts
 done_when:
   - id: prior-knowledge-stated
     applies_to: deck

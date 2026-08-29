@@ -52,7 +52,7 @@ skills/design-for-agents/
   INDEX.md          ルーティング表（常時読む唯一の入口）
   glossary.md       語彙の固定
   playbooks/        ユースケース別の手順書 8本（mode 1 / deck 3 / element 3 / constraint 1）
-  rules/            原子ルール 27枚（MUST 3 / SHOULD 13 / HOUSE 11）
+  rules/            原子ルール 39枚（MUST 3 / SHOULD 16 / HOUSE 20）
   tokens/           決め打ち値。W3C DTCG 形式
   antipatterns/     具体名で禁止された事項 10件
   docs/             書式仕様と出典台帳
