@@ -161,8 +161,15 @@ INDEX.md（ルーティング表のみ）
 ### v0.1 — PowerPoint、参照できる状態まで
 
 - `INDEX.md` のルーティング表
-- playbook 6〜7本（意思決定資料 / 技術説明 / ピッチ / 既存資料のリファクタ /
-  表・グラフ / 構造図 / コーポレートテンプレ準拠）
+- playbook 8本。**直交する4軸**に分ける。ジャンル・要素・制約を1枚の
+  リストに並べると `when:` が排他にならず、要件2（誤ったプレイブックを選ばない）
+  を満たせないため。
+  - モード（既存資料のとき先に読む、1本）: `pptx-mode-refactor`
+  - デッキのジャンル（必ず1つだけ、3本）: `pptx-deck-decision` /
+    `pptx-deck-explain` / `pptx-deck-pitch`
+  - 要素（置く分だけ、3本）: `pptx-element-table` / `pptx-element-chart` /
+    `pptx-element-diagram`
+  - 制約（該当する分だけ、1本）: `pptx-constraint-template`
 - rule 20〜30枚（`pptx-design` からの抽出＋出典の補完）
 - `tokens/`（色4枠・型スケール1本・グリッド・密度予算）を DTCG 形式で
 - `antipatterns/`（PowerPoint 版の slop カタログ）
