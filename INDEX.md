@@ -41,8 +41,8 @@
 
 | id | when | ファイル | 状態 |
 |---|---|---|---|
-| `pptx-deck-decision` | 聞き手に**決めて**ほしい（決裁・承認・予算・採用可否） | `playbooks/pptx-deck-decision.md` | 未作成 |
-| `pptx-deck-explain` | 聞き手に**分かって**ほしい。決裁は求めない | `playbooks/pptx-deck-explain.md` | 未作成 |
+| `pptx-deck-decision` | 聞き手に**決めて**ほしい（決裁・承認・予算・採用可否） | `playbooks/pptx-deck-decision.md` | v0.1 |
+| `pptx-deck-explain` | 聞き手に**分かって**ほしい。決裁は求めない | `playbooks/pptx-deck-explain.md` | v0.1 |
 | `pptx-deck-pitch` | 聞き手に**関心を持って**ほしい（次の接点を作る。社外・短時間） | `playbooks/pptx-deck-pitch.md` | 未作成 |
 
 **2つ以上に当てはまるとき**: 最終スライドで相手に求める行動を1つだけ書き出し、
