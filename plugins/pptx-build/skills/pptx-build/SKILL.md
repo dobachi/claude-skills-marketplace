@@ -25,7 +25,7 @@ Produces an actual `.pptx` file. Three paths share one spec:
 - **Template-fill mode** — open a **real** `.pptx`/`.potx` the user provides and write content into **its slide layouts and placeholders**, so the deck inherits the template's master, theme, fonts, and logos. This is what "use our company template" actually means.
 - **Refactor mode** — the deck already exists. `extract_deck.py` reads it back into a spec (titles, bullets, tables, charts, images, speaker notes), reports everything it could not represent, and hands you a text file where the argument is cheap to fix. Rebuild through either mode above. See `references/refactor-mode.md`.
 
-**Engine: python-pptx.** Chosen specifically because it can *open* an existing binary template and address its placeholders — the thing PptxGenJS could not do. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **pptx-design** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
+**Engine: python-pptx.** Chosen specifically because it can *open* an existing binary template and address its placeholders — the thing PptxGenJS could not do. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **design-for-agents** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
 
 ## Rule zero: never hand-write python-pptx for a deck
 
@@ -86,7 +86,7 @@ Exit `1` means there are `LOSS` lines to decide on; `2` means the file is not a
 `.pptx`. Then continue from step 1b below — the spec is content, not a finished
 deck: rewrite topic titles into action titles and split multi-message slides
 before rebuilding. Full procedure: `references/refactor-mode.md`. What to fix and
-in what order: **pptx-design**'s `references/refactor-playbook.md`.
+in what order: **design-for-agents**'s `playbooks/pptx-mode-refactor.md`.
 
 Never patch an existing deck's shapes with hand-written python-pptx. If the deck
 is already master-governed (`audit_pptx.py old.pptx` reports no errors) and only
@@ -203,9 +203,9 @@ what the presenter says is half the argument.
 - [ ] **Refactor:** speaker notes survived (`notes:`), and extracted figures still resolve from the spec's directory.
 - [ ] Sub-bullets use a real hanging indent (no glyph flush against text, no tofu boxes).
 
-## Anti-patterns to refuse (carried from pptx-design)
+## Anti-patterns to refuse (carried from design-for-agents)
 
-Apply the **information test** before adding any shape: if deleting it changes no meaning, it's decoration — remove it. Reject decorated bullets (boxes around list items), SmartArt-as-theater, arrows that don't represent real flow, filler hexagons/clouds, and verbatim stock themes. These are the patterns that make a deck read as AI-generated. Full catalog: pptx-design's `references/diagrams-and-architecture.md`.
+Apply the **information test** before adding any shape: if deleting it changes no meaning, it's decoration — remove it. Reject decorated bullets (boxes around list items), SmartArt-as-theater, arrows that don't represent real flow, filler hexagons/clouds, and verbatim stock themes. These are the patterns that make a deck read as AI-generated. Full catalog: design-for-agents's `antipatterns/pptx.md`.
 
 ## References
 

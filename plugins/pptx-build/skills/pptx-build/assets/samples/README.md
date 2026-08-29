@@ -33,4 +33,4 @@ python3 build_deck.py    samples/recommendation-scqa.yaml -o /tmp/out.pptx
 3. Run `validate_deck.py` and fix findings; read the spine against `references/narrative-and-logic.md`.
 4. Build, render, and run the pre-delivery checklist in `SKILL.md`.
 
-For genre-level conventions on top of this logic (investor pitch, sales narrative, conference talk), see the **pptx-design** skill's `references/genres-and-qa.md`.
+For genre-level conventions on top of this logic (investor pitch, sales narrative, conference talk), see the **design-for-agents** skill's `playbooks/pptx-deck-*.md`.

@@ -11,7 +11,7 @@ When the test fails, choose:
 2. **Replace** with a chart if the content is data-driven.
 3. **Actually encode the structure** — process / hierarchy / matrix / sequence / state / ER / C4 — with arrows that mean *one* consistent thing (data flow OR dependency OR time — pick one).
 
-This is the same test enforced by `pptx-design`. Decorated bullets, default-SmartArt theater, decorative arrows, mismatched abstraction levels, and "center-and-spokes with unrelated spokes" all fail it.
+This is the same test enforced by `design-for-agents` (`rules/core-diagram-information-test.md`). Decorated bullets, default-SmartArt theater, decorative arrows, mismatched abstraction levels, and "center-and-spokes with unrelated spokes" all fail it.
 
 ### Worked example — fails the test
 
@@ -201,7 +201,7 @@ This is a "figure" in the Figure Ledger sense even though it is text. Cite it wi
 | **Chartjunk** | 3D, gradients, drop shadows, decorative backgrounds | Tufte data-ink ratio; keep it flat |
 | **Unrooted abstractions** | Nodes labeled "synergy", "alignment", "transformation" | If you cannot point to a system component or process step, do not draw it |
 
-For chart-specific design (data-ink, encoding choice, scale honesty), see `pptx-design/references/data-visualization.md` — do not duplicate here.
+For chart-specific design (data-ink, encoding choice, scale honesty), see `design-for-agents`'s `rules/core-chart-*.md` and `playbooks/pptx-element-chart.md` — do not duplicate here.
 
 ## Authoring Checklist
 
@@ -238,7 +238,7 @@ SVG is text, version-controllable, and renders inline in Markdown. Treat it the 
 
 Default: emit Mermaid `.mmd` source only. The downstream consumer (`marp-slides`, GitHub, etc.) renders it.
 
-When PNG/SVG is required (e.g., embedding in a `.pptx` via `pptx-design`, or sending an image to a non-Markdown consumer), use `scripts/render_mermaid.js`:
+When PNG/SVG is required (e.g., embedding in a `.pptx` via `pptx-build`, or sending an image to a non-Markdown consumer), use `scripts/render_mermaid.js`:
 
 ```bash
 node scripts/render_mermaid.js mermaid/F-03.mmd --out figures/F-03.png --format png

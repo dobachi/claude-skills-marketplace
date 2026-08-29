@@ -26,7 +26,7 @@ appendices + evidence ledger) and a **derived .pptx** for the reading audience. 
 is the source of truth; the deck is a rendering of it.
 
 **Out of scope**: summarizing one document (`document-summary`), rendering slides
-(`pptx-build`), designing slides without producing a file (`pptx-design`), external
+(`pptx-build`), designing slides without producing a file (`design-for-agents`), external
 research as the deliverable (`grounded-research`), minutes as a verbatim legal record.
 
 ## Non-negotiables
@@ -204,7 +204,7 @@ Profile sets (A and B — they differ enough to warrant their own):
 
 ## Related skills
 
-`pptx-build` (render and preview the deck) · `pptx-design` (deck critique without a file) ·
+`pptx-build` (render and preview the deck) · `design-for-agents` (deck design and critique without a file) ·
 `marp-slides` (Markdown-authored slides) · `document-figures` (diagram a structure worth
 drawing) · `pdf-extract` (handouts and proceedings) · `document-summary` (one source
 document in depth) · `grounded-research` / `evidence-check` / `literature-search`

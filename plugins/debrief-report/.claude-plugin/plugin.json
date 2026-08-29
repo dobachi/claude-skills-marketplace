@@ -1,6 +1,8 @@
 {
   "name": "debrief-report",
   "description": "Turns raw records of an international academic conference, a commercial/vendor conference or trade show, a standards meeting, a customer visit, or an internal discussion into a reader-targeted report: a Markdown report as the source of truth plus a derived executive .pptx. Fixes reader / ask / disclosure scope / original objective / event profile first, inventories every input (AI transcripts, photos, captured slides, proceedings, handouts, colleagues' notes) with reliability and confidentiality, restructures by issue rather than by session, and separates fact / interpretation / hearsay with a lightweight evidence ledger. Requires a coverage statement for multi-track events, counted evidence for trend claims, and a GA/Preview/roadmap classification for vendor announcements. Ships per-profile report and deck templates.",
-  "version": "1.0.0",
-  "author": {"name": "dobachi"}
+  "version": "1.0.1",
+  "author": {
+    "name": "dobachi"
+  }
 }

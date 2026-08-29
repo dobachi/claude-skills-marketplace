@@ -128,8 +128,8 @@ The extracted spec is content, not a finished deck. Before rebuilding:
 5. **Read the spine** that `validate_deck.py` prints, end to end, against
    `narrative-and-logic.md`.
 
-Judgment about *what* to fix, and in what order, belongs to **pptx-design**'s
-`references/refactor-playbook.md`. Do not silently change a claim while cleaning
+Judgment about *what* to fix, and in what order, belongs to **design-for-agents**'s
+`playbooks/pptx-mode-refactor.md`. Do not silently change a claim while cleaning
 up — report it instead.
 
 ## Refilling the original template

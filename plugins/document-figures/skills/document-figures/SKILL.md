@@ -9,14 +9,14 @@ description: Extracts figures from existing documents (PDF, Word, PowerPoint, we
 
 Handles figures for document summarization workflows. Two operations: **extract** figures from existing documents (PDF / Word / PowerPoint / web) with provenance preserved, and **create** new structural diagrams (Mermaid-first) when the source has no figure or its figure is unsuitable. Both feed downstream summaries via a **Figure Ledger** that mirrors `document-summary`'s Claim Ledger discipline.
 
-**Out of scope**: full-text / table / field extraction (use `pdf-extract`); OCR and image-to-text (use `pdf-extract` — its Path B); chart authoring from raw data (chain `data-analyst`); PowerPoint design principles (use `pptx-design`); slide deck authoring (use `marp-slides` or `pptx-design`); image upscaling / enhancement (out for v1); caption translation (chain `faithful-translation`).
+**Out of scope**: full-text / table / field extraction (use `pdf-extract`); OCR and image-to-text (use `pdf-extract` — its Path B); chart authoring from raw data (chain `data-analyst`); PowerPoint design principles (use `design-for-agents`); slide deck authoring (use `marp-slides` or `pptx-build`); image upscaling / enhancement (out for v1); caption translation (chain `faithful-translation`).
 
 The split with `pdf-extract` is by output, not by file type: this skill returns **image assets** with a Figure Ledger, `pdf-extract` returns **text, tables and fields** bound to a page and a verbatim span. Both open PDFs with poppler; that is not a reason to route a text job here.
 
 ## Core Principles
 
 1. **Provenance first.** Every figure has a stable ID (`F-NN`) and a verifiable origin. Extracted figures cite source file + page/slide + caption when recoverable. Created figures cite design rationale + the Claim Ledger ID(s) they support.
-2. **The information test governs creation.** *If I deleted the shapes and arrows and left only the text, what would I lose? If "nothing meaningful," it is not a diagram — it is bullets in costume.* Reject decorated bullets, default-SmartArt theater, and decorative arrows. See `references/creation.md` and `pptx-design/references/diagrams-and-architecture.md`.
+2. **The information test governs creation.** *If I deleted the shapes and arrows and left only the text, what would I lose? If "nothing meaningful," it is not a diagram — it is bullets in costume.* Reject decorated bullets, default-SmartArt theater, and decorative arrows. See `references/creation.md` and `design-for-agents`'s `rules/core-diagram-information-test.md`.
 3. **Format-appropriate strategy.** Embedded-asset extraction for speed (raw images out of the container); page/slide rendering when layout matters; Puppeteer for web. No one-size-fits-all.
 4. **Mermaid by default for creation.** Text-based, deterministic, reviewable, copy-paste-ready, integrates with `marp-slides` and most Markdown renderers. Rasterize only when a downstream consumer requires PNG/SVG.
 5. **Caption ↔ figure are linked.** A figure without a caption is incomplete. Recover the source caption when possible; if writing a caption because the source had none, mark it `[reconstructed]` or `[inferred from §X]` — never present a written caption as if it were the source's own.
@@ -146,7 +146,7 @@ Schema detail and edge cases: `references/ledger.md`.
 | **Decorative arrows** | Arrows whose meaning shifts (sometimes flow, sometimes dependency, sometimes time) | One arrow semantic per diagram + a legend |
 | **Mismatched abstraction levels** | "Cloud" alongside a function name alongside a buzzword | Pick one level; stay there |
 | **Re-rendering when the source figure is fine** | Wasted effort + drift from source | Prefer extracted; create only when extracted is unsuitable or absent |
-| **Chartjunk** | Gradients, 3D, drop shadows on Mermaid output | Tufte data-ink ratio; see `pptx-design/references/data-visualization.md` |
+| **Chartjunk** | Gradients, 3D, drop shadows on Mermaid output | Tufte data-ink ratio; see `design-for-agents`'s `rules/core-chart-chartjunk-none.md` |
 | **Invented chart data** | Recreating a chart from imagined numbers | If data is not in the source, extract the original image or describe in text |
 | **Illustrative-only figures** | Decoration with no claim linkage | Drop or attach to a real claim before shipping |
 

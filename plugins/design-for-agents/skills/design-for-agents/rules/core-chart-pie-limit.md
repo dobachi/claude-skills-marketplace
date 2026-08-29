@@ -32,7 +32,8 @@ done_when:
 
 ## 上流の矛盾について
 
-本ルールの元にした `pptx-design` は、`clean-design-system.md` で「円は6区分まで」、
+本ルールの元にした pptx-design（2026-08-29 に本プラグインへ統合し廃止）は、
+`clean-design-system.md` で「円は6区分まで」、
 `data-visualization.md` で「円は3区分まで、それを超えるものはチャートジャンク」と
 書いており、値が食い違っていた。**符号化の性質に根拠がある厳しい側（3）を採った。**
 

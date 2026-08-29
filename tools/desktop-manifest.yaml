@@ -39,7 +39,7 @@ viable:
   - web-api-dev
   - web-frontend-dev
   - marp-slides
-  - pptx-design         # design guidance, prose only — no scripts
+  - design-for-agents   # design reference, prose + lint only
   - verify-content
   - evidence-check
   - math-paper

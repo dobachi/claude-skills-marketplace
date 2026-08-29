@@ -56,7 +56,7 @@ one sentence", not a tidier diagram.
 ## Handoffs
 
 - Redrawing the distilled diagram (Mermaid-first) → `document-figures`.
-- The diagram lives on a slide and the deck needs structural rework → `pptx-design` /
+- The diagram lives on a slide and the deck needs structural rework → `design-for-agents` /
   `marp-slides`.
 - Chesterton's Fence: an edge whose meaning you can't determine → **flag**, don't drop; a
   seemingly stray arrow may encode a real dependency.

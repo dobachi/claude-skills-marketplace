@@ -132,7 +132,7 @@ INDEX.md（ルーティング表のみ）
 
 | 既存 | 関係 |
 |---|---|
-| `pptx-design` | references/ の中身を本リポジトリの playbooks / rules / tokens に抽出・再構造化し、スキル側は薄くして ID 参照に寄せる |
+| `pptx-design`（廃止済み） | references/ 1212行を全て本プラグインの playbooks / rules / tokens / antipatterns / docs に抽出・再構造化したうえで、2026-08-29 に廃止した |
 | `pptx-build` | 生成の実装。本リポジトリは仕様と完了条件を供給する |
 | `document-figures` | 図の生成。図に関する rule を本リポジトリから参照 |
 | `claude-skills-marketplace` | 独立repoとして作り、後からプラグインとして登録 |
@@ -153,7 +153,7 @@ INDEX.md（ルーティング表のみ）
   - 要素（置く分だけ、3本）: `pptx-element-table` / `pptx-element-chart` /
     `pptx-element-diagram`
   - 制約（該当する分だけ、1本）: `pptx-constraint-template`
-- rule 20〜30枚（`pptx-design` からの抽出＋出典の補完）
+- rule 20〜30枚（pptx-design からの抽出＋出典の補完）
 - `tokens/`（色4枠・型スケール1本・グリッド・密度予算）を DTCG 形式で
 - `antipatterns/`（PowerPoint 版の slop カタログ）
 - `glossary.md`
@@ -175,6 +175,6 @@ private で作成し、内容を確認してから public に切り替える（�
 ライセンスは対象で分ける。**文書は CC BY 4.0**（`LICENSE-docs`）、
 **コードは Apache-2.0**（`LICENSE`）。著作権表示はテンプレートのまま残さない。
 
-`pptx-design` からの派生は README の1節で示す。NOTICE ファイルは置かない
+pptx-design からの派生は README の1節で示す。NOTICE ファイルは置かない
 （両者とも同一の著作者であり、Apache-2.0 第4条の告知義務が生じる関係ではない）。
 示すのは法的要請ではなく、上流・下流の関係を外から追えるようにするためである。

@@ -1,7 +1,7 @@
 {
   "name": "pptx-build",
   "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made, and rebuild decks that already exist. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Refactor mode: extract_deck.py reads an existing deck back into a spec — titles, bullets, tables, charts, figures, sources, speaker notes — and reports what it cannot carry, so the argument is fixed as text and re-rendered into real placeholders. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships validate_deck.py and audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included.",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "author": {
     "name": "dobachi"
   }

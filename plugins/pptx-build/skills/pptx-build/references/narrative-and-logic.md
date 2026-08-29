@@ -50,4 +50,4 @@ Findings here are not mechanical — record them as edits to titles, slide order
 
 - `references/spec-format.md` — how titles, sections, and sources map to spec fields.
 - `assets/samples/` — argument-shaped example decks (recommendation / review / decision), each annotated with the structure it embodies. Validate them to see a clean spine.
-- pptx-design `references/genres-and-qa.md` — genre-specific anchor structures (pitch, sales, internal review, talk) that sit *on top of* this logic.
+- design-for-agents `playbooks/pptx-deck-decision.md` / `pptx-deck-explain.md` / `pptx-deck-pitch.md` — genre-specific structures (decide / understand / interest) that sit *on top of* this logic, each with its own completion conditions.
