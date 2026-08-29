@@ -18,6 +18,10 @@
     "accent": {
       "$value": "#2F5DA8",
       "$description": "ヘアラインと、1スライドにつき1箇所の強調。paper に対して 6.46:1。ブランド色はここに転写する"
+    },
+    "chartGrid": {
+      "$value": "#E5E7EB",
+      "$description": "グラフの横目盛線。core-chart-chartjunk-none。データを表さない描画なので、読み取りに要るときだけ残す"
     }
   },
   "colorDark": {
@@ -39,58 +43,164 @@
   "colorCategorical": {
     "$type": "color",
     "$description": "core-color-cvd-distinguishable。グラフで3系列以上を色で区別するときだけ使う。本文には使わない。出典: Okabe & Ito, Color Universal Design。",
-    "1": { "$value": "#E69F00" },
-    "2": { "$value": "#56B4E9" },
-    "3": { "$value": "#009E73" },
-    "4": { "$value": "#F0E442" },
-    "5": { "$value": "#0072B2" },
-    "6": { "$value": "#D55E00" },
-    "7": { "$value": "#CC79A7" },
-    "8": { "$value": "#000000" }
+    "1": {
+      "$value": "#E69F00"
+    },
+    "2": {
+      "$value": "#56B4E9"
+    },
+    "3": {
+      "$value": "#009E73"
+    },
+    "4": {
+      "$value": "#F0E442"
+    },
+    "5": {
+      "$value": "#0072B2"
+    },
+    "6": {
+      "$value": "#D55E00"
+    },
+    "7": {
+      "$value": "#CC79A7"
+    },
+    "8": {
+      "$value": "#000000"
+    }
   },
   "fontSize": {
     "$type": "number",
     "$description": "core-type-one-scale。単位は pt。この集合に無いサイズを使わない。",
-    "titleSlide": { "$value": 40, "$description": "表紙のデッキタイトル" },
-    "section": { "$value": 34, "$description": "章扉" },
-    "titleMax": { "$value": 30, "$description": "スライドタイトルの既定" },
-    "titleMin": { "$value": 24, "$description": "スライドタイトルの自動縮小の下限。自動縮小を許すのはタイトルのみ" },
-    "body": { "$value": 18, "$description": "本文 第1階層。core-type-body-floor の下限であり目標ではない" },
-    "bodySub": { "$value": 16, "$description": "本文 第2階層" },
-    "caption": { "$value": 15, "$description": "図のキャプション" },
-    "captionNote": { "$value": 14, "$description": "図の注記" },
-    "table": { "$value": 15, "$description": "表の中" },
-    "source": { "$value": 11, "$description": "出典行" },
-    "pageNumber": { "$value": 11, "$description": "ページ番号" },
-    "bigNumber": { "$value": 88, "$description": "1つの数値がスライドの主張であるとき" },
-    "quote": { "$value": 28, "$description": "引用" }
+    "titleSlide": {
+      "$value": 40,
+      "$description": "表紙のデッキタイトル"
+    },
+    "section": {
+      "$value": 34,
+      "$description": "章扉"
+    },
+    "titleMax": {
+      "$value": 30,
+      "$description": "スライドタイトルの既定"
+    },
+    "titleMin": {
+      "$value": 24,
+      "$description": "スライドタイトルの自動縮小の下限。自動縮小を許すのはタイトルのみ"
+    },
+    "body": {
+      "$value": 18,
+      "$description": "本文 第1階層。core-type-body-floor の下限であり目標ではない"
+    },
+    "bodySub": {
+      "$value": 16,
+      "$description": "本文 第2階層"
+    },
+    "caption": {
+      "$value": 15,
+      "$description": "図のキャプション"
+    },
+    "captionNote": {
+      "$value": 14,
+      "$description": "図の注記"
+    },
+    "table": {
+      "$value": 15,
+      "$description": "表の中"
+    },
+    "source": {
+      "$value": 11,
+      "$description": "出典行"
+    },
+    "pageNumber": {
+      "$value": 11,
+      "$description": "ページ番号"
+    },
+    "bigNumber": {
+      "$value": 88,
+      "$description": "1つの数値がスライドの主張であるとき"
+    },
+    "quote": {
+      "$value": 28,
+      "$description": "引用"
+    }
   },
   "grid": {
     "$type": "number",
     "$description": "core-layout-one-grid。単位は inch。スライドは 16:9（13.33 × 7.5）。全要素の左端は sideMargin か、そこから導出した列端に乗る。",
-    "slideWidth": { "$value": 13.33 },
-    "slideHeight": { "$value": 7.5 },
-    "sideMargin": { "$value": 0.92, "$description": "左右の余白。内容幅は 11.49 になる" },
-    "contentWidth": { "$value": 11.49, "$description": "slideWidth - sideMargin * 2。目測で決めない" },
-    "titleTop": { "$value": 0.62, "$description": "タイトル枠の上端。全スライドで一致させる" },
-    "titleHeight": { "$value": 1.04, "$description": "タイトル枠の高さ。下端揃えにして、2行になったら上に伸ばす" },
-    "titleGap": { "$value": 0.22, "$description": "タイトル下の間隔。ここにヘアラインが入る" },
-    "hairlineLength": { "$value": 1.05, "$description": "ヘアラインの長さ" },
-    "hairlineWeight": { "$value": 0.045, "$description": "ヘアラインの太さ" },
-    "gutter": { "$value": 0.5, "$description": "2段組の列間" },
-    "footerTop": { "$value": 7.04, "$description": "この線より下には出典行とページ番号だけを置く" }
+    "slideWidth": {
+      "$value": 13.33
+    },
+    "slideHeight": {
+      "$value": 7.5
+    },
+    "sideMargin": {
+      "$value": 0.92,
+      "$description": "左右の余白。内容幅は 11.49 になる"
+    },
+    "contentWidth": {
+      "$value": 11.49,
+      "$description": "slideWidth - sideMargin * 2。目測で決めない"
+    },
+    "titleTop": {
+      "$value": 0.62,
+      "$description": "タイトル枠の上端。全スライドで一致させる"
+    },
+    "titleHeight": {
+      "$value": 1.04,
+      "$description": "タイトル枠の高さ。下端揃えにして、2行になったら上に伸ばす"
+    },
+    "titleGap": {
+      "$value": 0.22,
+      "$description": "タイトル下の間隔。ここにヘアラインが入る"
+    },
+    "hairlineLength": {
+      "$value": 1.05,
+      "$description": "ヘアラインの長さ"
+    },
+    "hairlineWeight": {
+      "$value": 0.045,
+      "$description": "ヘアラインの太さ"
+    },
+    "gutter": {
+      "$value": 0.5,
+      "$description": "2段組の列間"
+    },
+    "footerTop": {
+      "$value": 7.04,
+      "$description": "この線より下には出典行とページ番号だけを置く"
+    }
   },
   "density": {
     "$type": "number",
     "$description": "core-density-budget。超えたらスライドを割る。文字を縮めない。",
-    "bulletsTopLevelMax": { "$value": 6 },
-    "bulletDepthMax": { "$value": 2 },
-    "bulletsPerColumnMax": { "$value": 4 },
-    "tableColumnsMax": { "$value": 6 },
-    "tableRowsMax": { "$value": 8 },
-    "chartSeriesMax": { "$value": 4 },
-    "pieSlicesMax": { "$value": 6 },
-    "figuresPerSlideMax": { "$value": 1 },
-    "accentUsesPerSlideMax": { "$value": 1, "$description": "ヘアラインを除く" }
+    "bulletsTopLevelMax": {
+      "$value": 6
+    },
+    "bulletDepthMax": {
+      "$value": 2
+    },
+    "bulletsPerColumnMax": {
+      "$value": 4
+    },
+    "tableColumnsMax": {
+      "$value": 6
+    },
+    "tableRowsMax": {
+      "$value": 8
+    },
+    "chartSeriesMax": {
+      "$value": 4
+    },
+    "pieSlicesMax": {
+      "$value": 3,
+      "$description": "core-chart-pie-limit。角度と面積は読み取り精度が低いため（Cleveland & McGill 1984）"
+    },
+    "figuresPerSlideMax": {
+      "$value": 1
+    },
+    "accentUsesPerSlideMax": {
+      "$value": 1,
+      "$description": "ヘアラインを除く"
+    }
   }
 }
