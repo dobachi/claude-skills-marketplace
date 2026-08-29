@@ -81,46 +81,29 @@ AIは渡された指示を同格に扱いがちで、ユーザ指定のブラン
 HOUSE の存在理由は「決めないと中央値に落ちるから」であり、
 上書きされること自体は失敗ではない。
 
-## 4. 知識の単位と書式
+## 4. 知識の単位
 
-### playbook（入口・ユースケース単位）
+知識を4種類に分ける。それぞれ役割が違い、混ぜない。
 
-```yaml
----
-id: pptx-decision-deck
-media: pptx
-when:                       # 判定可能な条件。全て真なら該当
-  - "成果物が PowerPoint である"
-  - "目的が意思決定の獲得である（提案・稟議・投資判断）"
-ambiguous_if: "目的が説明か意思決定か判別できない場合は、ユーザに聞くこと"
-uses_rules: [title-is-assertion, one-message-per-slide, color-four-slots]
----
-```
+| 種別 | 置き場 | 役割 |
+|---|---|---|
+| playbook | `playbooks/` | ユースケース単位の手順書。**AIの入口はここだけ** |
+| rule | `rules/` | 1つの判断だけを書いた原子ファイル。playbook から ID で引かれる |
+| token | `tokens/` | 決め打ちの値。W3C DTCG 形式（独自形式を作らない） |
+| antipattern | `antipatterns/` | 具体名で禁止された事項 |
 
-本文は「状況 → 順序付き手順 → 決め打ち値 → `done_when` → よくある失敗」の同一書式。
+**各ファイルの書式（frontmatter の全フィールド、ID 体系、`done_when` の文法）は
+[`docs/format-spec.md`](docs/format-spec.md) が正である。** ここには再掲しない。
 
-### rule（原子ルール）
+書式のうち、設計上の判断として押さえるべきは次の3点である。
 
-```yaml
----
-id: title-is-assertion
-tier: SHOULD
-media: [pptx, doc]
-statement: "スライドのタイトルは主張文にする（トピック名にしない）"
-rationale_short: "読み手はタイトルしか読まないことがある"
-not_applicable_when: "目次・章扉・付録の見出し"
-source: "McKinsey/BCG のアクションタイトル慣行"
----
-```
-
-### token（決め打ち値）
-
-W3C DTCG（2026年に標準化済み）の JSON 形式に準拠する。**独自形式は作らない。**
-併せて人間可読の表を置く。
-
-### antipattern（禁止の具体）
-
-「やってはいけない具体名」＋「代わりに何をするか」＋ before/after のテキスト差分。
+- **`tier` と `source.kind` は1対1に対応する。** 権威と出典を別々に判断しない。
+  出典が出せないものは `HOUSE` であり、外部規範のふりをさせない
+- **`done_when` の条件は6つの述語（`exists` / `absent` / `count` / `member` /
+  `ratio` / `equal`）のいずれかに還元できなければならない。** できないものは
+  完了条件ではなく `needs_human` である
+- **検証手段の無いルールは追加しない。** rule は `verified_by` で
+  自分を検証する `done_when` を指す
 
 ## 5. AI から見た読み方
 

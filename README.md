@@ -12,7 +12,9 @@ AIエージェントは資料やUIを日常的に生成するが、その出来�
 ユースケース単位の手順書**である。
 
 - **AIが最初に読む入口**: [INDEX.md](INDEX.md)（ルーティング表。これだけを常時読む）
-- 設計思想・書式仕様: [CONCEPT.md](CONCEPT.md)
+- 設計思想: [CONCEPT.md](CONCEPT.md)
+- 書式仕様（ファイルを追加する前に読む）: [docs/format-spec.md](docs/format-spec.md)
+- 用語集: [glossary.md](glossary.md)
 - 現在の状態: v0.1 策定中（対象媒体: PowerPoint）。
   `INDEX.md` が指す先はまだ大半が未作成であり、状態列に明示している
 
