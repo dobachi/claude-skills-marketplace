@@ -7,45 +7,33 @@ AIエージェントは資料やUIを日常的に生成するが、その出来�
 （紫グラデーション＋Inter＋3枚のカード、いわゆる AI slop）に落ちる、という
 2つの失敗が起きる。
 
-このリポジトリは「デザイン原則集」ではない。
+これは「デザイン原則集」ではない。
 **判断が空欄にならないよう決め打ちされ、適用条件と完了条件が明示された、
 ユースケース単位の手順書**である。
 
-- **AIが最初に読む入口**: [INDEX.md](INDEX.md)（ルーティング表。これだけを常時読む）
-- 設計思想: [CONCEPT.md](CONCEPT.md)
-- 書式仕様（ファイルを追加する前に読む）: [docs/format-spec.md](docs/format-spec.md)
-- 用語集: [glossary.md](glossary.md)
-- 出典台帳: [docs/sources.md](docs/sources.md)
+対象媒体は v0.1 では PowerPoint のみ。web / chart / 文書は v0.3 以降。
 
-## 検査
+## 入口
 
-```
-python3 tools/lint.py
-```
-
-書式仕様のチェックリストを機械的に確認する。標準ライブラリのみ。
-終了コードは 0=違反なし / 1=違反あり / 2=検査できない。
-- 現在の状態: v0.1 策定中（対象媒体: PowerPoint）。
-  `INDEX.md` が指す先はまだ大半が未作成であり、状態列に明示している
+| | |
+|---|---|
+| **AIが最初に読む入口** | [`skills/design-for-agents/INDEX.md`](skills/design-for-agents/INDEX.md) — ルーティング表。**これだけを常時読む** |
+| 設計思想 | [`CONCEPT.md`](CONCEPT.md) |
+| 書式仕様（ファイルを追加する前に読む） | [`docs/format-spec.md`](skills/design-for-agents/docs/format-spec.md) |
+| 用語集 | [`glossary.md`](skills/design-for-agents/glossary.md) |
+| 出典台帳 | [`docs/sources.md`](skills/design-for-agents/docs/sources.md) |
 
 ## 使い方
 
-### スキルとして使う
-
-このリポジトリは [Agent Skills](https://agentskills.io) 形式のルータスキルを
-同梱している（`skills/design-for-agents/SKILL.md`）。スキルは判断を持たず、
-`INDEX.md` に渡すだけである。
+このプラグインをインストールすると、ルータスキル `design-for-agents` が有効になる。
+スキル自体は判断を持たず、`INDEX.md` に渡すだけである。
 
 ```
-git clone https://github.com/dobachi/design-for-agents.git
+/plugin install design-for-agents@dobachi-skills
 ```
 
-Claude Code から使う場合は、クローンしたディレクトリをプラグインとして
-登録する（`.claude-plugin/plugin.json` を同梱済み）。
-
-### 直接引く
-
-スキルを介さず、AI に `INDEX.md` を読ませてもよい。実行手順は INDEX の第0節にある。
+スキルを介さず、AI に `skills/design-for-agents/INDEX.md` を直接読ませてもよい。
+実行手順は INDEX の第0節にある。
 
 ```
 媒体 → モード → ジャンル(1つだけ) → 要素(0本以上) → 制約(0本以上)
@@ -53,32 +41,56 @@ Claude Code から使う場合は、クローンしたディレクトリをプ�
 ```
 
 **リポジトリ全体を読み込ませない。** INDEX が指した行のファイルだけを開く。
+上の経路で実際に開くのは 5 ファイル・約 20KB であり、収録物全体（約 150KB）の
+7分の1で済む。
 
-### 書式を検査する
+## 構成
 
 ```
-python3 tools/lint.py            # 0=違反なし / 1=違反あり / 2=検査できない
-python3 tools/lint.py --vocab    # 用語集の「使わない語」も照合（警告のみ）
+skills/design-for-agents/
+  SKILL.md          薄いルータ。判断を持たない
+  INDEX.md          ルーティング表（常時読む唯一の入口）
+  glossary.md       語彙の固定
+  playbooks/        ユースケース別の手順書 8本（mode 1 / deck 3 / element 3 / constraint 1）
+  rules/            原子ルール 27枚（MUST 3 / SHOULD 13 / HOUSE 11）
+  tokens/           決め打ち値。W3C DTCG 形式
+  antipatterns/     具体名で禁止された事項 10件
+  docs/             書式仕様と出典台帳
+  scripts/lint.py   書式検査
 ```
+
+## 検査
+
+```
+python3 skills/design-for-agents/scripts/lint.py            # 0=違反なし / 1=違反あり / 2=検査できない
+python3 skills/design-for-agents/scripts/lint.py --vocab    # 用語集の「使わない語」も照合（警告のみ）
+```
+
+標準ライブラリのみ。必須フィールド、ID の体系、`tier` と出典種別の対応、
+`done_when` の述語と下限、範囲表記の混入、参照先ルールの実在などを確認する。
+**検査器自身が下限を持ち**、対象を消して「違反なし」にはできない（終了コード 2）。
 
 ## pptx-design との関係
 
-本リポジトリは [dobachi/claude-skills-marketplace](https://github.com/dobachi/claude-skills-marketplace)
-の `pptx-design` スキルの `references/` を抽出・再構造化したものであり、
-**そちらの上流にあたる**。抽出にあたって加えた主な変更は次のとおり。
+本プラグインは同じマーケットプレイスの `pptx-design` の `references/` を
+抽出・再構造化したものであり、**その上流にあたる**。抽出にあたって加えた主な変更。
 
-- 各規則に出典と権威の階層（MUST / SHOULD / HOUSE）を付け、
-  外部の規範と本リポジトリの決めを区別した。元は大半が出典なしの断定だった
+- 各規則に出典と権威の階層（MUST / SHOULD / HOUSE）を付け、外部の規範と
+  本プラグインの決めを区別した。元は大半が出典なしの断定だった
 - 一次情報を4件補った（Alley & Neeley 2005、Cleveland & McGill 1984、
-  Okabe & Ito、JIS X 8341-3:2016）。詳細は [docs/sources.md](docs/sources.md)
+  Okabe & Ito、JIS X 8341-3:2016）。詳細は
+  [`docs/sources.md`](skills/design-for-agents/docs/sources.md)
 - 元にあった矛盾を1件解決した（円グラフの区分上限が 6 と 3 で食い違っていた）
 - 完了条件を検出器互換の書式で書き直し、削除で満たせないよう下限を添えた
+
+実際の `.pptx` の生成・抽出は `pptx-build` が行う。本プラグインは仕様と
+完了条件のみを供給する。
 
 ## ライセンス
 
 | 対象 | ライセンス |
 |---|---|
-| 文書（`rules/` `playbooks/` `antipatterns/` `tokens/` `docs/` ほか `.md`） | [CC BY 4.0](LICENSE-docs) |
-| コード（`tools/`） | [Apache License 2.0](LICENSE) |
+| 文書（`INDEX.md` `rules/` `playbooks/` `antipatterns/` `tokens/` `docs/` ほか `.md`） | [CC BY 4.0](LICENSE-docs) |
+| コード（`scripts/`） | [Apache License 2.0](LICENSE) |
 
-文書中で引用・参照している外部の規範や著作物の権利は、それぞれの権利者に帰属する。
+引用・参照している外部の規範や著作物の権利は、それぞれの権利者に帰属する。

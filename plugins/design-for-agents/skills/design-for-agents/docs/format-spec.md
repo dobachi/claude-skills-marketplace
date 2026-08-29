@@ -255,11 +255,11 @@ violates: [core-color-four-slots, pptx-master-placeholder]
 
 ## 9. 追加前チェックリスト
 
-**この節は `tools/lint.py` が機械的に確認する。**
+**この節は `scripts/lint.py` が機械的に確認する。**
 
 ```
-python3 tools/lint.py            # 0=違反なし / 1=違反あり / 2=検査できない
-python3 tools/lint.py --vocab    # 用語集の「使わない語」も照合（警告のみ）
+python3 scripts/lint.py            # 0=違反なし / 1=違反あり / 2=検査できない
+python3 scripts/lint.py --vocab    # 用語集の「使わない語」も照合（警告のみ）
 ```
 
 検査器は下限を持つ。`rules/` を空にして「違反なし」にすることはできない

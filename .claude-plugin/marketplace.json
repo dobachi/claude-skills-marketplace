@@ -96,6 +96,11 @@
       "description": "Turns raw records of an international academic conference, a commercial/vendor conference or trade show, a standards meeting, a customer visit, or an internal discussion into a reader-targeted report: a Markdown report as the source of truth plus a derived executive .pptx. Fixes reader / ask / disclosure scope / original objective / event profile first, inventories every input (AI transcripts, photos, captured slides, proceedings, handouts, colleagues' notes) with reliability and confidentiality, restructures by issue rather than by session, and separates fact / interpretation / hearsay with a lightweight evidence ledger. Requires a coverage statement for multi-track events, counted evidence for trend claims, and a GA/Preview/roadmap classification for vendor announcements. Ships per-profile report and deck templates."
     },
     {
+      "name": "design-for-agents",
+      "source": "./plugins/design-for-agents",
+      "description": "Design knowledge restructured so an AI can look it up without guessing. Use-case playbooks (decision deck / technical explanation / pitch / refactoring an existing deck / tables / charts / structural diagrams / corporate-template compliance) that route to atomic rules, each carrying a tier (MUST / SHOULD / HOUSE), a cited source, and a completion condition written in a detector-compatible form. Decided values ship as W3C DTCG tokens; named anti-patterns say what not to do. Router only — it holds no judgement itself and hands file generation to pptx-build."
+    },
+    {
       "name": "doc-coauthoring",
       "source": "./plugins/doc-coauthoring",
       "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN."

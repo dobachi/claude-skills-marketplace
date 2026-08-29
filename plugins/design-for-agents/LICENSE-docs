@@ -2,8 +2,9 @@ Creative Commons Attribution 4.0 International (CC BY 4.0)
 
 Copyright 2026 dobachi
 
-このリポジトリの**文書**（`rules/` `playbooks/` `antipatterns/` `tokens/`
-`docs/` および `.md` ファイル全般）は、クリエイティブ・コモンズ 表示 4.0
+この design-for-agents プラグインの**文書**（`skills/design-for-agents/` 配下の
+`INDEX.md` `rules/` `playbooks/` `antipatterns/` `tokens/` `docs/` および
+`.md` ファイル全般）は、クリエイティブ・コモンズ 表示 4.0
 国際ライセンスの下で提供されます。
 
   https://creativecommons.org/licenses/by/4.0/deed.ja
@@ -15,4 +16,8 @@ Copyright 2026 dobachi
 学術論文、書籍など。一覧は docs/sources.md）の権利は、それぞれの権利者に
 帰属します。本ライセンスが及ぶのは、本リポジトリが書いた記述の部分です。
 
-コード（`tools/` 配下）は Apache License 2.0 です。LICENSE を参照してください。
+コード（`skills/design-for-agents/scripts/` 配下）は Apache License 2.0 です。
+LICENSE を参照してください。
+
+本ライセンスが及ぶ範囲は、この design-for-agents プラグインのディレクトリ配下に
+限られます。マーケットプレイス全体のライセンスは別に定めます。

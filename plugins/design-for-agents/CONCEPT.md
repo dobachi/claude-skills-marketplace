@@ -93,7 +93,7 @@ HOUSE の存在理由は「決めないと中央値に落ちるから」であ�
 | antipattern | `antipatterns/` | 具体名で禁止された事項 |
 
 **各ファイルの書式（frontmatter の全フィールド、ID 体系、`done_when` の文法）は
-[`docs/format-spec.md`](docs/format-spec.md) が正である。** ここには再掲しない。
+[`docs/format-spec.md`](skills/design-for-agents/docs/format-spec.md) が正である。** ここには再掲しない。
 
 書式のうち、設計上の判断として押さえるべきは次の3点である。
 

@@ -14,9 +14,9 @@
 |---|---|
 | 中核 | ユースケース別プレイブック（参照できることが第一）。検出器は v0.2 で後追い |
 | v0.1 の媒体 | PowerPoint |
-| 配置 | 独立リポジトリ。後から `claude-skills-marketplace` にプラグイン登録 |
+| 配置 | `claude-skills-marketplace` の `plugins/design-for-agents`（2026-08-29 に独立リポジトリから subtree で合流。理由は下記） |
 | 既存 `pptx-design` との関係 | **本リポジトリが上流**。pptx-design の references/ を抽出・再構造化し、スキル側は薄くして ID 参照に寄せる |
-| 公開 | private で作成 → 内容確認 → public |
+| 公開 | マーケットプレイスが public。ライセンスはプラグイン単位で宣言（文書 CC BY 4.0 / コード Apache-2.0） |
 
 ## 作業規約
 
@@ -33,20 +33,33 @@
 7. **公開リポジトリである。** 個人名を含む絶対パス、社内固有の情報、
    未公開資料からの引用を書かない。他リポジトリは相対パスで指す。
 
-## v0.1 の作業項目
+## 状態
 
-- [ ] `INDEX.md` — ルーティング表（AIが常時読む唯一の入口）
-- [ ] `glossary.md` — 語彙の固定
-- [ ] `playbooks/` — 意思決定資料 / 技術説明 / ピッチ / 既存資料のリファクタ /
-      表・グラフ / 構造図 / コーポレートテンプレ準拠
-- [ ] `rules/` — 20〜30枚（`../claude-skills-marketplace/plugins/pptx-design/skills/pptx-design/references/`
-      からの抽出＋出典の補完）
-- [ ] `tokens/` — 色4枠・型スケール1本・グリッド・密度予算を W3C DTCG 形式で
-- [ ] `antipatterns/` — PowerPoint 版の slop カタログ
-- [ ] `skills/` — 薄いルータスキル1本（Agent Skills 形式）
-- [ ] LICENSE / NOTICE（pptx-design からの派生を明示）
+v0.1 は完了。playbook 8本 / rule 27枚（MUST 3・SHOULD 13・HOUSE 11）/
+tokens / antipatterns 10件 / 出典台帳 16件 / ルータスキル / 検査器。
 
-## 関連リポジトリ（同一階層に clone されている想定）
+残っている作業:
 
-- `../claude-skills-marketplace` — 既存スキル群。`plugins/pptx-design`（上流化の対象）、
-  `plugins/pptx-build`（生成の実装）、`plugins/skill-authoring`（スキル登録の作法）
+- [ ] `pptx-design` の未抽出分を取り込む（`visual-design.md` 195行 = 書体の組み合わせ・
+      写真・アイコン、`further-reading.md` 237行 = `docs/sources.md` へ統合）
+- [ ] 取り込み後に `pptx-design` を廃止し、`pptx-build` の参照を張り替える
+- [ ] v0.2: `done_when` の `check: manual` を `automated` に昇格させる
+- [ ] v0.3: 媒体を web / chart / 文書へ広げる
+
+## 合流の経緯（2026-08-29）
+
+独立リポジトリ `dobachi/design-for-agents` として作り、subtree で取り込んだ。
+分けたままにしなかった理由は2つ。
+
+1. `install.sh` の cross-agent symlink は `plugins/*/skills/<name>/` を単位に
+   しており、**独立リポジトリでは Codex / Gemini / agy に配れない**
+2. マーケットプレイス側に CI と `release_check.sh` があり、こちらの `lint.py` と
+   合わせて規約の番人が2重になる
+
+失ったのは独立した URL としての引用アンカーだけである。
+
+## 関連プラグイン（同一リポジトリ内）
+
+- `../pptx-design` — 上流化の対象。未抽出分を取り込んだうえで廃止する
+- `../pptx-build` — 生成の実装。本プラグインは仕様と完了条件のみを供給する
+- `../skill-authoring` — スキル登録の作法と `release_check.sh`

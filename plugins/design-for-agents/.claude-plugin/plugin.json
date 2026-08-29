@@ -1,7 +1,7 @@
 {
   "name": "design-for-agents",
   "description": "Design knowledge restructured so an AI can look it up without guessing. Use-case playbooks (decision deck / technical explanation / pitch / refactoring an existing deck / tables / charts / structural diagrams / corporate-template compliance) that route to atomic rules, each carrying a tier (MUST / SHOULD / HOUSE), a cited source, and a completion condition written in a detector-compatible form. Decided values ship as W3C DTCG tokens; named anti-patterns say what not to do. Router only — it holds no judgement itself and hands file generation to pptx-build.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "dobachi"
   }
