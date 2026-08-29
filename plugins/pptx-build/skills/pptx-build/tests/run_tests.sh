@@ -23,6 +23,16 @@ f="fixtures"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# 依存が無い環境（CI の素の runner、python-pptx 未インストールの手元）では、
+# 全ケースが ModuleNotFoundError で落ちて「スキルが壊れている」ように見える。
+# それは嘘なので、検査を実行できないことを明示して抜ける。CI は
+# assets/requirements.txt を入れてから呼ぶので、ここは通らない。
+if ! python3 -c "import pptx, yaml" >/dev/null 2>&1; then
+  echo "SKIP  python-pptx / PyYAML が無いため、このハーネスは何も検査していない"
+  echo "      入れるには: pip install -r ../assets/requirements.txt"
+  exit 0
+fi
+
 # ─────────── 編集点: 検査を足したら、両方向の行を足す ───────────
 # 書式1: 期待exit|コマンド行        0=指摘なし / 1=指摘あり / 2=前提エラー
 # 書式2: has:<文字列>|コマンド行    その文字列が出力に現れること

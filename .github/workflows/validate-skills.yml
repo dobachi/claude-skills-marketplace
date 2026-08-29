@@ -32,8 +32,18 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install PyYAML
-        run: pip install pyyaml
+      - name: Install Python dependencies
+        # PyYAML for the validator itself, plus whatever each skill declares in
+        # its own assets/requirements.txt (pptx-build needs python-pptx). Without
+        # this a bundled harness dies on ModuleNotFoundError, which reads as a
+        # broken skill rather than as a missing dependency on the runner.
+        run: |
+          pip install pyyaml
+          for r in plugins/*/skills/*/assets/requirements.txt; do
+            [ -f "$r" ] || continue
+            echo "== $r"
+            pip install -r "$r"
+          done
 
       - name: Validate SKILL.md files
         run: python3 tools/validate_skills.py
