@@ -140,6 +140,29 @@ def make_grid(theme):
 # Overflow guard — keep type LARGE. We never auto-shrink below the floor; when
 # content won't fit at readable sizes we warn so the operator splits the slide.
 # ---------------------------------------------------------------------------
+# Directory of the spec file. A spec that came out of extract_deck.py points at
+# images next to itself (`deck_media/slide03-1.png`), so a relative path must
+# resolve against the spec, not only against wherever the build was run from.
+_BASE_DIR = None
+
+
+def _asset(path):
+    """Resolve a spec-relative asset path: as given first, then next to the spec."""
+    if not path or os.path.isabs(path) or os.path.exists(path) or not _BASE_DIR:
+        return path
+    near = os.path.join(_BASE_DIR, path)
+    return near if os.path.exists(near) else path
+
+
+def _apply_notes(prs, slides):
+    """Carry `notes:` into the real notes slide — what the presenter says is part
+    of the deck, and a refactor that drops it loses half the argument."""
+    for slide, s in zip(prs.slides, slides):
+        text = (s or {}).get("notes")
+        if text:
+            slide.notes_slide.notes_text_frame.text = str(text)
+
+
 _WARNINGS = []
 
 
@@ -900,7 +923,7 @@ def _render_image(slide, theme, g, s, i):
     _, bodies = _phs_by_role(slide)
     cap_ph = bodies[0] if bodies else None
     label, note = s.get("caption"), (s.get("note") or s.get("description"))
-    img = s.get("image")
+    img = _asset(s.get("image"))
 
     # The picture placeholder defines the (master-governed) image region. Read it,
     # then drop the empty placeholder so it never lingers behind the fitted picture.
@@ -1184,7 +1207,7 @@ def render_template(prs, spec, map_cfg):
             _set_ph_bullets(body, lines)
         elif t == "image":
             pic = pick("image", roles["picture"])
-            img = s.get("image")
+            img = _asset(s.get("image"))
             if pic is not None and img and os.path.exists(img):
                 try:
                     pic.insert_picture(img)
@@ -1246,7 +1269,10 @@ def _resolve_layout(prs, ref):
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
-def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None):
+def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, base_dir=None):
+    global _BASE_DIR
+    _BASE_DIR = base_dir
+    slides = spec.get("slides") or []
     if template:
         prs = Presentation(template)
         map_cfg = None
@@ -1254,6 +1280,7 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None):
             with open(map_path, encoding="utf-8") as f:
                 map_cfg = json.load(f)
         chosen = render_template(prs, spec, map_cfg)
+        _apply_notes(prs, slides)
         prs.save(out)
         print("wrote %s  (template-fill: %s)" % (out, os.path.basename(template)))
         for t, name in chosen:
@@ -1269,7 +1296,8 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None):
         prs.slide_width = Inches(g["pageW"])
         prs.slide_height = Inches(g["pageH"])
         del _WARNINGS[:]
-        render_default(prs, theme, g, spec.get("slides") or [])
+        render_default(prs, theme, g, slides)
+        _apply_notes(prs, slides)
         prs.save(out)
         print("wrote %s  (default theme: %s)" % (out, theme.get("name", "?")))
         if _WARNINGS:
@@ -1285,7 +1313,8 @@ def main(argv=None):
     ap.add_argument("--template", help="open a real .pptx/.potx and fill its placeholders")
     ap.add_argument("--map", dest="map_path", help="role->placeholder map JSON (template mode)")
     a = ap.parse_args(argv)
-    build(load_spec(a.spec), a.out, a.theme, a.template, a.map_path)
+    build(load_spec(a.spec), a.out, a.theme, a.template, a.map_path,
+          base_dir=os.path.dirname(os.path.abspath(a.spec)))
 
 
 if __name__ == "__main__":

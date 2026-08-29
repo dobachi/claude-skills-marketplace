@@ -3,6 +3,15 @@
 How to make the generator write into a template the user actually hands you, so the
 output inherits that template's master, theme, fonts, logos, and **placeholders**.
 
+## Contents
+
+- [Why this is a real engine feature now](#why-this-is-a-real-engine-feature-now) — what python-pptx makes possible
+- [The workflow: inspect → (map) → fill](#the-workflow-inspect-map-fill) — the three commands, in order
+- [How resolution works (precedence)](#how-resolution-works-precedence) — which layout and placeholder a slide lands on
+- [What carries the look](#what-carries-the-look) — master, theme, fonts, logos
+- [Nothing is dropped silently](#nothing-is-dropped-silently) — the warnings that tell you content did not land
+- [When the binary master itself must be carried — this is it](#when-the-binary-master-itself-must-be-carried-this-is-it) — the case only this mode covers
+
 ## Why this is a real engine feature now
 
 python-pptx can **open an existing presentation** and add slides from its layouts:

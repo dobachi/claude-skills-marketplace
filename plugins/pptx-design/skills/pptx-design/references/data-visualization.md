@@ -2,6 +2,18 @@
 
 Charts and tables for `.pptx` decks. Source principles: Edward Tufte (*The Visual Display of Quantitative Information*), Cole Nussbaumer Knaflic (*Storytelling with Data*), McKinsey/BCG visual conventions.
 
+## Contents
+
+- [Chart Choice Follows the Question](#chart-choice-follows-the-question) — question → chart type
+- [Tufte's Data-Ink Ratio](#tuftes-data-ink-ratio) — what to erase from a chart
+- [Chartjunk to Reject](#chartjunk-to-reject) — 3-D, exploded pies, gradients
+- [Annotations and Callouts](#annotations-and-callouts) — making the chart state its own conclusion
+- [Tables](#tables) — when a table beats a chart, and how to set one
+- [Annotations Layer (PowerPoint specifics)](#annotations-layer-powerpoint-specifics) — how to build callouts in PowerPoint
+- [Chart Construction in PowerPoint](#chart-construction-in-powerpoint) — linked data, theme colors, defaults to undo
+- [Pre-Delivery Chart Review](#pre-delivery-chart-review) — the checklist
+- [Anti-Patterns Specific to AI-Generated Decks](#anti-patterns-specific-to-ai-generated-decks) — the tells to remove
+
 ## Chart Choice Follows the Question
 
 | Question | Recommended | Notes |

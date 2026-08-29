@@ -2,6 +2,17 @@
 
 Typography, color, layout, hierarchy, imagery, and icons for `.pptx` decks.
 
+## Contents
+
+- [Typography](#typography) — faces, pairing, sizes, hierarchy, spacing
+- [Color](#color) — palette, semantics, contrast, color blindness
+- [Layout & Composition](#layout-composition) — grid, alignment, proximity, white space, focal point
+- [CRAP Principles (Robin Williams)](#crap-principles-robin-williams) — the four rules that prevent most errors
+- [Imagery](#imagery) — quality, purpose, full-bleed vs framed, sources
+- [Icons](#icons) — one family, one weight, theme color
+- [Slide Master Setup (the highest-leverage 30 minutes)](#slide-master-setup-the-highest-leverage-30-minutes) — fonts, colors, layouts, footer, logo
+- [What Not to Do](#what-not-to-do) — the habits that read as low effort
+
 ## Typography
 
 ### Font choice

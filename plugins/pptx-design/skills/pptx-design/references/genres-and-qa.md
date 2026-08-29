@@ -1,5 +1,12 @@
 # Deck Genres, Accessibility, and Pre-Delivery QA
 
+## Contents
+
+- [Deck Genres](#deck-genres) — pitch, sales, review, talk, training
+- [Accessibility](#accessibility) — contrast, alt text, reading order
+- [Pre-Delivery QA Checklist](#pre-delivery-qa-checklist) — the last pass before sending
+- [Source References](#source-references) — the literature behind this skill
+
 ## Deck Genres
 
 Different audiences and formats demand different design conventions. Choose the genre, then design within its rules.

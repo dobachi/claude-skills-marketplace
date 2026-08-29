@@ -2,6 +2,18 @@
 
 The single highest-leverage skill for `.pptx` design quality. AI-generated decks fail here more than anywhere else.
 
+## Contents
+
+- [The Information Test](#the-information-test) — does the visual encode anything
+- [When a Diagram Earns Its Place](#when-a-diagram-earns-its-place) — the cases that justify drawing
+- [Diagram Type Catalog](#diagram-type-catalog) — which diagram for which structure
+- [Architecture Diagram Conventions](#architecture-diagram-conventions) — layers, boundaries, arrows that mean something
+- [SmartArt: When It Works vs. Theater](#smartart-when-it-works-vs-theater) — the narrow legitimate use
+- [AI-Deck Anti-Patterns (named explicitly)](#ai-deck-anti-patterns-named-explicitly) — decorated bullets and their relatives
+- [The Fix Recipe](#the-fix-recipe) — turning decoration into structure
+- [Tools](#tools) — what to draw it with
+- [Pre-Delivery Diagram Review](#pre-delivery-diagram-review) — the checklist
+
 ## The Information Test
 
 Before drawing **any** boxes, arrows, or shapes on a slide, answer two questions out loud:

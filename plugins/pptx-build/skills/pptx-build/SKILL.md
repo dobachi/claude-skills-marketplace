@@ -1,24 +1,37 @@
 ---
 name: pptx-build
 description: >-
-  Generate clean, white-based .pptx decks that don't look AI-made — built on python-pptx. Two modes from ONE spec: (1) default — grid-anchored from-scratch layout with no drifting decorative bands (accent computed once from the grid, identical on every slide); (2) template-fill — open a real corporate .pptx/.potx and write into ITS layouts and placeholders (title/body/subtitle), inheriting the template's master, theme, fonts, and logos. Use when the user wants to actually produce a PowerPoint file (not just design advice), asks for a "simple white deck," "テンプレに沿ったパワポ," "会社のテンプレートで作って," or a deck that doesn't look AI-generated. Covers bullets/two-column/big-number/quote/image plus `table` and `chart`, so a deck never falls back to hand-written python-pptx — the thing that floats textboxes onto blank slides and ignores the slide master. Ships `validate_deck.py` (spec lint + narrative spine) and `audit_pptx.py` (fails a produced deck whose content is not in layout placeholders).
+  Generate clean, white-based .pptx decks that don't look AI-made, and rebuild decks that
+  already exist — built on python-pptx. Three modes, one spec: (1) default — grid-anchored
+  layout with no drifting decorative bands; (2) template-fill — open a real corporate
+  .pptx/.potx and write into ITS layouts and placeholders, inheriting its master, theme,
+  fonts, and logos; (3) refactor — `extract_deck.py` reads an EXISTING deck (inherited,
+  AI-made, hand-floated) back into a spec and reports what it cannot carry, so the argument
+  is fixed as text and re-rendered into real placeholders. Use when an actual PowerPoint file
+  must be produced or fixed, not just designed — "simple white deck", "テンプレに沿ったパワポ",
+  "会社のテンプレートで作って", "この資料を作り直して/整えて". Covers bullets/two-column/
+  big-number/quote/image plus table and chart, so a deck never falls back to hand-written
+  python-pptx. Ships `validate_deck.py` (spec lint + narrative spine) and `audit_pptx.py`
+  (fails a deck whose content is not in layout placeholders).
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
 
 # Clean PowerPoint Generator (python-pptx)
 
-Produces an actual `.pptx` file. Two rendering paths share one spec:
+Produces an actual `.pptx` file. Three paths share one spec:
 
 - **Default mode** — a deck that reads as human-designed: white background, quiet typography, one restrained accent, everything snapped to a shared grid. Content is written into the **standard PowerPoint layouts' real placeholders** (title / body / subtitle / picture), never free textboxes floated onto a blank slide — so the deck is master-governed even without a supplied template. The opposite of a default-template AI deck.
 - **Template-fill mode** — open a **real** `.pptx`/`.potx` the user provides and write content into **its slide layouts and placeholders**, so the deck inherits the template's master, theme, fonts, and logos. This is what "use our company template" actually means.
+- **Refactor mode** — the deck already exists. `extract_deck.py` reads it back into a spec (titles, bullets, tables, charts, images, speaker notes), reports everything it could not represent, and hands you a text file where the argument is cheap to fix. Rebuild through either mode above. See `references/refactor-mode.md`.
 
 **Engine: python-pptx.** Chosen specifically because it can *open* an existing binary template and address its placeholders — the thing PptxGenJS could not do. **Scope = file generation.** For pure design critique, storyboard, or chart-selection advice without producing a file, use the **pptx-design** skill (this skill's principles are drawn from it). Use **marp-slides** when the user wants Markdown-authored slides.
 
 ## Rule zero: never hand-write python-pptx for a deck
 
-Generate every deck through `build_deck.py` with a spec. Do not write an ad-hoc script, and
-do not "just add one slide" with `python-pptx` afterwards. Hand-written generation reaches
+Generate every deck through `build_deck.py` with a spec. Do not write an ad-hoc script, do
+not "just add one slide" with `python-pptx` afterwards, and do not "just fix" an existing
+deck by patching its shapes with `python-pptx` — extract it and rebuild (`extract_deck.py`). Hand-written generation reaches
 for `slide_layouts[6]` ("Blank") + `add_textbox()`, and the result is the failure this skill
 exists to prevent: **nothing lands in a placeholder, so the slide master governs nothing** —
 titles drift, the template's fonts and logos are ignored, and a rebrand means editing every
@@ -59,6 +72,25 @@ Everything lives in `assets/`. Run the commands from there.
 ```bash
 cd assets && pip install -r requirements.txt   # python-pptx + PyYAML
 ```
+
+### 0b. Refactoring an existing deck? Extract it first
+
+```bash
+python3 extract_deck.py old.pptx -o deck.yaml   # + deck_media/ for its images
+```
+
+This recovers titles, bullets (with levels), two-column headings, tables,
+charts, figures, sources and speaker notes into a spec, and prints a report of
+what it could **not** carry (SmartArt, grouped drawings, decoration, animations).
+Exit `1` means there are `LOSS` lines to decide on; `2` means the file is not a
+`.pptx`. Then continue from step 1b below — the spec is content, not a finished
+deck: rewrite topic titles into action titles and split multi-message slides
+before rebuilding. Full procedure: `references/refactor-mode.md`. What to fix and
+in what order: **pptx-design**'s `references/refactor-playbook.md`.
+
+Never patch an existing deck's shapes with hand-written python-pptx. If the deck
+is already master-governed (`audit_pptx.py old.pptx` reports no errors) and only
+a few slides need edits, patch it **in PowerPoint** instead of rebuilding.
 
 ### 1. Write a spec
 
@@ -139,6 +171,10 @@ table style and theme colors.
 
 In default mode each type maps to a standard PowerPoint layout and writes that layout's placeholders — titles share one bottom-anchored baseline, body/columns go in the layout's body placeholder(s), and `image` fits the figure into a real PICTURE-placeholder region with its `caption` + `note` in the caption placeholder. In template-fill mode each maps to the *supplied* template's layout and placeholders instead. Detail in `references/spec-format.md`.
 
+Any slide may also carry `notes:` — the speaker notes, written into the real
+notes slide in both modes. They survive an extract → rebuild round trip, because
+what the presenter says is half the argument.
+
 ## Themes vs. templates — pick the right one
 
 | The user has… | Use | What carries the look |
@@ -162,6 +198,9 @@ In default mode each type maps to a standard PowerPoint layout and writes that l
 - [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (hairline + emphasis only); **no full-width band**; hairline lines up across all slides (flip the PNGs — the accent should never jump).
 - [ ] **Template mode:** every intended placeholder is actually filled (read the build log + a PNG); no slide fell back to the wrong layout; the deck still looks like the template, not like us.
 - [ ] Data slides carry a `source:` footnote.
+- [ ] **Refactor:** every `LOSS` line from `extract_deck.py` was decided on (redrawn, split, or accepted) — not skimmed.
+- [ ] **Refactor:** no claim was changed while cleaning up; contradictions and unsupported numbers were reported back, not quietly fixed.
+- [ ] **Refactor:** speaker notes survived (`notes:`), and extracted figures still resolve from the spec's directory.
 - [ ] Sub-bullets use a real hanging indent (no glyph flush against text, no tofu boxes).
 
 ## Anti-patterns to refuse (carried from pptx-design)
@@ -170,6 +209,7 @@ Apply the **information test** before adding any shape: if deleting it changes n
 
 ## References
 
+- `references/refactor-mode.md` — rebuilding a deck that already exists: extract → fix the argument as text → rebuild → audit, what extraction recovers and what it cannot carry
 - `references/narrative-and-logic.md` — the cross-slide argument check (Pyramid Principle, SCQA, MECE, action titles, summary consistency) that `validate_deck.py` sets up but can't decide for you
 - `references/template-mode.md` — filling a real `.pptx`/`.potx`: inspect → map → fill, and how foreign layouts/placeholders are resolved
 - `references/anti-band-design.md` — why bands drift and the computed-grid alternative this generator uses
@@ -177,3 +217,5 @@ Apply the **information test** before adding any shape: if deleting it changes n
 - `assets/samples/` — argument-shaped example decks (recommendation / review / decision) + `README.md` mapping each to its structure
 - `assets/validate_deck.py` — spec linter (structure, logic, table/chart sanity) and narrative-spine printer; run before rendering
 - `assets/audit_pptx.py` — artifact auditor: fails a deck whose content is not in layout placeholders; run after rendering
+- `assets/extract_deck.py` — reads an existing `.pptx` back into a spec (+ its images) and reports what it could not represent; the entry point for refactoring
+- `tests/run_tests.sh` — three-directional check of the extractor and the round-trip comparator (clean → 0, defect-injected → 1, not a deck → 2)

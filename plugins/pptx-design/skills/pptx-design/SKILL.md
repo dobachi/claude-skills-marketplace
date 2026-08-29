@@ -1,13 +1,18 @@
 ---
 name: pptx-design
 description: >-
-  Expert guidance for designing professional PowerPoint (.pptx) decks — typography, color,
-  layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master
-  setup. ADVICE ONLY: it plans, storyboards, and critiques but never produces a file. The
-  moment the user wants an actual .pptx generated ("パワポを作って", "スライドにして", "build the
-  deck"), hand off to **pptx-build**, which writes into real layout placeholders — never
-  hand-write python-pptx, which is what produces free textboxes floated onto blank slides and
-  a deck that ignores the slide master.
+  Expert guidance for PowerPoint (.pptx) decks, for BOTH new decks and ones that already
+  exist — a decided simple/clean design system (four color slots, one type scale, one grid,
+  a density budget) plus typography, color, data visualization, structural diagrams, deck
+  genres, accessibility, and slide-master setup. Covers refactoring: diagnosing an inherited,
+  AI-generated, or hurried deck, triaging what to fix first, and deciding patch-in-place vs.
+  rebuild — while preserving the author's argument. Use for "シンプルできれいな資料にしたい",
+  "この資料をレビューして", "既存のパワポを直したい/作り直したい", "clean up this deck",
+  "design a deck". ADVICE ONLY: it plans, critiques, and prescribes but never produces a file.
+  The moment an actual .pptx must be written or rebuilt ("パワポを作って", "スライドにして",
+  "build the deck"), hand off to **pptx-build**, which extracts an existing deck into a spec
+  and writes into real layout placeholders — never hand-write python-pptx, which is what
+  produces free textboxes floated onto blank slides and a deck that ignores the slide master.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -26,6 +31,7 @@ placeholder, the slide master governs nothing, and re-branding means editing eve
 | The user wants | Use |
 |---|---|
 | A real `.pptx` file (from scratch or into their corporate template) | **`pptx-build`** — one YAML spec, writes into layout placeholders; `--template corp.pptx` fills their master |
+| An **existing** `.pptx` fixed, cleaned up, or rebuilt | **`pptx-build`**'s `extract_deck.py` — recovers the content into a spec you edit, then rebuild. Diagnose first with Mode D below |
 | A table or chart on a slide | `pptx-build`'s `table` / `chart` slide types — not a hand-built shape |
 | Markdown-authored slides | `marp-slides` |
 | A diagram worth drawing | `document-figures`, then place the result as an `image` slide |
@@ -41,11 +47,19 @@ do not drop out of the generator. After any deck is produced, `pptx-build`'s
 2. **One message per slide.** If a slide carries two arguments, split it. Slides are free.
 3. **Action titles ("so-what" titles).** Replace topic titles ("Q3 Revenue") with takeaway titles ("Q3 revenue grew 18%, driven by enterprise renewals"). The title states the conclusion; the body proves it. (McKinsey/BCG convention)
 4. **Visual hierarchy via CRAP.** Contrast, Repetition, Alignment, Proximity. (Robin Williams)
-5. **Restraint.** High data-ink ratio (Tufte), minimum animation, no chartjunk, no decorative shapes.
-6. **Diagrams must encode structure, not decorate text.** Apply the **information test**: if removing the boxes/arrows changes no meaning, it isn't a diagram — it's bullets in costume. See `references/diagrams-and-architecture.md`.
-7. **Accessibility by default.** WCAG AA contrast, alt text, unique slide titles, logical reading order — every deck.
+5. **Restraint, as decided values.** High data-ink ratio (Tufte), minimum animation, no chartjunk, no decorative shapes. "Clean" here is not a mood — it is four color slots, one type scale, one grid, and a density budget: `references/clean-design-system.md`. Apply it unless the user has a template or a brand system that says otherwise.
+6. **Clean is subtractive.** A slide is clean when nothing on it can be deleted without losing meaning — not when it holds little. Three words on a white slide is empty, not clean.
+7. **Diagrams must encode structure, not decorate text.** Apply the **information test**: if removing the boxes/arrows changes no meaning, it isn't a diagram — it's bullets in costume. See `references/diagrams-and-architecture.md`.
+8. **Accessibility by default.** WCAG AA contrast, alt text, unique slide titles, logical reading order — every deck.
 
-## Workflow
+## Two entry points
+
+| The deck… | Start at |
+|---|---|
+| does not exist yet | the **Workflow** below (brief → storyboard → master → draft) |
+| already exists (inherited, AI-made, hurried, or someone else's) | **Mode D — refactor**, and `references/refactor-playbook.md`. Diagnose before restyling: content first, form last |
+
+## Workflow (new deck)
 
 | Step | Action | Why |
 |---|---|---|
@@ -158,9 +172,11 @@ The user typically wants one of these — clarify if ambiguous.
 
 Per slide: action title, layout (which Slide Master), visual element with the information test applied, color tokens (hex), font sizes, source citation, alt text, animation justification (or "none").
 
-### C. Design review of an existing deck
+### C. Design review of an existing deck (read-only)
 
-Critique organized by topic area, anti-pattern by anti-pattern, with concrete fixes:
+Critique organized by topic area, anti-pattern by anti-pattern, with concrete
+fixes. Stop here when the user wants findings; go on to **D** when they want the
+deck actually changed.
 
 ```markdown
 ## Slide 5 — "Q3 Performance"
@@ -171,6 +187,38 @@ Critique organized by topic area, anti-pattern by anti-pattern, with concrete fi
 - ✅ Source citation present
 ```
 
+### D. Refactor an existing deck
+
+Design review (C) says what is wrong. A refactor changes it — while preserving
+the argument. Full procedure: `references/refactor-playbook.md`.
+
+1. **Diagnose in five passes, in order**: titles only → one-message-per-slide →
+   evidence and sources → structure vs. decoration (information test) → form.
+   Write findings down between passes; a mixed pass becomes restyling.
+2. **Triage.** Fix the argument before the form: governing thought → action
+   titles → split/merge → evidence → decoration → chart choice → density →
+   ornament → accessibility. Work on form in a deck that does not argue is wasted.
+3. **Decide patch vs. rebuild.**
+
+   | Situation | Do |
+   |---|---|
+   | A few slides; master and layouts are sound | Patch in PowerPoint |
+   | Corporate template, only the content is bad | Patch, or refill the same template |
+   | Content is free textboxes on blank slides | Rebuild — patching preserves the disease |
+   | The argument is being restructured, or >⅓ of slides change | Rebuild |
+
+4. **Rebuild through the generator, never by hand.** `pptx-build`:
+   `extract_deck.py old.pptx -o deck.yaml` recovers the content (and reports what
+   it could not carry), you fix the argument in the YAML, then
+   `validate_deck.py` → `build_deck.py` → `audit_pptx.py`.
+5. **Report three things**: what changed structurally and why, what could not be
+   carried over, and what you deliberately left for the author to settle
+   (contradictions, unsupported claims). Never change a claim silently.
+
+**Scope boundary:** refactoring preserves what the deck argues. Rewriting the
+argument, cutting a slide, or reconciling two contradictory numbers are the
+author's calls — surface them, don't take them.
+
 ## Quality Criteria
 
 | Dimension | Strong | Adequate | Weak |
@@ -180,6 +228,7 @@ Critique organized by topic area, anti-pattern by anti-pattern, with concrete fi
 | Information density | Right for the format (live/async) | Slightly over or under | Wall of text or empty filler |
 | Visual hierarchy | Eye lands at focal point in <1s | Hierarchy present but soft | Eye wanders |
 | Diagrams | All pass the information test | One or two decorative | Decorated bullets / SmartArt theater |
+| Cleanliness | Four color slots, one type scale, one grid, density budget met | Minor drift | Bands, extra colors, shrunken type |
 | Accessibility | AA contrast, alt text, reading order verified | Mostly compliant | Issues unaddressed |
 
 ## Iteration Modes
@@ -187,6 +236,8 @@ Critique organized by topic area, anti-pattern by anti-pattern, with concrete fi
 | Mode | When to use |
 |---|---|
 | **Storyboard** | Before any slides exist — define narrative arc and titles |
+| **Refactor** | A deck already exists — diagnose, triage, patch or rebuild (Mode D) |
+| **Clean up** | The argument is fine, the form is loud — apply `clean-design-system.md` and delete what fails the information test |
 | **Tighten** | Cut filler, raise data-ink ratio, sharpen action titles |
 | **Visualize** | Replace text-heavy slides with charts or proper diagrams (apply information test) |
 | **Accessibility pass** | Pre-delivery — Accessibility Checker, contrast, alt text |
@@ -194,6 +245,8 @@ Critique organized by topic area, anti-pattern by anti-pattern, with concrete fi
 
 ## References (consult when relevant)
 
+- `references/clean-design-system.md` — **the default look as decided values**: four color slots, one type scale, one grid, density budget, emphasis ladder, cleanliness check
+- `references/refactor-playbook.md` — fixing a deck that already exists: five-pass diagnosis, triage order, patch-vs-rebuild, what a refactor may not change
 - `references/visual-design.md` — typography, color, layout, hierarchy, imagery, icons
 - `references/data-visualization.md` — chart selection, Tufte data-ink, tables, anti-patterns
 - `references/diagrams-and-architecture.md` — information test, diagram types, architecture conventions, AI-deck anti-patterns

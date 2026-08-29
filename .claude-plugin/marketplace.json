@@ -223,12 +223,12 @@
     {
       "name": "pptx-build",
       "source": "./plugins/pptx-build",
-      "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made — built on python-pptx. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included."
+      "description": "Generate clean, white-based PowerPoint (.pptx) files that don't look AI-made, and rebuild decks that already exist. Default mode: grid-anchored from-scratch layout with no drifting decorative bands. Template-fill mode: open a real corporate .pptx/.potx and write into its layouts and placeholders, inheriting the template's master/theme/fonts/logos. Refactor mode: extract_deck.py reads an existing deck back into a spec — titles, bullets, tables, charts, figures, sources, speaker notes — and reports what it cannot carry, so the argument is fixed as text and re-rendered into real placeholders. Covers table and chart slides so a deck never falls back to hand-written python-pptx, and ships validate_deck.py and audit_pptx.py, which fails any deck whose content is not in layout placeholders. LibreOffice preview pass included."
     },
     {
       "name": "pptx-design",
       "source": "./plugins/pptx-design",
-      "description": "Expert guidance for designing professional PowerPoint decks: typography, color, layout, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup. Advice only — hands file generation to pptx-build rather than hand-writing python-pptx."
+      "description": "Expert guidance for designing AND refactoring PowerPoint decks: a decided simple/clean design system (four color slots, one type scale, one grid, a density budget), typography, color, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup, plus a refactor playbook for inherited or AI-generated decks — five-pass diagnosis, triage order, and the patch-in-place vs. rebuild decision, preserving the author's argument. Advice only — hands file generation and extraction to pptx-build rather than hand-writing python-pptx."
     },
     {
       "name": "project-manager",

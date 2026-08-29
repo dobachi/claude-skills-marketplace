@@ -1,0 +1,51 @@
+# 欠陥注入版: clean-deck.yaml の1行を書き換えたもの。roundtrip_check.py がこの差を
+# 検出できなければ、比較器は死んでいる（clean 側だけを見ても気づけない）。
+meta:
+  accent: "2F5DA8"
+slides:
+  - type: title
+    title: "在庫回転率の改善計画"
+    subtitle: "2026年度 上期レビュー"
+  - type: section
+    number: "01"
+    title: "現状"
+  - type: bullets
+    title: "在庫回転率は改善したが、欠品率が悪化している"
+    bullets:
+      - "在庫回転率はやや改善"
+      - text: "改善は主力3品目が牽引"
+        level: 1
+      - "一方、欠品率は0.8ptの悪化"
+    source: "出典: 社内在庫管理システム 2026-06"
+    notes: "ここで欠品の実害を口頭で補足する"
+  - type: two_col
+    title: "効いた施策と効かなかった施策が分かれた"
+    left:
+      heading: "効いた"
+      bullets: ["発注点の見直し", "supplierとの週次連携"]
+    right:
+      heading: "効かなかった"
+      bullets: ["安全在庫の一律削減"]
+  - type: big_number
+    title: "主力品目の欠品は全体の7割を占める"
+    number: "71%"
+    caption: "欠品件数に占める主力3品目の比率"
+    source: "出典: 社内在庫管理システム"
+  - type: quote
+    quote: "在庫は、意思決定の遅さが物質化したものだ。"
+    attribution: "工場長"
+  - type: table
+    title: "品目別に見ると悪化は主力3品目に集中している"
+    columns: ["品目", "回転率", "欠品率"]
+    rows:
+      - ["A", "8.2", "1.9%"]
+      - ["B", "6.4", "2.4%"]
+    source: "出典: 社内在庫管理システム"
+  - type: chart
+    title: "欠品率は第2四半期から悪化に転じた"
+    chart: line
+    categories: ["Q1", "Q2", "Q3"]
+    series:
+      - name: "欠品率"
+        values: [0.9, 1.4, 1.7]
+    source: "出典: 社内在庫管理システム"

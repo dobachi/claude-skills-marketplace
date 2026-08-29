@@ -2,6 +2,13 @@
 
 The deck spec is YAML or JSON (detected by file extension). Two top-level keys: `meta` and `slides`. The **same spec drives both modes** — default (`build_deck.py spec -o out.pptx`) and template-fill (`--template corp.pptx`). In template-fill mode the look comes from the template, so `meta` color/font keys are ignored (only `aspect` still has no effect there — the template sets slide size); per-slide `layout:` is honored.
 
+## Contents
+
+- [meta (all optional — omit to keep defaults; default mode only)](#meta-all-optional-omit-to-keep-defaults-default-mode-only) — deck-wide colors, fonts, aspect, type scale
+- [slides](#slides) — every slide type and its fields
+- [Conventions the spec assumes](#conventions-the-spec-assumes) — action titles, one message, sources, one accent
+- [Minimal JSON equivalent](#minimal-json-equivalent) — the same spec as JSON
+
 ## meta (all optional — omit to keep defaults; default mode only)
 
 | Key | Default | Meaning |
@@ -46,6 +53,15 @@ meta:
 A list. Each item has a `type` and type-specific fields. Default type is `bullets`.
 
 Any slide may also carry `layout:` (a layout name or index). It is used only in template-fill mode, to pin which template layout that slide lands on, overriding the map/heuristic. Ignored in default mode.
+
+Any slide may also carry `notes:` — a string written into the slide's real **speaker-notes** page, in both modes. Extraction recovers it (`extract_deck.py`), so notes survive a refactor round trip; what the presenter says is half the argument and a rebuild that drops it loses that half.
+
+```yaml
+- type: bullets
+  title: "解約率は3四半期連続で低下、ただし新規獲得が鈍化"
+  bullets: ["…"]
+  notes: "ここで欠品の実害を口頭で補足する"
+```
 
 ### title
 ```yaml
@@ -112,6 +128,8 @@ Both columns split the same grid content width — edges align by construction.
   note: "One or two sentences explaining what the reader should take away."  # optional
   source: "出典: …"                  # optional footnote (smaller, muted)
 ```
+Relative `image:` paths resolve against the **spec file's directory** first (falling back to the working directory), so a spec and its `deck_media/` folder — what `extract_deck.py` produces — can be moved together and built from anywhere.
+
 In default mode the slide is built on the **Picture with Caption** layout: the figure is fitted (uncropped, aspect preserved) into that layout's real **PICTURE-placeholder region**, and the caption goes in its **caption placeholder** below — the image sits in the master's designated region, not free-floated on a blank slide. The caption is a real caption block, not a 10pt footnote: `caption` renders as a **bold ink label** and `note` (alias `description`) as a wrapping muted explanation, both at readable sizes (`caption` / `caption_note` in `meta.size`), so the figure and its explanation never collide. `source` remains a small footnote at the very bottom. If the image path is missing, a placeholder marker is drawn (and a `warning:` printed) so the deck still builds.
 
 Prefer a `caption` that names the figure and a `note` that states the takeaway — a figure without an explanation makes the audience guess.
