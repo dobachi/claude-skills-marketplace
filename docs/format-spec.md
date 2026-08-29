@@ -72,9 +72,15 @@ values: []                        # 決め打ちの値。無ければ空配列
 not_applicable_when: "目次、章扉、付録の見出し"
 source:
   kind: consensus                 # normative | consensus | house
-  ref: "McKinsey / BCG のアクションタイトル慣行"
-  url: ""
-verified_by: [core-title-assertion#all-titles-assertive]
+  key: alley-neeley-2005          # docs/sources.md のキー。URL はそこにしか書かない
+  ref: "Alley & Neeley 2005"      # その場で読める短い出典表記
+done_when:                        # 第5節。1つ以上必須
+  - id: all-titles-assertive
+    applies_to: slide
+    predicate: count
+    statement: "タイトルが体言止めのスライドが 0 枚である"
+    check: manual
+    floor: "本文スライドが3枚以上ある"
 ---
 ```
 
@@ -91,7 +97,7 @@ verified_by: [core-title-assertion#all-titles-assertive]
 | `values` | ○ | 決め打ちの値。値が `tokens/` にあるならトークン名で指す。**範囲で書かない** |
 | `not_applicable_when` | ○ | 適用しない条件。例外が無いなら `"なし"` と明記する（省略しない） |
 | `source` | ○ | 第4節 |
-| `verified_by` | ○ | このルールを検証する `done_when` の ID。検証手段が無いルールは追加しない |
+| `done_when` | ○ | 第5節。**1つ以上必須。検証手段が無いルールは追加しない** |
 
 ### 禁止
 
@@ -109,18 +115,31 @@ verified_by: [core-title-assertion#all-titles-assertive]
 | `SHOULD` | `consensus` | 独立した複数の出典が同じ方向を支持する。規範文書ではない（Tufte、CRAP、コンサルの慣行など） | 理由を書けば可 |
 | `HOUSE` | `house` | 出典が無い。または正解が複数あるなかから本リポジトリが1つ選んだ | ユーザ指定・ブランドがあれば即上書き |
 
+`key` は [`docs/sources.md`](sources.md) の登録キーを指す。**URL は台帳にしか書かない**
+（同じ URL を30枚のルールに再掲すると必ず食い違う）。台帳に無い出典を使うときは、
+先に台帳へ登録する。
+
 `ref` には**何を根拠にしたかが特定できる粒度**で書く。「デザインの原則」のような
 書き方はしない。`kind: house` のときは `ref` に「本リポジトリの決め」と書き、
 **外部規範のふりをさせない**。
 
 ## 5. done_when の書式
 
-`done_when` は playbook に置く。**後から検出器に落とせる形でしか書かない。**
+**`done_when` はルールに置く。** ルールと検証は不可分であり、playbook 側に置くと
+同じルールを使う playbook の数だけ複製されて必ず崩れるため。
+
+playbook が持てるのは、**単一のルールに紐づかない条件だけ**である
+（例: 論の筋が通っているか）。その場合に限り playbook に `done_when` を書き、
+`rule:` フィールドは省く。
+
+完了条件の完全な ID は `<rule-id>#<check-id>` である
+（例: `core-title-assertion#all-titles-assertive`）。
+
+**後から検出器に落とせる形でしか書かない。**
 
 ```yaml
 done_when:
   - id: all-titles-assertive
-    rule: core-title-assertion
     applies_to: slide              # deck | slide | element
     predicate: count               # 第5.1節の6つから1つ
     statement: "タイトルが体言止めのスライドが 0 枚である"
@@ -178,7 +197,7 @@ when:                             # 全て真なら該当。判定可能な条�
   - "聞き手に決裁・承認・予算・採用可否を求める"
 ambiguous_if: "説明が目的か決裁が目的か判別できない場合。推測せずユーザに聞く"
 uses_rules: [core-title-assertion, core-density-one-message]
-done_when: [...]                  # 第5節
+done_when: []                     # 単一ルールに紐づかない条件だけ。通常は空
 needs_human:                      # テキストでは判定できない項目
   - "配色がブランドらしいか"
 ---
@@ -193,8 +212,8 @@ needs_human:                      # テキストでは判定できない項目
 ## よくある失敗  具体名で。抽象的な戒めを書かない
 ```
 
-`done_when` と `needs_human` は frontmatter にあるので本文に再掲しない
-（同じ内容を2か所に書かない）。
+検証すべき条件は `uses_rules` が指すルール側の `done_when` を集めれば得られる。
+playbook に再掲しない（同じ内容を2か所に書かない）。
 
 ### axis
 
@@ -243,7 +262,8 @@ violates: [core-color-four-slots, pptx-master-placeholder]
 - [ ] `tier` と `source.kind` が対応しているか
 - [ ] `kind: house` のものが、外部規範のふりをしていないか
 - [ ] `not_applicable_when` が埋まっているか（例外が無いなら「なし」と書いたか）
-- [ ] rule に `verified_by` があるか（検証手段の無いルールを足していないか）
+- [ ] rule に `done_when` が1つ以上あるか（検証手段の無いルールを足していないか）
+- [ ] `source.key` が `docs/sources.md` に登録済みか
 - [ ] `done_when` の全項目が第5.1節の6つの predicate に還元できるか
 - [ ] `done_when` の全項目に `floor` があるか
 - [ ] 目視でしか判定できないものを `done_when` に混ぜていないか

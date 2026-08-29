@@ -1,0 +1,96 @@
+{
+  "$description": "design-for-agents / PowerPoint の決め打ち値。W3C DTCG 形式。単位が pt と inch のものは number 型で表す（DTCG の dimension 型は px と rem しか許さないため）。値の根拠は $description が指す rule を見る。",
+  "color": {
+    "$type": "color",
+    "$description": "core-color-four-slots。本文・見出し・装飾はこの4枠だけを使う。グラフと表の内部は core-color-semantic-data-only に従う。",
+    "paper": {
+      "$value": "#FFFFFF",
+      "$description": "背景。全スライド共通"
+    },
+    "ink": {
+      "$value": "#1A1A1A",
+      "$description": "見出しと本文。paper に対して 17.4:1（core-a11y-contrast-body）"
+    },
+    "muted": {
+      "$value": "#6B7280",
+      "$description": "第2階層、キャプション、出典行、ページ番号。paper に対して 4.83:1。これ以上薄くしない"
+    },
+    "accent": {
+      "$value": "#2F5DA8",
+      "$description": "ヘアラインと、1スライドにつき1箇所の強調。paper に対して 6.46:1。ブランド色はここに転写する"
+    }
+  },
+  "colorDark": {
+    "$type": "color",
+    "$description": "暗色デッキ。paper と ink を入れ替えるだけで、他は変えない。1つのデッキで明暗を混ぜない。",
+    "paper": {
+      "$value": "#111315",
+      "$description": "背景"
+    },
+    "ink": {
+      "$value": "#F2F2F2",
+      "$description": "paper に対して 16.63:1"
+    },
+    "muted": {
+      "$value": "#9AA1AC",
+      "$description": "paper に対して 7.15:1"
+    }
+  },
+  "colorCategorical": {
+    "$type": "color",
+    "$description": "core-color-cvd-distinguishable。グラフで3系列以上を色で区別するときだけ使う。本文には使わない。出典: Okabe & Ito, Color Universal Design。",
+    "1": { "$value": "#E69F00" },
+    "2": { "$value": "#56B4E9" },
+    "3": { "$value": "#009E73" },
+    "4": { "$value": "#F0E442" },
+    "5": { "$value": "#0072B2" },
+    "6": { "$value": "#D55E00" },
+    "7": { "$value": "#CC79A7" },
+    "8": { "$value": "#000000" }
+  },
+  "fontSize": {
+    "$type": "number",
+    "$description": "core-type-one-scale。単位は pt。この集合に無いサイズを使わない。",
+    "titleSlide": { "$value": 40, "$description": "表紙のデッキタイトル" },
+    "section": { "$value": 34, "$description": "章扉" },
+    "titleMax": { "$value": 30, "$description": "スライドタイトルの既定" },
+    "titleMin": { "$value": 24, "$description": "スライドタイトルの自動縮小の下限。自動縮小を許すのはタイトルのみ" },
+    "body": { "$value": 18, "$description": "本文 第1階層。core-type-body-floor の下限であり目標ではない" },
+    "bodySub": { "$value": 16, "$description": "本文 第2階層" },
+    "caption": { "$value": 15, "$description": "図のキャプション" },
+    "captionNote": { "$value": 14, "$description": "図の注記" },
+    "table": { "$value": 15, "$description": "表の中" },
+    "source": { "$value": 11, "$description": "出典行" },
+    "pageNumber": { "$value": 11, "$description": "ページ番号" },
+    "bigNumber": { "$value": 88, "$description": "1つの数値がスライドの主張であるとき" },
+    "quote": { "$value": 28, "$description": "引用" }
+  },
+  "grid": {
+    "$type": "number",
+    "$description": "core-layout-one-grid。単位は inch。スライドは 16:9（13.33 × 7.5）。全要素の左端は sideMargin か、そこから導出した列端に乗る。",
+    "slideWidth": { "$value": 13.33 },
+    "slideHeight": { "$value": 7.5 },
+    "sideMargin": { "$value": 0.92, "$description": "左右の余白。内容幅は 11.49 になる" },
+    "contentWidth": { "$value": 11.49, "$description": "slideWidth - sideMargin * 2。目測で決めない" },
+    "titleTop": { "$value": 0.62, "$description": "タイトル枠の上端。全スライドで一致させる" },
+    "titleHeight": { "$value": 1.04, "$description": "タイトル枠の高さ。下端揃えにして、2行になったら上に伸ばす" },
+    "titleGap": { "$value": 0.22, "$description": "タイトル下の間隔。ここにヘアラインが入る" },
+    "hairlineLength": { "$value": 1.05, "$description": "ヘアラインの長さ" },
+    "hairlineWeight": { "$value": 0.045, "$description": "ヘアラインの太さ" },
+    "gutter": { "$value": 0.5, "$description": "2段組の列間" },
+    "footerTop": { "$value": 7.04, "$description": "この線より下には出典行とページ番号だけを置く" }
+  },
+  "density": {
+    "$type": "number",
+    "$description": "core-density-budget。超えたらスライドを割る。文字を縮めない。",
+    "bulletsTopLevelMax": { "$value": 6 },
+    "bulletDepthMax": { "$value": 2 },
+    "bulletsPerColumnMax": { "$value": 4 },
+    "tableColumnsMax": { "$value": 6 },
+    "tableRowsMax": { "$value": 8 },
+    "chartSeriesMax": { "$value": 4 },
+    "pieSlicesMax": { "$value": 6 },
+    "figuresPerSlideMax": { "$value": 1 },
+    "accentUsesPerSlideMax": { "$value": 1, "$description": "ヘアラインを除く" }
+  }
+}

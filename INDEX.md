@@ -70,7 +70,7 @@
 
 | ファイル | 中身 | 状態 |
 |---|---|---|
-| `tokens/pptx.tokens.json` | 決め打ち値（色4枠・型スケール・グリッド・密度予算）。DTCG 形式 | 未作成 |
+| `tokens/pptx.tokens.json` | 決め打ち値（色4枠・型スケール・グリッド・密度予算）。DTCG 形式 | v0.1 |
 | `antipatterns/pptx.md` | 具体名で禁止された事項 | 未作成 |
 | `glossary.md` | 語彙。用語に迷ったときのみ | v0.1 |
 
