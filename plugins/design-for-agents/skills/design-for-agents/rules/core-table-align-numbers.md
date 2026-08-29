@@ -20,13 +20,15 @@ done_when:
     applies_to: element
     predicate: count
     statement: "数値の列で右揃えになっていないものが 0 個である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "数値の列を持つ表がある場合に限り評価する。列を消して満たしてはならない"
   - id: decimals-consistent
     applies_to: element
     predicate: equal
     statement: "各数値列について、小数点以下の桁数が列内で同一である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "数値の列を持つ表がある場合に限り評価する"
 ---
 

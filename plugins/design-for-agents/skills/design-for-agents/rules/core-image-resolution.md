@@ -20,13 +20,15 @@ done_when:
     applies_to: element
     predicate: count
     statement: "縦横比が元画像と異なる画像が 0 個である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "画像を含むスライドがある場合に限り評価する。画像を消して満たしてはならない"
   - id: resolution-sufficient
     applies_to: element
     predicate: ratio
     statement: "各画像の表示サイズあたりの解像度が 150 以上である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "画像を含むスライドがある場合に限り評価する"
 ---
 

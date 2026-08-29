@@ -19,12 +19,19 @@ done_when:
   - id: only-four-slots
     applies_to: element
     predicate: member
-    statement: "グラフと表の内部を除く全ての文字色・線色が、4枠に定めた色の集合に属する"
-    check: manual
+    statement: "グラフと表の内部を除く文字色の種類が 3 以下である（紙は背景なので数えない）"
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドに文字要素がある"
 ---
 
 # 色は4枠
+
+## 条件が数えるのは「色数」であって色値ではない
+
+ブランドやテンプレートがあれば `accent` は差し替わる。**差し替わっても
+「4枠しかない」は成り立つ**ので、完了条件は色数を数える。特定の色値と
+一致するかを見るのは誤りである（この誤りは検出器を実物に当てて分かった）。
 
 ## なぜこれが HOUSE なのか
 

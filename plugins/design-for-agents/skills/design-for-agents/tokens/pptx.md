@@ -48,6 +48,9 @@ DTCG の `dimension` 型は px と rem しか許さないため、pt と inch �
 | 大きな数値 / その説明 | 88 / 20 |
 | 引用 / 引用の出所 | 28 / 18 |
 
+行間は文字サイズの **1.3倍**、段落間隔は **0.5行**（`core-type-leading`）。
+本文に使う書体は `fontFamily.sans` に列挙したサンセリフ（`core-type-sans-projection`）。
+
 18pt は**下限であって目標ではない**（`core-type-body-floor`）。
 自動縮小を許すのはタイトルだけである。
 

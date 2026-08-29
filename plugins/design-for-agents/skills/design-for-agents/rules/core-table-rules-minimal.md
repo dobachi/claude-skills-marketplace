@@ -19,7 +19,8 @@ done_when:
     applies_to: element
     predicate: absent
     statement: "縦罫を持つ表が存在しない"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "表を含むスライドがある場合に限り評価する。表を消して満たしてはならない"
 ---
 

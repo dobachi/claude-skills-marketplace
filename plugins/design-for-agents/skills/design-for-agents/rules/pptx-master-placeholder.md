@@ -18,13 +18,15 @@ done_when:
     applies_to: slide
     predicate: count
     statement: "レイアウトのプレースホルダ外に文字要素を持つスライドが 0 枚である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドに文字要素が1つ以上ある"
   - id: unique-slide-titles
     applies_to: deck
     predicate: count
     statement: "タイトルプレースホルダが空のスライドが 0 枚である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上ある"
 ---
 

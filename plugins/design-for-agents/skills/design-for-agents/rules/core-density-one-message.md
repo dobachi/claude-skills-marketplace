@@ -16,7 +16,8 @@ done_when:
     applies_to: slide
     predicate: count
     statement: "タイトルが逆接（しかし、一方で）または並列（および、かつ）で2つの主張を接続しているスライドが 0 枚である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドにタイトルがある"
 ---
 

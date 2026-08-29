@@ -20,7 +20,8 @@ done_when:
     applies_to: element
     predicate: absent
     statement: "3D 効果、影、グラデーション塗りのいずれかを持つグラフが存在しない"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "グラフを含むスライドがある場合に限り評価する。グラフを消して満たしてはならない"
   - id: no-dual-axis
     applies_to: element

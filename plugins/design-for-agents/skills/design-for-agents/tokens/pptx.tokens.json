@@ -226,5 +226,38 @@
       "$value": 1,
       "$description": "ヘアラインを除く"
     }
+  },
+  "fontFamily": {
+    "$type": "fontFamily",
+    "$description": "core-type-sans-projection / core-type-two-families-max。本文に使ってよい書体。組織のテンプレートがある場合はそちらが優先する。",
+    "sans": {
+      "$value": [
+        "Yu Gothic",
+        "Yu Gothic Medium",
+        "Noto Sans JP",
+        "Meiryo",
+        "Hiragino Kaku Gothic ProN",
+        "Helvetica",
+        "Arial",
+        "Roboto",
+        "Inter",
+        "Source Sans Pro",
+        "Calibri",
+        "Segoe UI"
+      ],
+      "$description": "投影と画面で本文に使えるサンセリフ"
+    }
+  },
+  "text": {
+    "$type": "number",
+    "$description": "core-type-leading。単位は倍率と行。",
+    "lineHeight": {
+      "$value": 1.3,
+      "$description": "行間。文字サイズに対する倍率"
+    },
+    "paragraphSpacing": {
+      "$value": 0.5,
+      "$description": "段落間隔。行数"
+    }
   }
 }

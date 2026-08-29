@@ -23,7 +23,8 @@ done_when:
     applies_to: element
     predicate: count
     statement: "データ点が3つ未満のグラフが 0 個である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "グラフまたは大きな数値を含むスライドが1枚以上ある"
 ---
 

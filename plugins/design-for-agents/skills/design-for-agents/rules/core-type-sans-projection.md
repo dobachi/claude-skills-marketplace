@@ -19,7 +19,8 @@ done_when:
     applies_to: element
     predicate: member
     statement: "本文プレースホルダの書体が、サンセリフとして宣言した書体の集合に属する"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドの本文が1行以上ある"
 ---
 

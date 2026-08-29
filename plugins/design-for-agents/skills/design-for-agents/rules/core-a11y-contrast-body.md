@@ -19,7 +19,8 @@ done_when:
     applies_to: element
     predicate: ratio
     statement: "全ての文字要素について、前景色と背景色のコントラスト比が 4.5 以上である（18pt 以上または 14pt 以上の太字は 3 以上）"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文の文字要素が各スライドに1つ以上ある"
 ---
 

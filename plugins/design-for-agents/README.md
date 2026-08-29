@@ -77,7 +77,11 @@ python3 skills/design-for-agents/scripts/check_deck.py deck.pptx [--json]
 
 検査の id は `<rule-id>#<check-id>` で、rules の `done_when` と1対1に対応する。
 閾値は `tokens/pptx.tokens.json` から読むので、値は検出器に書かれていない。
-61条件のうち **13 が `check: automated`**（実物で発火を確認済み）、残りは `manual`。
+61条件のうち **29 が `check: automated`**、残り32が `manual`。
+
+昇格したものは、陽性対照（`pptx-build` のサンプル3本で偽陽性ゼロ）と
+陰性対照（欠陥を注入したデッキで発火）の**両方を通したものだけ**である。
+検証は捨てずに `tests/run_tests.sh` に固定してあり、CI が回す。
 
 標準ライブラリのみ。必須フィールド、ID の体系、`tier` と出典種別の対応、
 `done_when` の述語と下限、範囲表記の混入、参照先ルールの実在などを確認する。

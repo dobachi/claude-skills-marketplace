@@ -342,6 +342,280 @@ def check_stock_theme(prs, tok, f):
                               f"同梱テーマ「{stock}」が設定されている")
 
 
+
+# ---------------------------------------------------------------- 第2バッチ
+
+def _rgb(color):
+    """明示された RGB だけを返す。テーマ色や未指定は None。"""
+    try:
+        if color is None or color.type is None:
+            return None
+        if str(color.type) != "MSO_THEME_COLOR.NOT_THEME_COLOR" and "SCHEME" in str(color.type):
+            return None
+        return str(color.rgb).upper()
+    except Exception:
+        return None
+
+
+def _relative_luminance(hex6: str) -> float:
+    c = [int(hex6[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    c = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+
+
+def contrast_ratio(fg: str, bg: str) -> float:
+    l1, l2 = sorted((_relative_luminance(fg), _relative_luminance(bg)), reverse=True)
+    return (l1 + 0.05) / (l2 + 0.05)
+
+
+def deck_background(prs, tok) -> str:
+    """スライドの地色。明示されていなければトークンの paper を使う。"""
+    return tok["color"]["paper"]["$value"].lstrip("#").upper()
+
+
+def check_leading(prs, tok, f):
+    want = tok["text"]["lineHeight"]["$value"]
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if not is_body_text(sh, tok):
+                continue
+            for para in sh.text_frame.paragraphs:
+                ls = para.line_spacing
+                if ls is None or not isinstance(ls, float):
+                    continue                     # 継承。マスターが決めている
+                if abs(ls - want) > 0.01:
+                    f.add("core-type-leading#leading-is-set", i,
+                          f"行間 {ls} が定めた {want} と違う「{para.text[:18]}」")
+
+
+def check_sans(prs, tok, f):
+    allowed = set(tok["fontFamily"]["sans"]["$value"])
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if not is_body_text(sh, tok):
+                continue
+            for _, run in iter_text(sh):
+                name = run.font.name
+                if name and name not in allowed:
+                    f.add("core-type-sans-projection#body-is-sans", i,
+                          f"本文の書体『{name}』が宣言したサンセリフに無い")
+
+
+def check_grid(prs, tok, f):
+    g = tok["grid"]
+    margin = g["sideMargin"]["$value"]
+    content = g["contentWidth"]["$value"]
+    gutter = g["gutter"]["$value"]
+    col2 = margin + (content - gutter) / 2 + gutter
+    allowed = [0.0, margin, round(col2, 2)]
+    tol = 0.02
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if sh.left is None:
+                continue
+            left = round(sh.left / 914400, 2)
+            if any(abs(left - a) <= tol for a in allowed):
+                continue
+            # 右揃えの要素は右端で揃う（ページ番号など）
+            right_margin = round(prs.slide_width / 914400 - margin, 2)
+            right = round((sh.left + (sh.width or 0)) / 914400, 2)
+            if abs(right - right_margin) <= tol:
+                continue
+            f.add("core-layout-one-grid#left-edges-aligned", i,
+                  f"左端 {left}in も右端 {right}in もグリッドに乗っていない")
+
+
+def check_four_slots(prs, tok, f):
+    """色数を数える。色値は見ない — ブランドがあれば accent は差し替わるため。"""
+    limit = 3                                     # ink / muted / accent。紙は背景
+    used: dict[str, int] = {}
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if getattr(sh, "has_table", False) or getattr(sh, "has_chart", False):
+                continue                          # 表とグラフの内部は対象外
+            for _, run in iter_text(sh):
+                rgb = _rgb(run.font.color)
+                if rgb:
+                    used.setdefault(rgb, i)
+    if len(used) > limit:
+        f.add("core-color-four-slots#only-four-slots", 0,
+              f"文字色が {len(used)} 種類（上限 {limit}）: "
+              + ", ".join(f"#{c}" for c in sorted(used)))
+
+
+def check_one_emphasis(prs, tok, f):
+    """書式が違うアクセント色が同一スライドに2種類あれば強調の競合。
+
+    同じ大きさ・太さで並ぶもの（2段組の両列見出しなど）は反復であって
+    競合ではないので、1箇所と数える（core-emphasis-ladder の
+    not_applicable_when）。デッキ内で最も多い色を accent とみなすのではなく、
+    トークンの accent と、デッキが上書きした accent の両方を拾う。
+    """
+    ink = tok["color"]["ink"]["$value"].lstrip("#").upper()
+    muted = tok["color"]["muted"]["$value"].lstrip("#").upper()
+    for i, slide in enumerate(prs.slides, 1):
+        sigs = set()
+        for sh in shapes_of(slide):
+            if getattr(sh, "has_table", False) or getattr(sh, "has_chart", False):
+                continue
+            for _, run in iter_text(sh):
+                rgb = _rgb(run.font.color)
+                if not rgb or rgb in (ink, muted) or not run.text.strip():
+                    continue
+                pt = run.font.size.pt if run.font.size else None
+                sigs.add((rgb, pt, bool(run.font.bold)))
+        if len(sigs) > 1:
+            f.add("core-emphasis-ladder#one-emphasis-per-slide", i,
+                  f"書式の違うアクセントが {len(sigs)} 種類: "
+                  + ", ".join(f"#{c}/{s}pt/{'B' if b else '-'}" for c, s, b in sorted(sigs, key=str)))
+
+
+def check_contrast(prs, tok, f):
+    bg = deck_background(prs, tok)
+    large = 18.0
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if getattr(sh, "has_chart", False):
+                continue
+            for _, run in iter_text(sh):
+                fg = _rgb(run.font.color)
+                if not fg or not run.text.strip():
+                    continue
+                pt = run.font.size.pt if run.font.size else large
+                need = 3.0 if (pt >= large or (pt >= 14 and run.font.bold)) else 4.5
+                r = contrast_ratio(fg, bg)
+                if r < need:
+                    f.add("core-a11y-contrast-body#body-contrast-4-5", i,
+                          f"コントラスト比 {r:.2f} < {need}（#{fg} on #{bg}, {pt}pt）")
+
+
+def check_tables(prs, tok, f):
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if not getattr(sh, "has_table", False):
+                continue
+            tbl = sh.table
+            if "lnL" in sh._element.xml or "lnR" in sh._element.xml:
+                f.add("core-table-rules-minimal#no-vertical-rules", i, "表に縦罫がある")
+            ncol = len(tbl.columns)
+            for c in range(ncol):
+                cells = [tbl.cell(r, c) for r in range(1, len(tbl.rows))]
+                nums = [(x, x.text.strip()) for x in cells
+                        if _is_number(x.text.strip())]
+                if not nums:
+                    continue
+                for cell, _t in nums:
+                    for para in cell.text_frame.paragraphs:
+                        if para.text.strip() and para.alignment is not None \
+                           and not str(para.alignment).startswith("RIGHT"):
+                            f.add("core-table-align-numbers#numbers-right-aligned", i,
+                                  f"{c + 1}列目の数値が右揃えでない「{para.text[:12]}」")
+                decs = {len(t.split(".")[1]) if "." in t else 0 for _c, t in nums}
+                if len(decs) > 1:
+                    f.add("core-table-align-numbers#decimals-consistent", i,
+                          f"{c + 1}列目の小数点以下の桁数が揃っていない {sorted(decs)}")
+
+
+def _is_number(t: str) -> bool:
+    t = t.replace(",", "").replace("%", "").replace("円", "").strip()
+    if not t:
+        return False
+    try:
+        float(t)
+        return True
+    except ValueError:
+        return False
+
+
+def check_charts(prs, tok, f):
+    seen = False
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if not getattr(sh, "has_chart", False):
+                continue
+            seen = True
+            xml = sh.chart._chartSpace.xml
+            if "view3D" in xml:
+                f.add("core-chart-chartjunk-none#no-3d-charts", i, "3D 効果を持つグラフ")
+            if xml.count("<c:valAx>") > 1:
+                f.add("core-chart-chartjunk-none#no-dual-axis", i, "第2軸を持つグラフ")
+            try:
+                n = len(list(sh.chart.plots[0].categories))
+            except Exception:
+                n = 0
+            if 0 < n < 3:
+                f.add("core-chart-follows-question#chart-earns-place", i,
+                      f"データ点が {n} 個のグラフ（3個未満はグラフにしない）")
+    if not seen:
+        for c in ("core-chart-chartjunk-none#no-3d-charts",
+                  "core-chart-chartjunk-none#no-dual-axis",
+                  "core-chart-follows-question#chart-earns-place"):
+            f.skip(c, "グラフが1つも無い")
+
+
+def check_images(prs, tok, f):
+    seen = False
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            if not hasattr(sh, "image"):
+                continue
+            seen = True
+            try:
+                px_w, px_h = sh.image.size
+            except Exception:
+                continue
+            if not sh.width or not sh.height:
+                continue
+            native = px_w / px_h
+            shown = sh.width / sh.height
+            if abs(native - shown) / native > 0.02:
+                f.add("core-image-resolution#no-stretched-images", i,
+                      f"縦横比が元画像と違う（元 {native:.2f} / 表示 {shown:.2f}）")
+            dpi = px_w / (sh.width / 914400)
+            if dpi < 150:
+                f.add("core-image-resolution#resolution-sufficient", i,
+                      f"表示サイズあたり {dpi:.0f}dpi（150 未満）")
+    if not seen:
+        for c in ("core-image-resolution#no-stretched-images",
+                  "core-image-resolution#resolution-sufficient"):
+            f.skip(c, "画像が1つも無い")
+
+
+def check_placeholders(prs, tok, f):
+    for i, slide in enumerate(prs.slides, 1):
+        stray = 0
+        has_title = False
+        for sh in slide.shapes:
+            if getattr(sh, "is_placeholder", False):
+                if sh.placeholder_format.idx == 0 and sh.has_text_frame \
+                   and sh.text_frame.text.strip():
+                    has_title = True
+                continue
+            if getattr(sh, "has_text_frame", False) and sh.text_frame.text.strip() \
+               and not in_footer(sh, tok) and not is_source_line(sh.text_frame.text):
+                stray += 1
+        if stray:
+            f.add("pptx-master-placeholder#content-in-placeholders", i,
+                  f"プレースホルダ外の文字要素が {stray} 個")
+        if not has_title:
+            f.add("pptx-master-placeholder#unique-slide-titles", i,
+                  "タイトルプレースホルダが空")
+
+
+CONNECTIVES = ("しかし", "一方で", "だが", "および", "かつ", "ならびに")
+
+
+def check_one_claim(prs, tok, f):
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in slide.shapes:
+            if getattr(sh, "is_placeholder", False) and sh.placeholder_format.idx == 0:
+                t = sh.text_frame.text.strip()
+                hit = [c for c in CONNECTIVES if c in t]
+                if hit:
+                    f.add("core-density-one-message#one-claim-per-slide", i,
+                          f"タイトルが「{hit[0]}」で2つの主張を繋いでいる「{t[:28]}」")
+
+
 CHECKS = [
     ("core-type-one-scale#sizes-from-scale", check_type_scale),
     ("core-type-body-floor#body-not-below-floor", check_body_floor),
@@ -355,6 +629,17 @@ CHECKS = [
     ("pptx-diagram-smartart-none#no-smartart", check_smartart),
     ("core-a11y-alt-text#alt-text-present", check_alt_text),
     ("pptx-master-no-stock-theme#theme-is-not-stock", check_stock_theme),
+    ("core-type-leading#leading-is-set", check_leading),
+    ("core-type-sans-projection#body-is-sans", check_sans),
+    ("core-layout-one-grid#left-edges-aligned", check_grid),
+    ("core-color-four-slots#only-four-slots", check_four_slots),
+    ("core-emphasis-ladder#one-emphasis-per-slide", check_one_emphasis),
+    ("core-a11y-contrast-body#body-contrast-4-5", check_contrast),
+    ("core-table-rules-minimal#no-vertical-rules", check_tables),
+    ("core-chart-chartjunk-none#no-3d-charts", check_charts),
+    ("core-image-resolution#no-stretched-images", check_images),
+    ("pptx-master-placeholder#content-in-placeholders", check_placeholders),
+    ("core-density-one-message#one-claim-per-slide", check_one_claim),
 ]
 
 
