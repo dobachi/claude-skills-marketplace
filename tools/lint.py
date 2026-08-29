@@ -261,6 +261,8 @@ def check_antipatterns(report: Report, rule_ids: set[str]) -> None:
     if not directory.exists():
         return
     for path in sorted(directory.glob("*.md")):
+        if "-" not in path.stem:      # <media>.md は一覧ファイルであってレコードではない
+            continue
         rel = f"antipatterns/{path.name}"
         fm, _ = read_frontmatter(path)
         if fm is None:
@@ -275,6 +277,24 @@ def check_antipatterns(report: Report, rule_ids: set[str]) -> None:
             if ref not in rule_ids:
                 report.error(rel, f"violates の『{ref}』が rules/ に無い")
         check_banned(report, rel, fm)
+
+
+def check_antipattern_index(report: Report) -> None:
+    """各アンチパターンが一覧ファイルに載っているか（転記の取りこぼしを防ぐ）。"""
+    directory = ROOT / "antipatterns"
+    if not directory.exists():
+        return
+    for index in sorted(directory.glob("*.md")):
+        if "-" in index.stem:         # レコード側は一覧ではない
+            continue
+        listed = index.read_text(encoding="utf-8")
+        rel = index.relative_to(ROOT).as_posix()
+        entries = sorted(directory.glob(f"{index.stem}-*.md"))
+        if not entries:
+            continue
+        for entry in entries:
+            if f"`{entry.stem}`" not in listed:
+                report.error(rel, f"一覧に『{entry.stem}』が載っていない")
 
 
 def check_cross_references(report: Report, rule_ids: set[str]) -> None:
@@ -357,6 +377,7 @@ def main() -> int:
     rule_ids = check_rules(report, source_keys)
     check_playbooks(report, rule_ids)
     check_antipatterns(report, rule_ids)
+    check_antipattern_index(report)
     check_cross_references(report, rule_ids)
     check_tokens(report)
     if args.vocab:
