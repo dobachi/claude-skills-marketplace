@@ -329,3 +329,17 @@ gh auth login
 ```
 
 または環境変数 `GITHUB_TOKEN` を設定してください。
+
+## ライセンス
+
+| 分類 | 対象 | ライセンス |
+|---|---|---|
+| 文書 | `*.md`（`SKILL.md`、`references/` を含む）、`site/**/*.qmd` | [CC BY 4.0](LICENSE-docs) |
+| コード | `*.py`、`*.sh`、`*.js`、および `scripts/` `tools/` 配下 | [Apache License 2.0](LICENSE) |
+| 設定 | `*.json`、`*.yaml` | [Apache License 2.0](LICENSE) |
+
+Copyright 2026 dobachi。判断に迷うファイルはコード側（Apache-2.0）として扱ってください。
+
+文書の中で引用・参照している外部の規範や著作物（WCAG、JIS X 8341-3、学術論文、書籍、
+各種仕様など）の権利は、それぞれの権利者に帰属します。本ライセンスが及ぶのは、
+このリポジトリが書いた記述の部分です。

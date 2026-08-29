@@ -89,9 +89,8 @@ python3 skills/design-for-agents/scripts/lint.py --vocab    # 用語集の「使
 
 ## ライセンス
 
-| 対象 | ライセンス |
-|---|---|
-| 文書（`INDEX.md` `rules/` `playbooks/` `antipatterns/` `tokens/` `docs/` ほか `.md`） | [CC BY 4.0](LICENSE-docs) |
-| コード（`scripts/`） | [Apache License 2.0](LICENSE) |
+リポジトリ全体の方針に従う。文書は CC BY 4.0（[`LICENSE-docs`](../../LICENSE-docs)）、
+コードは Apache License 2.0（[`LICENSE`](../../LICENSE)）。
 
 引用・参照している外部の規範や著作物の権利は、それぞれの権利者に帰属する。
+出典は [`docs/sources.md`](skills/design-for-agents/docs/sources.md) にある。

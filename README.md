@@ -330,3 +330,17 @@ gh auth login
 ```
 
 Or set the `GITHUB_TOKEN` environment variable.
+
+## License
+
+| Kind | Files | License |
+|---|---|---|
+| Documentation | `*.md` (including `SKILL.md` and `references/`), `site/**/*.qmd` | [CC BY 4.0](LICENSE-docs) |
+| Code | `*.py`, `*.sh`, `*.js`, and anything under `scripts/` or `tools/` | [Apache License 2.0](LICENSE) |
+| Configuration | `*.json`, `*.yaml` | [Apache License 2.0](LICENSE) |
+
+Copyright 2026 dobachi. When in doubt about a file, treat it as code (Apache-2.0).
+
+External norms and works quoted or referenced in the documentation (WCAG, JIS X 8341-3,
+academic papers, books, specifications) remain the property of their respective rights
+holders. These licenses cover only what this repository wrote.

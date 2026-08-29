@@ -1,0 +1,30 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+
+Copyright 2026 dobachi
+
+このリポジトリの**文書**は、クリエイティブ・コモンズ 表示 4.0 国際ライセンスの
+下で提供されます。
+
+  https://creativecommons.org/licenses/by/4.0/deed.ja
+  法的条文: https://creativecommons.org/licenses/by/4.0/legalcode.ja
+
+複製・配布・改変・営利利用が可能です。条件は**帰属表示**です。
+
+## 対象
+
+| 分類 | 対象 | ライセンス |
+|---|---|---|
+| 文書 | `*.md`（`SKILL.md`、`references/`、`README` 等を含む）、`site/**/*.qmd` | CC BY 4.0（本ファイル） |
+| コード | `*.py`、`*.sh`、`*.js`、および `scripts/` `tools/` 配下 | Apache License 2.0（`LICENSE`） |
+| 設定 | `*.json`、`*.yaml` | Apache License 2.0（`LICENSE`） |
+
+判断に迷うファイルは、コード側（Apache-2.0）として扱ってください。
+
+## 引用部分について
+
+文書の中で引用・参照している外部の規範や著作物（WCAG、JIS X 8341-3、学術論文、
+書籍、各種仕様など）の権利は、それぞれの権利者に帰属します。本ライセンスが及ぶのは、
+このリポジトリが書いた記述の部分です。
+
+外部資料の出典を明示しているものについては、各プラグインの記述内、または
+`plugins/design-for-agents/skills/design-for-agents/docs/sources.md` を参照してください。
