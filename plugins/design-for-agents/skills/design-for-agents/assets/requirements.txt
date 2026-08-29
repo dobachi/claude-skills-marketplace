@@ -1,0 +1,3 @@
+# scripts/check_deck.py だけが使う。参照体としての利用には要らない。
+#   pip install -r assets/requirements.txt
+python-pptx>=1.0.0

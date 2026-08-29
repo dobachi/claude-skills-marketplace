@@ -61,10 +61,23 @@ skills/design-for-agents/
 
 ## 検査
 
+**収録物の書式** を検査する（依存なし）。
+
 ```
 python3 skills/design-for-agents/scripts/lint.py            # 0=違反なし / 1=違反あり / 2=検査できない
 python3 skills/design-for-agents/scripts/lint.py --vocab    # 用語集の「使わない語」も照合（警告のみ）
 ```
+
+**実物の .pptx** を、rules の完了条件に照らして検査する（python-pptx が要る）。
+
+```
+pip install -r skills/design-for-agents/assets/requirements.txt
+python3 skills/design-for-agents/scripts/check_deck.py deck.pptx [--json]
+```
+
+検査の id は `<rule-id>#<check-id>` で、rules の `done_when` と1対1に対応する。
+閾値は `tokens/pptx.tokens.json` から読むので、値は検出器に書かれていない。
+61条件のうち **13 が `check: automated`**（実物で発火を確認済み）、残りは `manual`。
 
 標準ライブラリのみ。必須フィールド、ID の体系、`tier` と出典種別の対応、
 `done_when` の述語と下限、範囲表記の混入、参照先ルールの実在などを確認する。

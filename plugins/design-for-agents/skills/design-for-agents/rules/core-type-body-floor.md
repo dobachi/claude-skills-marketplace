@@ -19,7 +19,8 @@ done_when:
     applies_to: element
     predicate: count
     statement: "本文プレースホルダ内の文字サイズが 18pt 未満の要素が 0 個である（第2階層は 16pt 未満で 0 個）"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドの本文が1行以上ある"
 ---
 

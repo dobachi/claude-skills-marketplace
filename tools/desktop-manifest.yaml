@@ -39,7 +39,7 @@ viable:
   - web-api-dev
   - web-frontend-dev
   - marp-slides
-  - design-for-agents   # design reference, prose + lint only
+  - design-for-agents   # prose reference; the two scripts are optional (lint needs nothing, check_deck needs python-pptx)
   - verify-content
   - evidence-check
   - math-paper

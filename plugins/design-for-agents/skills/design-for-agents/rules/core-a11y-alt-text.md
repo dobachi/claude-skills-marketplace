@@ -19,7 +19,8 @@ done_when:
     applies_to: element
     predicate: exists
     statement: "文字以外の各要素に、空でない代替テキストまたは装飾の印のいずれかが設定されている"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "図またはグラフを含むスライドがある場合に限り評価する。図を消して満たしてはならない"
   - id: alt-text-states-takeaway
     applies_to: element

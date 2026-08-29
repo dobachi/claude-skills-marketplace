@@ -17,13 +17,15 @@ done_when:
     applies_to: element
     predicate: absent
     statement: "グラデーション塗り、影、ベベル、光彩、反射のいずれかを持つ図形が存在しない"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドに本文または図が1つ以上ある"
   - id: no-title-band
     applies_to: slide
     predicate: absent
     statement: "タイトル領域の背景に、スライド幅いっぱいの塗り図形が存在しない"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドにタイトルがある"
 ---
 

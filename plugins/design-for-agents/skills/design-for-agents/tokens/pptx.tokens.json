@@ -122,6 +122,30 @@
     "quote": {
       "$value": 28,
       "$description": "引用"
+    },
+    "subtitle": {
+      "$value": 20,
+      "$description": "表紙の副題・キッカー"
+    },
+    "sectionNumber": {
+      "$value": 22,
+      "$description": "章扉の番号"
+    },
+    "bigCaption": {
+      "$value": 20,
+      "$description": "大きな数値に添える説明"
+    },
+    "quoteAttr": {
+      "$value": 18,
+      "$description": "引用の出所"
+    },
+    "tableHeader": {
+      "$value": 15,
+      "$description": "表の見出し行"
+    },
+    "chartLabel": {
+      "$value": 12,
+      "$description": "グラフのラベル。本文ではないので本文下限の対象外"
     }
   },
   "grid": {

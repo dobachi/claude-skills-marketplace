@@ -19,7 +19,8 @@ done_when:
     applies_to: element
     predicate: count
     statement: "区分が4つ以上の円グラフが 0 個である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "グラフを含むスライドがある場合に限り評価する。区分を統合して満たしてはならない"
 ---
 

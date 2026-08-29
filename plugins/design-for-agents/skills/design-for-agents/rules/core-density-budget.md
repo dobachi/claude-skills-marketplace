@@ -22,19 +22,22 @@ done_when:
     applies_to: slide
     predicate: count
     statement: "第1階層の箇条書きが7個以上あるスライドが 0 枚である（付録を除く）"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドの本文が1行以上ある"
   - id: nesting-depth
     applies_to: slide
     predicate: count
     statement: "箇条書きの階層が3以上あるスライドが 0 枚である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドの本文が1行以上ある"
   - id: table-within-budget
     applies_to: element
     predicate: count
     statement: "7列以上または9行以上の表が 0 個である（付録を除く）"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "表を含むスライドがある場合に限り評価する。列や行を削って満たしてはならない"
 ---
 

@@ -25,7 +25,8 @@ done_when:
     applies_to: deck
     predicate: count
     statement: "タイトルが他のスライドと同一のスライドが 0 枚である（章扉を除く）"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上ある"
 ---
 

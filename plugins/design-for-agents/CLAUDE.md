@@ -41,7 +41,9 @@ tokens / antipatterns 10件 / 出典台帳 16件 / ルータスキル / 検査�
 残っている作業:
 
 - [x] pptx-design の全1212行を取り込み、廃止した（2026-08-29）
-- [ ] v0.2: `done_when` の `check: manual` を `automated` に昇格させる
+- [~] v0.2: `done_when` の `check: manual` を `automated` に昇格させる
+      （61条件中 13 が昇格済み。`scripts/check_deck.py`。**statement は1つも
+      書き換えずに済んだ**ので、検出器互換の書式という前提は成立した）
 - [ ] v0.3: 媒体を web / chart / 文書へ広げる
 
 ## 合流の経緯（2026-08-29）

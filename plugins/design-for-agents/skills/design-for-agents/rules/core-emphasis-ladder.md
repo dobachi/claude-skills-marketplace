@@ -25,7 +25,8 @@ done_when:
     applies_to: element
     predicate: absent
     statement: "強調目的の下線が引かれた文字要素が存在しない"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドの本文が1行以上ある"
 ---
 

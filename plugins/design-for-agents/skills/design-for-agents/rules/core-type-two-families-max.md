@@ -18,7 +18,8 @@ done_when:
     applies_to: deck
     predicate: count
     statement: "デッキ内で使われている書体ファミリーが3つ以上ある場合に 1、そうでなければ 0 である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドに文字要素がある"
 ---
 

@@ -19,7 +19,8 @@ done_when:
     applies_to: slide
     predicate: count
     statement: "本文の揃えが左揃え以外のスライドが 0 枚である（表紙と章扉を除く）"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが3枚以上あり、各スライドの本文が1行以上ある"
 ---
 
