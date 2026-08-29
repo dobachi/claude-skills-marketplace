@@ -4,15 +4,16 @@ description: >-
   Expert guidance for PowerPoint (.pptx) decks, for BOTH new decks and ones that already
   exist — a decided simple/clean design system (four color slots, one type scale, one grid,
   a density budget) plus typography, color, data visualization, structural diagrams, deck
-  genres, accessibility, and slide-master setup. Covers refactoring: diagnosing an inherited,
-  AI-generated, or hurried deck, triaging what to fix first, and deciding patch-in-place vs.
-  rebuild — while preserving the author's argument. Use for "シンプルできれいな資料にしたい",
+  genres, accessibility, and slide-master setup. Covers refactoring an inherited, AI-generated,
+  or hurried deck: diagnose, triage, patch vs. rebuild, preserving the author's argument.
+  Use for "シンプルできれいな資料にしたい",
   "この資料をレビューして", "既存のパワポを直したい/作り直したい", "clean up this deck",
-  "design a deck". ADVICE ONLY: it plans, critiques, and prescribes but never produces a file.
+  "design a deck", "参考文献を教えて", "what should I read on slide design" — it carries a
+  routed further-reading list. ADVICE ONLY: it plans and critiques but never produces a file.
   The moment an actual .pptx must be written or rebuilt ("パワポを作って", "スライドにして",
   "build the deck"), hand off to **pptx-build**, which extracts an existing deck into a spec
-  and writes into real layout placeholders — never hand-write python-pptx, which is what
-  produces free textboxes floated onto blank slides and a deck that ignores the slide master.
+  and writes into real layout placeholders — never hand-write python-pptx, which floats
+  textboxes onto blank slides and ignores the slide master.
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -251,3 +252,9 @@ author's calls — surface them, don't take them.
 - `references/data-visualization.md` — chart selection, Tufte data-ink, tables, anti-patterns
 - `references/diagrams-and-architecture.md` — information test, diagram types, architecture conventions, AI-deck anti-patterns
 - `references/genres-and-qa.md` — deck genres, accessibility, pre-delivery checklist
+- `references/further-reading.md` — **which outside source to consult, and when**: a routing table from the open question (chart choice, contrast rule, pitch sequence, grid, diagram semantics, the evidence for "don't read your slides") to one source, plus fetchable standards, books, Japanese-language sources, and sample decks
+
+Sourcing discipline: cite a work only after actually consulting it. The URLs in
+`further-reading.md` can be fetched and quoted; the books cannot — recommend those to the
+author, and never attribute a specific number, rule, or quotation to one you have not read.
+The principles this skill runs on stand on their own without a citation.

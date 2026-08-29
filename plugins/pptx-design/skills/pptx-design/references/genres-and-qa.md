@@ -169,15 +169,7 @@ Run before sharing, presenting, or shipping.
 
 ## Source References
 
-- Nancy Duarte, *slide:ology*; *Resonate* — narrative arc, sparkline, audience analysis.
-- Garr Reynolds, *Presentation Zen* — image-led design, restraint, *ma*.
-- Edward Tufte, *The Visual Display of Quantitative Information* — data-ink ratio, chartjunk.
-- Cole Nussbaumer Knaflic, *Storytelling with Data* — chart selection, gray-the-rest.
-- Robin Williams, *The Non-Designer's Design Book* — CRAP principles.
-- Barbara Minto, *The Pyramid Principle* — answer-first structure for analytical decks.
-- Guy Kawasaki — 10/20/30 rule.
-- Andy Raskin — Strategic Narrative for sales decks.
-- WCAG 2.1 (W3C) — accessibility standards.
-- Microsoft Accessibility documentation — PowerPoint-specific guidance.
-- McKinsey/BCG visual conventions — action titles, ghost decks, source footnotes.
-- Simon Brown — C4 model for architecture diagrams.
+Every source this skill leans on, plus what to consult when a question goes past what
+this skill decides: `further-reading.md`. It routes from the open question (chart choice,
+contrast rule, pitch sequence, grid, diagram semantics) to one source, and separates
+what can be fetched and quoted from what can only be recommended to the author.

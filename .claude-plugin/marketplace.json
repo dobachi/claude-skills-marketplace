@@ -228,7 +228,7 @@
     {
       "name": "pptx-design",
       "source": "./plugins/pptx-design",
-      "description": "Expert guidance for designing AND refactoring PowerPoint decks: a decided simple/clean design system (four color slots, one type scale, one grid, a density budget), typography, color, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup, plus a refactor playbook for inherited or AI-generated decks — five-pass diagnosis, triage order, and the patch-in-place vs. rebuild decision, preserving the author's argument. Advice only — hands file generation and extraction to pptx-build rather than hand-writing python-pptx."
+      "description": "Expert guidance for designing AND refactoring PowerPoint decks: a decided simple/clean design system (four color slots, one type scale, one grid, a density budget), typography, color, data visualization, structural diagrams, deck genres, accessibility, and slide-master setup, plus a refactor playbook for inherited or AI-generated decks — five-pass diagnosis, triage order, and the patch-in-place vs. rebuild decision, preserving the author's argument. Advice only — hands file generation and extraction to pptx-build rather than hand-writing python-pptx. Ships a routed further-reading list that maps an open question (chart choice, contrast rule, pitch sequence, grid, diagram semantics) to one source, separating fetchable standards from books to recommend."
     },
     {
       "name": "project-manager",
