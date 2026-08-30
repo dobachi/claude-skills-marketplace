@@ -46,9 +46,29 @@ def _canon(slide):
             body.append("%s.heading=%s" % (key, col["heading"]))
         body += _texts(col.get("bullets"))
     for key in ("subtitle", "number", "caption", "note", "quote", "attribution",
-                "source", "notes"):
+                "source", "notes", "text", "sub", "heading"):
+        # `image` is deliberately excluded: extraction rewrites the figure into
+        # its own media directory, so the path cannot match by construction.
         if s.get(key):
             body.append("%s=%s" % (key, s[key]))
+    # composed archetypes: every item's role and position is part of the content
+    if s.get("invert"):
+        body.append("invert=1")
+    lead = s.get("lead")
+    if isinstance(lead, dict):
+        body.append("lead.label=%s" % lead.get("label", ""))
+        if lead.get("text"):
+            body.append("lead.text=%s" % lead["text"])
+    for key in ("cards", "steps", "quadrants", "rest"):
+        for n, it in enumerate(s.get(key) or [], start=1):
+            label = it if isinstance(it, str) else it.get("label", "")
+            text = "" if isinstance(it, str) else it.get("text", "")
+            body.append("%s[%d].label=%s" % (key, n, label))
+            if text:
+                body.append("%s[%d].text=%s" % (key, n, text))
+    for key in ("x_axis", "y_axis"):
+        if s.get(key):
+            body.append("%s=%s" % (key, "|".join(str(v) for v in s[key])))
     if s.get("columns"):
         body += [str(c) for c in s["columns"]]
     for row in s.get("rows") or []:

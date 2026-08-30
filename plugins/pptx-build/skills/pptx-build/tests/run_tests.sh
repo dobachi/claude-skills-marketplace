@@ -41,6 +41,24 @@ CASES=(
   "0|python3 $A/extract_deck.py $f/clean-deck.pptx -o $TMP/clean.yaml"
   "0|python3 roundtrip_check.py $f/clean-deck.yaml $f/clean-deck.pptx"
 
+  # ---- 正常系: 構図の型（statement/cards/steps/matrix/split）が型として戻る ----
+  "0|python3 $A/extract_deck.py $f/archetype-deck.pptx -o $TMP/arch.yaml"
+  "0|python3 roundtrip_check.py $f/archetype-deck.yaml $f/archetype-deck.pptx"
+  "0|python3 $A/validate_deck.py $f/archetype-deck.yaml"
+  "0|python3 $A/audit_pptx.py $f/archetype-deck.pptx --quiet"
+
+  # ---- 正常系: いま生成したデッキでも成り立つか ----
+  # 固定フィクスチャだけを見ていると、build_deck.py 側の退行（パーツの命名を
+  # 失う等）に気づけない。その場でビルドして、監査と往復の両方にかける。
+  "0|python3 $A/build_deck.py $f/archetype-deck.yaml -o $TMP/fresh.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/fresh.pptx --quiet"
+  "0|python3 roundtrip_check.py $f/archetype-deck.yaml $TMP/fresh.pptx"
+
+  # ---- 欠陥注入: 型の個数・軸・図の規約が効いているか ----
+  "1|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
+  "has:matrix takes exactly 4 quadrants|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
+  "has:split is a figure beside its reading|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
+
   # ---- 欠陥注入(a): 比較器が差を検出できるか ----
   "1|python3 roundtrip_check.py $f/mutated-deck.yaml $f/clean-deck.pptx"
 

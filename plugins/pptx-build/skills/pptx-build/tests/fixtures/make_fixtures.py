@@ -10,7 +10,9 @@ exists so the fixtures can be rebuilt and so their content is reviewable as code
 messy-deck.pptx is the deck this skill exists to fix: everything on the "Blank"
 layout as free textboxes, a colored band behind each title, a grouped drawing of
 boxes and arrows, a 3-D pie, hand-typed "・" bullets, topic titles, no sources.
-clean-deck.pptx is build_deck.py's own output — the lossless round-trip control.
+clean-deck.pptx and archetype-deck.pptx are build_deck.py's own output — the
+lossless round-trip controls for the basic slide types and for the composed
+archetypes (statement / cards / steps / matrix / split).
 """
 import os
 import subprocess
@@ -107,8 +109,9 @@ def messy(path):
     print("wrote %s" % path)
 
 
-def clean(path):
-    spec = os.path.join(HERE, "clean-deck.yaml")
+def from_spec(name, path):
+    """A control that build_deck.py itself produces — the lossless round trip."""
+    spec = os.path.join(HERE, name)
     subprocess.check_call([sys.executable, os.path.join(ASSETS, "build_deck.py"),
                            spec, "-o", path], stdout=subprocess.DEVNULL)
     print("wrote %s" % path)
@@ -116,4 +119,5 @@ def clean(path):
 
 if __name__ == "__main__":
     messy(os.path.join(HERE, "messy-deck.pptx"))
-    clean(os.path.join(HERE, "clean-deck.pptx"))
+    from_spec("clean-deck.yaml", os.path.join(HERE, "clean-deck.pptx"))
+    from_spec("archetype-deck.yaml", os.path.join(HERE, "archetype-deck.pptx"))

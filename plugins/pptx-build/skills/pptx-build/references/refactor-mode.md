@@ -70,11 +70,22 @@ and its `deck_media/` directory can be moved together and built from anywhere.
 | A chart | `chart:` kind, `categories:`, `series:` with values |
 | An embedded picture larger than ~6% of the slide | `image:` + the file, written into the media directory |
 | A short large number alone in the body | `big_number:` with its `caption:` |
+| A row of equal boxes (or this generator's own cards) | `cards:` with each item's `label`/`text` |
+| A numbered row with arrows between the boxes | `steps:` — the numbers are dropped, they are drawn |
+| Four boxes read against two axes | `matrix:` with `quadrants:` and both axis labels |
+| A figure on one side, text on the other | `split:` (plus `flip:` when the figure is on the left) |
+| One sentence alone on a title-only layout | `statement:` with its `sub:` |
 | Text opening with a quotation mark | `quote:` + `attribution:` |
 | A footer line starting with 出典 / Source / ※ | `source:` |
 | Speaker notes | `notes:` |
 | Slide size | `meta.aspect` |
 | The template's accent1, when it is not a stock Office color | `meta.accent` |
+
+A deck this generator produced names its parts (`part/card`, `part/step`, …), so
+its compositions come back as compositions. A foreign deck is read by geometry
+instead: a row of equal boxes becomes `cards` with a warning telling you to check
+that the items really are equivalent, a figure beside its text becomes `split`,
+and anything ambiguous falls through to `bullets`, which loses no text.
 
 Hand-typed bullet glyphs (`・`, `●`, `- `) are stripped — PowerPoint's own
 bullets live in the paragraph properties, so a glyph in the text is someone

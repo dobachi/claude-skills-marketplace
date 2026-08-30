@@ -62,6 +62,18 @@ slides:
       定着の最大のドライバーになっている。改善余地は上段ではなく中段にある。
     source: "出典: 社内BIダッシュボード 2026-05集計"
 
+  - type: cards
+    title: "打ち手は3つに絞れる"
+    cards:
+      - {label: "獲得", text: "中小向け広告を縮小し、紹介設計へ再配分"}
+      - {label: "定着", text: "オンボーディング完了率を主要KPIに昇格"}
+      - {label: "拡張", text: "上位プラン誘導は一度止め、来期に再設計"}
+    emphasis: 1
+
+  - type: statement
+    text: "伸びを止めているのは定着ではなく入口である"
+    sub: "以降はこの前提で読んでください"
+
   - type: quote
     quote: "顧客は製品を買うのではなく、進歩を雇用する。"
     attribution: "Clayton Christensen"

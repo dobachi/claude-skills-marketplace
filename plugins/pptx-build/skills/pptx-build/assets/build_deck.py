@@ -23,9 +23,11 @@ Usage:
 Inspect a template first to build/verify a map:  python3 inspect_template.py corp.pptx
 """
 import argparse
+import colorsys
 import json
 import math
 import os
+import re
 import sys
 
 from pptx import Presentation
@@ -61,7 +63,7 @@ def load_theme(path):
 # are floors the renderer will NOT shrink past — when content won't fit at the
 # floor it warns to split the slide instead of shrinking (see _check_overflow).
 SIZE_DEFAULTS = {
-    "title_max": 30, "title_min": 24, "title_slide": 40, "subtitle": 20,
+    "title_max": 34, "title_min": 24, "title_slide": 40, "subtitle": 20,
     "section": 34, "section_number": 22,
     "body": 18, "body_sub": 16, "min_body": 16,
     "big_number": 88, "big_caption": 20,
@@ -69,17 +71,124 @@ SIZE_DEFAULTS = {
     "caption": 15, "caption_note": 14,
     "table": 15, "table_header": 15, "chart_label": 12,
     "source": 11, "page_number": 11,
+    # composed parts (cards / steps / matrix) and the statement archetype
+    "part_label": 18, "part_text": 16, "part_index": 13, "axis": 13,
+    "statement": 32, "statement_sub": 18,
+}
+
+# --- shape tokens -----------------------------------------------------------
+# One spacing unit, one corner radius, one line weight — for the whole deck.
+# "Tidy" is not a matter of adding parts; it is every part agreeing on these
+# three numbers. 1 unit = 0.0833 in = 8 px at 96 dpi, and every gap, padding and
+# offset below is an integer multiple of it.
+SHAPE_DEFAULTS = {
+    "unit": 0.0833,     # spacing scale base (in)
+    "radius": 0.06,     # the only corner radius (in); 0 = square corners
+    "line": 0.75,       # the only line weight (pt)
 }
 
 
+def _shape_defaults(theme, meta=None):
+    sh = dict(SHAPE_DEFAULTS)
+    sh.update(theme.get("shape") or {})
+    for k, v in ((meta or {}).get("shape") or {}).items():
+        if isinstance(v, (int, float)):
+            sh[k] = v
+    theme["shape"] = sh
+    for k in ("surface", "surface_hi", "border", "invert_bg"):
+        theme["color"].setdefault(k, "auto")
+    return theme
+
+
+def _u(theme, n=1):
+    """n spacing units, in inches. Every gap in a composed part comes from here."""
+    return theme["shape"]["unit"] * n
+
+
+# --- one hue, several tones ------------------------------------------------
+# Mixing a color with white drops its SATURATION as well as raising its
+# lightness, so pale steps come out grey and muddy — visibly so behind thin
+# Japanese strokes. These work in HSL: lightness is set to an explicit target
+# and saturation is held (scaled down only enough to keep pale steps from
+# looking like poster paint). Every surface, border and pale series in the deck
+# is one of these, so a deck really is one hue at several weights.
+TONE = {                     # target lightness for each named role
+    "surface": 0.965,        # a part's ground
+    "surface_hi": 0.930,     # the highlighted part's ground
+    "border": 0.900,         # a part's edge
+    "invert": 0.120,         # the dark page
+}
+# Series ramp for a `tonal` chart: absolute lightness steps, >= 0.13 apart, so
+# the bars stay distinguishable in projection and in greyscale.
+SERIES_TONES = (None, 0.58, 0.72, 0.85)     # None = the accent's own lightness
+
+
+def _tone(hex6, lightness, sat_scale=None):
+    """The same hue at an explicit lightness. `sat_scale=None` keeps a sensible
+    amount of saturation for that lightness."""
+    hex6 = str(hex6).lstrip("#")
+    r, g, b = (int(hex6[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    h, _l, sat = colorsys.rgb_to_hls(r, g, b)
+    lightness = max(0.0, min(1.0, lightness))
+    if sat_scale is None:
+        # Pale steps need less saturation to stay quiet; dark steps keep theirs.
+        sat_scale = 0.35 + 0.65 * (1.0 - lightness)
+    r, g, b = colorsys.hls_to_rgb(h, lightness, max(0.0, min(1.0, sat * sat_scale)))
+    return "%02X%02X%02X" % tuple(int(round(v * 255)) for v in (r, g, b))
+
+
+def _tint(hex6, pct):
+    """Kept for callers that think in "how much color": 0 = paper, 1 = the color."""
+    return _tone(hex6, 1.0 - 0.58 * max(0.0, min(1.0, pct)))
+
+
 def _apply_size_defaults(theme, meta=None):
-    """Ensure theme['size'] has every key, then let meta.size.* override per deck."""
+    """Ensure theme['size'] has every key, then let meta.size.* override per deck.
+    Shape tokens (unit / radius / line) and the derived neutrals ride along —
+    one call, one place."""
+    _shape_defaults(theme, meta)
+    _resolve_colors(theme)
     sz = dict(SIZE_DEFAULTS)
     sz.update(theme.get("size") or {})
     for k, v in ((meta or {}).get("size") or {}).items():
         if isinstance(v, (int, float)):
             sz[k] = v
     theme["size"] = sz
+    return theme
+
+
+def _inverted(theme):
+    """The dark page. A deck of white slides has no contrast at the DECK level —
+    every page weighs the same — so the turns in the argument get one inverted
+    slide. This is not the drifting band: it is the whole page, on the two types
+    that mark a turn (`section`, `statement`), so there is no edge to misalign.
+    Every color is the same hue at a different lightness, not a new palette."""
+    t = dict(theme)
+    src, c = theme["color"], dict(theme["color"])
+    c["bg"] = src["invert_bg"]
+    c["ink"] = src["invert_ink"]
+    c["muted"] = src["invert_muted"]
+    c["accent"] = _tone(src["accent"], 0.66)      # the rule has to read on dark
+    c["surface"] = _tone(src["accent"], 0.20)
+    c["surface_hi"] = _tone(src["accent"], 0.28)
+    c["border"] = _tone(src["accent"], 0.32)
+    t["color"] = c
+    return t
+
+
+def _resolve_colors(theme):
+    """Neutrals are derived from the accent unless the theme pins them.
+
+    A pure-grey surface next to a colored accent reads as two colors; the same
+    surface carried 4% toward the accent reads as one. `"auto"` (the default)
+    asks for the derived value; a literal hex opts out."""
+    c = theme["color"]
+    for key, role in (("surface", "surface"), ("surface_hi", "surface_hi"),
+                      ("border", "border"), ("invert_bg", "invert")):
+        if str(c.get(key, "auto")).lower() in ("", "auto", "none"):
+            c[key] = _tone(c["accent"], TONE[role])
+    c.setdefault("invert_ink", "FFFFFF")
+    c.setdefault("invert_muted", _tone(c["accent"], 0.72, sat_scale=0.25))
     return theme
 
 
@@ -236,8 +345,10 @@ def _no_bullet(p):
         pPr.append(pPr.makeelement(qn("a:buNone"), {}))
 
 
-def add_textbox(slide, x, y, w, h, anchor=MSO_ANCHOR.TOP):
+def add_textbox(slide, x, y, w, h, anchor=MSO_ANCHOR.TOP, name=None):
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
+    if name:
+        box.name = name            # `part/...` marks it as composed structure
     tf = box.text_frame
     tf.word_wrap = True
     tf.vertical_anchor = anchor
@@ -556,6 +667,341 @@ def _trailing_para(tf, text, theme, font, size, color, space_before=6):
     run = p.add_run()
     run.text = text
     _set_run_font(run, name=theme["font"][font], size=size, color=theme["color"][color])
+    return p
+
+
+# ---------------------------------------------------------------------------
+# COMPOSED PARTS — the closed vocabulary.
+#
+# The rule that keeps this from becoming decoration: a part is only ever drawn
+# because the CONTENT has that shape (three parallel units -> cards; a real
+# sequence -> steps; two meaningful axes -> matrix). Nothing here is available
+# as an ornament, and every part carries a name (`part/<kind>`) so `audit_pptx.py`
+# can tell a composed graphic from a textbox someone floated onto the slide.
+#
+# Geometry always comes from the BODY PLACEHOLDER's region: the layout still
+# decides where content lives, the part just fills that region and the emptied
+# placeholder is dropped (the same contract `image` slides use).
+# ---------------------------------------------------------------------------
+def _region(slide, theme, g, i, drop=True):
+    """(x, y, w, h) of the body placeholder, in inches; the placeholder is then
+    dropped so it cannot sit empty behind the part."""
+    _, bodies = _phs_by_role(slide)
+    if not bodies:
+        _warn("slide %d: layout has no body placeholder — the part was placed on "
+              "the content grid instead" % i)
+        return g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"]
+    ph = bodies[0]
+    r = (Emu(ph.left).inches, Emu(ph.top).inches,
+         Emu(ph.width).inches, Emu(ph.height).inches)
+    if drop:
+        _drop_placeholder(ph)
+    return r
+
+
+def _part(slide, kind, x, y, w, h, theme, fill=None, line=None):
+    """One part of the vocabulary: a rectangle with the deck's single radius, its
+    single line weight, no shadow, and a name that records what it is."""
+    radius = theme["shape"]["radius"]
+    shape_kind = MSO_SHAPE.ROUNDED_RECTANGLE if radius > 0 else MSO_SHAPE.RECTANGLE
+    sp = slide.shapes.add_shape(shape_kind, Inches(x), Inches(y), Inches(w), Inches(h))
+    sp.name = "part/%s" % kind
+    if radius > 0:
+        try:    # the adjustment is the radius as a fraction of the shorter side
+            sp.adjustments[0] = max(0.0, min(0.5, radius / max(0.01, min(w, h))))
+        except Exception:
+            pass
+    if fill:
+        sp.fill.solid()
+        sp.fill.fore_color.rgb = RGBColor.from_string(fill)
+    else:
+        sp.fill.background()
+    if line:
+        sp.line.color.rgb = RGBColor.from_string(line)
+        sp.line.width = Pt(theme["shape"]["line"])
+    else:
+        sp.line.fill.background()
+    try:
+        sp.shadow.inherit = False        # no drop shadow, ever
+    except Exception:
+        pass
+    tf = sp.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    pad = Inches(_u(theme, 2))
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = pad
+    return sp
+
+
+def _part_text(sp, theme, label, text, index=None, accent=False):
+    """Label (+ optional index) then explanation, inside a part. Every paragraph
+    is aligned LEFT explicitly: text in an autoshape defaults to centered, and a
+    deck whose cards are centered while its bullets are not reads as careless."""
+    tf = sp.text_frame
+    tf.clear()
+    c = theme["color"]
+    first = True
+    if index is not None:
+        p = tf.paragraphs[0]
+        p.alignment = PP_ALIGN.LEFT
+        _no_bullet(p)
+        p.space_after = Pt(3)
+        run = p.add_run()
+        run.text = str(index)
+        _set_run_font(run, name=theme["font"]["heading"], size=theme["size"]["part_index"],
+                      bold=True, color=c["accent"])
+        first = False
+    if label:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        p.alignment = PP_ALIGN.LEFT
+        _no_bullet(p)
+        p.space_after = Pt(5)
+        p.line_spacing = 1.15
+        run = p.add_run()
+        run.text = str(label)
+        _set_run_font(run, name=theme["font"]["heading"], size=theme["size"]["part_label"],
+                      bold=True, color=c["accent"] if accent else c["ink"])
+        first = False
+    if text:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        p.alignment = PP_ALIGN.LEFT
+        _no_bullet(p)
+        p.line_spacing = 1.25
+        run = p.add_run()
+        run.text = str(text)
+        _set_run_font(run, name=theme["font"]["body"], size=theme["size"]["part_text"],
+                      color=c["muted"])
+
+
+def _part_items(s, key):
+    """[{label, text}] from a list of strings or dicts — or from a single dict,
+    which is how a one-item field like `lead:` is naturally written."""
+    v = s.get(key)
+    if isinstance(v, dict):
+        return [{"label": v.get("label", ""), "text": v.get("text", "")}]
+    out = []
+    for it in v or []:
+        if isinstance(it, str):
+            out.append({"label": it, "text": ""})
+        else:
+            out.append({"label": it.get("label", ""), "text": it.get("text", "")})
+    return out
+
+
+def _part_height(items, theme, w, min_h, max_h):
+    """Tall enough for the wordiest item at readable sizes, within the region."""
+    pad = _u(theme, 4)
+    inner = max(0.5, w - pad)
+    need = 0.0
+    for it in items:
+        lines_l = _est_lines(it["label"], theme["size"]["part_label"], inner)
+        lines_t = _est_lines(it["text"], theme["size"]["part_text"], inner)
+        need = max(need, lines_l * theme["size"]["part_label"] * 1.25 / 72.0
+                   + lines_t * theme["size"]["part_text"] * 1.35 / 72.0)
+    return max(min_h, min(max_h, need + pad))
+
+
+def _render_cards(slide, theme, g, s, i):
+    """2-4 EQUIVALENT units, side by side. Equivalent is the condition: if the
+    items are not the same kind of thing, they are a list, not cards."""
+    items = _part_items(s, "cards")
+    if not 2 <= len(items) <= 4:
+        _warn("slide %d: cards takes 2-4 equivalent items (got %d) — use bullets, or split"
+              % (i, len(items)))
+        if not items:
+            return
+    x, y, w, h = _region(slide, theme, g, i)
+    n = len(items)
+    gap = _u(theme, 2)
+    cw = (w - gap * (n - 1)) / n
+    ch = _part_height(items, theme, cw, min(1.3, h), min(h, 3.0))
+    y += max(0.0, (h - ch) / 2)          # the row sits centered in its region
+    emph = s.get("emphasis")
+    c = theme["color"]
+    for k, it in enumerate(items):
+        hot = (emph is not None and int(emph) == k + 1)
+        sp = _part(slide, "card", x + k * (cw + gap), y, cw, ch, theme,
+                   fill=c["surface_hi"] if hot else c["surface"],
+                   line=c["accent"] if hot else c["border"])
+        _part_text(sp, theme, it["label"], it["text"], accent=hot)
+
+
+def _render_steps(slide, theme, g, s, i):
+    """A real sequence, 3-5 stages. This is the ONE archetype allowed to draw
+    arrows, because here the arrow encodes the order that the content has."""
+    items = _part_items(s, "steps")
+    if not 3 <= len(items) <= 5:
+        _warn("slide %d: steps takes 3-5 stages (got %d) — beyond that it is a process "
+              "diagram, not a slide" % (i, len(items)))
+        if not items:
+            return
+    x, y, w, h = _region(slide, theme, g, i)
+    n = len(items)
+    arrow_w, arrow_gap = _u(theme, 3), _u(theme, 1)
+    span = arrow_w + arrow_gap * 2
+    cw = (w - span * (n - 1)) / n
+    ch = _part_height(items, theme, cw, min(1.3, h), min(h, 2.6))
+    y += max(0.0, (h - ch) / 2)
+    c = theme["color"]
+    for k, it in enumerate(items):
+        left = x + k * (cw + span)
+        sp = _part(slide, "step", left, y, cw, ch, theme,
+                   fill=c["surface"], line=c["border"])
+        _part_text(sp, theme, it["label"], it["text"], index="%02d" % (k + 1))
+        if k < n - 1:
+            # A small triangle, not Office's block arrow: the mark has to say
+            # "then" without becoming the loudest thing on the slide.
+            tip = _u(theme, 1.6)
+            ar = slide.shapes.add_shape(
+                MSO_SHAPE.ISOSCELES_TRIANGLE,
+                Inches(left + cw + arrow_gap + (arrow_w - tip) / 2),
+                Inches(y + ch / 2 - tip / 2), Inches(tip), Inches(tip))
+            ar.rotation = 90
+            ar.name = "part/arrow"
+            ar.fill.solid()
+            ar.fill.fore_color.rgb = RGBColor.from_string(c["muted"])
+            ar.line.fill.background()
+            try:
+                ar.shadow.inherit = False
+            except Exception:
+                pass
+
+
+def _render_lead(slide, theme, g, s, i):
+    """One unit that matters more, beside 2-3 that support it. The only archetype
+    where the parts are deliberately UNEQUAL: `cards` says "compare these", this
+    says "this one, and the others are context". Area is the argument, so the
+    lead gets ~46% of the width and the full height."""
+    lead = _part_items(s, "lead")
+    rest = _part_items(s, "rest")
+    if not lead:
+        _warn("slide %d: lead slide has no `lead:` item — nothing to feature" % i)
+        return
+    if not 2 <= len(rest) <= 3:
+        _warn("slide %d: lead takes 2-3 supporting items (got %d)" % (i, len(rest)))
+        if not rest:
+            return
+    x, y, w, h = _region(slide, theme, g, i)
+    c = theme["color"]
+    gap = _u(theme, 2)
+    lw = (w - gap) * 0.46
+    rw = (w - gap) * 0.54
+    sp = _part(slide, "lead", x, y, lw, h, theme,
+               fill=c["surface_hi"], line=c["accent"])
+    _part_text(sp, theme, lead[0]["label"], lead[0]["text"], accent=True)
+    n = len(rest)
+    rh = (h - gap * (n - 1)) / n
+    for k, it in enumerate(rest):
+        sp = _part(slide, "rest", x + lw + gap, y + k * (rh + gap), rw, rh, theme,
+                   fill=c["surface"], line=c["border"])
+        _part_text(sp, theme, it["label"], it["text"])
+
+
+def _render_matrix(slide, theme, g, s, i):
+    """Two axes that BOTH carry meaning, and four quadrants that all say something.
+    If one quadrant is empty filler, the content is a list wearing a matrix."""
+    items = _part_items(s, "quadrants")
+    if len(items) != 4:
+        _warn("slide %d: matrix needs exactly 4 quadrants (top-left, top-right, "
+              "bottom-left, bottom-right); got %d" % (i, len(items)))
+        if not items:
+            return
+        items = (items + [{"label": "", "text": ""}] * 4)[:4]
+    x, y, w, h = _region(slide, theme, g, i)
+    c = theme["color"]
+    xa = s.get("x_axis") or []
+    ya = s.get("y_axis") or []
+    gut = _u(theme, 14) if ya else 0.0     # left gutter: a real word has to fit
+    foot = _u(theme, 4) if xa else 0.0     # bottom strip for the x-axis labels
+    x0, y0 = x + gut, y
+    w0, h0 = w - gut, h - foot
+    gap = _u(theme, 1.5)
+    cw, ch = (w0 - gap) / 2, (h0 - gap) / 2
+    emph = s.get("emphasis")
+    for k, it in enumerate(items):
+        col, row = k % 2, k // 2
+        hot = (emph is not None and int(emph) == k + 1)
+        sp = _part(slide, "quadrant", x0 + col * (cw + gap), y0 + row * (ch + gap),
+                   cw, ch, theme,
+                   fill=c["surface_hi"] if hot else c["surface"],
+                   line=c["accent"] if hot else c["border"])
+        _part_text(sp, theme, it["label"], it["text"], accent=hot)
+    sz = theme["size"]["axis"]
+    if len(ya) >= 2:      # vertical axis: high at the top, low at the bottom
+        for text, ty in ((ya[1], y0), (ya[0], y0 + h0 - _u(theme, 3))):
+            tf = add_textbox(slide, x, ty, gut - _u(theme, 2), _u(theme, 3),
+                             name="part/axis")
+            set_simple(tf, text, theme, font="body", size=sz, color="muted",
+                       align=PP_ALIGN.RIGHT)
+    if len(xa) >= 2:      # horizontal axis, in the strip under the quadrants
+        for text, tx, al in ((xa[0], x0, PP_ALIGN.LEFT),
+                             (xa[1], x0 + w0 / 2, PP_ALIGN.RIGHT)):
+            tf = add_textbox(slide, tx, y0 + h0 + _u(theme, 0.5), w0 / 2, _u(theme, 3),
+                             name="part/axis")
+            set_simple(tf, text, theme, font="body", size=sz, color="muted", align=al)
+
+
+def _render_split(slide, theme, g, s, i):
+    """The asymmetric composition: figure and its reading, 62/38. Symmetry says
+    'these are equal'; most figure-plus-explanation slides are not."""
+    img = _asset(s.get("image"))
+    _, bodies = _phs_by_role(slide)
+    if not bodies:
+        _warn("slide %d: layout has no body placeholder — split not drawn" % i)
+        return
+    ph = bodies[0]
+    x, y = Emu(ph.left).inches, Emu(ph.top).inches
+    w, h = Emu(ph.width).inches, Emu(ph.height).inches
+    # 38/62 by default. A WIDE figure wants more of the slide (0.3), a tall one
+    # less (0.45) — `ratio` is the text column's share, clamped to a range that
+    # keeps both halves usable.
+    ratio = s.get("ratio", 0.38)
+    try:
+        ratio = max(0.25, min(0.50, float(ratio)))
+    except (TypeError, ValueError):
+        ratio = 0.38
+    gap = _u(theme, 4)
+    text_w = (w - gap) * ratio
+    fig_w = (w - gap) * (1.0 - ratio)
+    flip = bool(s.get("flip"))
+    text_x = x if not flip else x + fig_w + gap
+    fig_x = x + text_w + gap if not flip else x
+    _place(ph, text_x, y, text_w, h)
+    ph.name = "part/split-text"      # records that this geometry IS the composition
+    _fill_col(_prep_ph_tf(ph), theme, {"heading": s.get("heading"),
+                                       "bullets": s.get("bullets")})
+    if img and os.path.exists(img):
+        pic = slide.shapes.add_picture(img, Inches(fig_x), Inches(y), height=Inches(h))
+        if pic.width > Inches(fig_w):
+            pic.height = int(pic.height * Inches(fig_w) / pic.width)
+            pic.width = Inches(fig_w)
+        pic.left = Inches(fig_x + (fig_w - Emu(pic.width).inches) / 2)
+        pic.top = Inches(y + (h - Emu(pic.height).inches) / 2)
+    else:
+        _warn("slide %d: image not found (%r) — the figure half is empty"
+              % (i, s.get("image")))
+        sp = _part(slide, "figure-missing", fig_x, y, fig_w, h, theme,
+                   fill=theme["color"]["surface"], line=theme["color"]["border"])
+        _part_text(sp, theme, "", "[ image: %s ]" % (s.get("image") or "missing"))
+
+
+def _render_statement(slide, theme, g, s, i):
+    """One sentence, alone. The deck's punctuation: a turn, a verdict, a stake in
+    the ground. Never a slide that merely has little on it."""
+    title_ph, _ = _phs_by_role(slide)
+    if title_ph is None:
+        return
+    # Anchored TOP so the sentence sits directly under the rule: the rule is the
+    # mark that something is being declared, and a gap between them breaks that.
+    tf = _prep_ph_tf(title_ph, anchor=MSO_ANCHOR.TOP)
+    set_simple(tf, s.get("text") or s.get("title") or "", theme, font="heading",
+               size=theme["size"]["statement"], bold=True, color="ink",
+               align=PP_ALIGN.LEFT, line_spacing=1.25)
+    if s.get("sub"):
+        p = _trailing_para(tf, s["sub"], theme, "body", theme["size"]["statement_sub"],
+                           "muted", space_before=12)
+        if p is not None:
+            p.alignment = PP_ALIGN.LEFT
 
 
 # ---------------------------------------------------------------------------
@@ -692,11 +1138,18 @@ def _chart_no_border(chart):
         pass
 
 
-def _series_colors(theme):
+def _series_colors(theme, style="focus"):
+    """focus: the series that carries the message in accent, the rest in greys
+    that recede (light to dark, so they never compete with each other).
+    tonal: one hue at four lightnesses — right when the series are the SAME kind
+    of thing and the comparison is between them, not against one of them."""
     pal = theme.get("series")
     if pal:
         return [str(c).lstrip("#") for c in pal]
-    return [theme["color"]["accent"], "9AA3AF", "4B5563", "C3CBD8", "1F2937"]
+    accent = theme["color"]["accent"]
+    if str(style).lower() == "tonal":
+        return [accent if t is None else _tone(accent, t) for t in SERIES_TONES]
+    return [accent, "B6BDC8", "8A93A1", "5B6472", "343B45"]
 
 
 def _render_chart(slide, theme, g, s, i):
@@ -747,7 +1200,7 @@ def _render_chart(slide, theme, g, s, i):
         chart.legend.position = XL_LEGEND_POSITION.BOTTOM
         chart.legend.include_in_layout = False
 
-    pal = _series_colors(theme)
+    pal = _series_colors(theme, s.get("series_style", theme.get("series_style", "focus")))
     plot = chart.plots[0]
     plot.gap_width = 60
     if kind in ("pie", "doughnut"):
@@ -813,17 +1266,18 @@ def render_default(prs, theme, g, slides):
             continue
 
         if t == "section":
+            th = _inverted(theme) if s.get("invert") else theme
             slide = prs.slides.add_slide(prs.slide_layouts[SECTION_LAYOUT])
-            _set_bg(slide, theme)
-            _hairline(slide, theme, g, g["ruleY"]["section"])
+            _set_bg(slide, th)
+            _hairline(slide, th, g, g["ruleY"]["section"])
             title_ph, bodies = _phs_by_role(slide)
             if s.get("number") is not None and bodies:
                 _prep_ph_tf(bodies[0], anchor=MSO_ANCHOR.BOTTOM)
-                set_simple(bodies[0].text_frame, str(s["number"]), theme, font="heading",
-                           size=theme["size"]["section_number"], bold=True, color="accent")
+                set_simple(bodies[0].text_frame, str(s["number"]), th, font="heading",
+                           size=th["size"]["section_number"], bold=True, color="accent")
             _prep_ph_tf(title_ph)
-            set_simple(title_ph.text_frame, s.get("title", ""), theme, font="heading",
-                       size=theme["size"]["section"], bold=True, color="ink", line_spacing=1.1)
+            set_simple(title_ph.text_frame, s.get("title", ""), th, font="heading",
+                       size=th["size"]["section"], bold=True, color="ink", line_spacing=1.1)
             continue
 
         if t == "quote":
@@ -865,6 +1319,26 @@ def render_default(prs, theme, g, slides):
             _set_bg(slide, theme)
             _title(slide, theme, g, s.get("title", ""), i)
             _render_image(slide, theme, g, s, i)
+            continue
+
+        if t == "statement":
+            # "Title Only" — one sentence in that layout's title placeholder.
+            th = _inverted(theme) if s.get("invert") else theme
+            slide = prs.slides.add_slide(prs.slide_layouts[QUOTE_LAYOUT])
+            _set_bg(slide, th)
+            _hairline(slide, th, g, g["ruleY"]["quote"])
+            _render_statement(slide, th, g, s, i)
+            _page_number(slide, th, g, i)
+            continue
+
+        if t in ("cards", "steps", "matrix", "split", "lead"):
+            slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
+            _set_bg(slide, theme)
+            _title(slide, theme, g, s.get("title", ""), i)
+            {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
+             "matrix": _render_matrix, "split": _render_split}[t](slide, theme, g, s, i)
+            _source(slide, theme, g, s.get("source"))
+            _page_number(slide, theme, g, i)
             continue
 
         if t == "big_number":
@@ -1020,6 +1494,14 @@ def _layout_index_by_role(prs):
                                               "two-col", "2 content"), content),
         "bullets": content, "big_number": content, "quote": content,
         "table": content, "chart": content,
+        # Composed archetypes are drawn into the body placeholder's region, so
+        # they want the same layout a bullets slide would use.
+        "cards": content, "steps": content, "matrix": content, "split": content,
+        "lead": content,
+        # A statement is one sentence alone: a title-only layout if the template
+        # has one, else the section divider, else content.
+        "statement": find(lambda lo: name_match(lo, "title only", "statement"),
+                          find(lambda lo: name_match(lo, "section"), content)),
         "image": img,
         "blank": find(lambda lo: name_match(lo, "blank"), content),
     }
@@ -1140,11 +1622,42 @@ def _render_chart_template(slide, s, i, layout_name):
         chart.legend.include_in_layout = False
 
 
+_THEME_REL = ("http://schemas.openxmlformats.org/officeDocument/"
+              "2006/relationships/theme")
+
+
+def _theme_of_template(prs, theme_path=DEFAULT_THEME):
+    """Composed parts need colors, sizes and shape tokens, and in template-fill
+    mode there is no theme JSON in play. Take the template's OWN accent and fonts
+    where they can be read, and fall back to the readable defaults for the rest —
+    so a card drawn into a corporate deck still looks like that deck."""
+    theme = _apply_size_defaults(load_theme(theme_path))
+    try:
+        part = prs.slide_masters[0].part.part_related_by(_THEME_REL)
+        xml = part.blob.decode("utf-8", "ignore")
+    except Exception:
+        return theme
+    m = re.search(r'<a:accent1>.*?val="([0-9A-Fa-f]{6})"', xml, re.S)
+    if m:
+        theme["color"]["accent"] = m.group(1).upper()
+    for tag, key in (("majorFont", "heading"), ("minorFont", "body")):
+        f = re.search(r'<a:%s>\s*<a:latin typeface="([^"]+)"' % tag, xml)
+        if f and f.group(1):
+            theme["font"][key] = f.group(1)
+    theme["font"].setdefault("number", theme["font"]["heading"])
+    return theme
+
+
 def render_template(prs, spec, map_cfg):
     slides = spec.get("slides") or []
     role_layout = _layout_index_by_role(prs)
     chosen = []
     del _WARNINGS[:]
+    # Composed archetypes are drawn, not filled, so they need tokens even here.
+    part_theme = _theme_of_template(prs)
+    part_theme["aspect"] = ("4:3" if (prs.slide_height or 0) /
+                            max(1, prs.slide_width or 1) > 0.7 else "16:9")
+    part_g = make_grid(part_theme)
 
     for i, s in enumerate(slides, start=1):
         t = s.get("type", "bullets")
@@ -1164,6 +1677,8 @@ def render_template(prs, spec, map_cfg):
         title_text = s.get("title")
         if t == "quote":
             title_text = None  # quote has no title field
+        elif t == "statement":
+            title_text = s.get("text") or s.get("title")
         _set_ph_text(_tpl_need(pick("title", roles["title"]), i, layout.name,
                                "title", title_text), title_text)
         if t == "quote":
@@ -1219,6 +1734,18 @@ def render_template(prs, spec, map_cfg):
                       % (i, layout.name))
                 slide.shapes.add_picture(img, Inches(1), Inches(1.5))
             _set_ph_text(pick("caption", None), s.get("caption"))
+        elif t == "statement":
+            if s.get("sub"):
+                _set_ph_text(pick("subtitle", roles["subtitle"]
+                                  or (roles["body"][0] if roles["body"] else None)),
+                             s["sub"])
+        elif t in ("cards", "steps", "matrix", "split", "lead"):
+            # The template decides WHERE (its body placeholder's region); the
+            # archetype decides WHAT gets drawn there.
+            {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
+             "matrix": _render_matrix, "split": _render_split}[t](
+                slide, part_theme, part_g, s, i)
+            _set_ph_text(pick("source", None), s.get("source"))
         elif t == "blank":
             pass
         else:  # bullets

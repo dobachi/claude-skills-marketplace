@@ -182,13 +182,17 @@ def _records(slide, page_w, page_h, idx, report):
         tf = sh.text_frame
         return {"kind": "text", "sh": sh, "tf": tf, "in_group": in_group,
                 "sid": sh.shape_id, "bold0": _first_bold(tf),
+                "name": sh.name or "", "auto": sh.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE,
                 "paras": _paras(tf), "pt": _max_pt(tf),
                 "x": _in(sh.left), "y": _in(sh.top), "w": _in(sh.width), "h": _in(sh.height)}
 
     walk(slide.shapes, False)
     recs.sort(key=lambda r: (round(r["y"], 1), round(r["x"], 1)))
     for r in recs:
-        r["footer"] = r["y"] >= page_h * FOOTER_BAND
+        # A composed part low on the page (a matrix's x-axis labels) is content,
+        # not a running footer — the name settles it.
+        r["footer"] = (r["y"] >= page_h * FOOTER_BAND
+                       and not str(r.get("name", "")).startswith("part/"))
         r["area"] = (r["w"] * r["h"]) / (page_w * page_h) if page_w and page_h else 0
     return recs
 
@@ -299,6 +303,79 @@ def _title_of(slide, texts):
     return "", None, []
 
 
+PART_KINDS = (("part/card", "cards"), ("part/step", "steps"),
+              ("part/quadrant", "matrix"), ("part/lead", "lead"),
+              ("part/rest", "lead"))
+
+
+def _named_parts(texts):
+    """The archetype a build_deck-produced slide was drawn from, by shape name."""
+    if any(r.get("name", "").startswith("part/lead") for r in texts):
+        return "lead"          # one lead + its supporting parts
+    for prefix, kind in PART_KINDS:
+        if len([r for r in texts if r.get("name", "").startswith(prefix)]) >= 2:
+            return kind
+    return None
+
+
+def _dark(slide):
+    """True when the slide paints itself dark — the inverted page."""
+    try:
+        rgb = slide.background.fill.fore_color.rgb
+    except Exception:
+        return False
+    if rgb is None:
+        return False
+    r, g, b = rgb[0], rgb[1], rgb[2]
+    return (0.299 * r + 0.587 * g + 0.114 * b) < 110
+
+
+def _looks_like_split(figures, body):
+    """One figure on one side, the reading on the other: horizontally disjoint,
+    vertically overlapping. Text UNDER a figure is a caption, not a split."""
+    if len(figures) != 1 or not body:
+        return False
+    f = figures[0]
+    if f["area"] < 0.2:
+        return False
+    for r in body:
+        if r["name"].startswith("part/split-text"):
+            return True
+    for r in body:
+        disjoint = (r["x"] + r["w"] <= f["x"] + 0.05) or (r["x"] >= f["x"] + f["w"] - 0.05)
+        overlaps = min(r["y"] + r["h"], f["y"] + f["h"]) - max(r["y"], f["y"]) > 0.3
+        if not (disjoint and overlaps):
+            return False
+    return True
+
+
+def _looks_like_cards(body):
+    """A foreign deck's card row: 3-4 autoshapes of near-equal width, tops aligned,
+    each holding a short amount of text. Deliberately strict — a wrong guess here
+    turns prose into labels."""
+    boxes = [r for r in body if r.get("auto") and r["w"] > 0]
+    if not 3 <= len(boxes) <= 4 or len(boxes) != len(body):
+        return False
+    tops = [r["y"] for r in boxes]
+    widths = [r["w"] for r in boxes]
+    if max(tops) - min(tops) > 0.25 or max(widths) > min(widths) * 1.15:
+        return False
+    return all(sum(len(t) for _, t in r["paras"]) <= 120 and r["paras"] for r in boxes)
+
+
+def _part_items_from(recs, drop_index=False):
+    """[{label, text}] from a row of part shapes: first line is the label."""
+    items = []
+    for r in sorted(recs, key=lambda r: (round(r["y"], 1), r["x"])):
+        paras = [t for _, t in r["paras"]]
+        if drop_index and paras and re.match(r"^\d{1,2}$", paras[0].strip()):
+            paras = paras[1:]     # the step number is drawn, not authored
+        if not paras:
+            continue
+        items.append({"label": paras[0], "text": " ".join(paras[1:])})
+    return items
+
+
 def _bullets_from(recs):
     items = []
     for r in recs:
@@ -326,6 +403,11 @@ def _classify(slide, recs, i, is_first, report):
     out = lambda kind, t=None, b=None: (kind, title if t is None else t,
                                         body if b is None else b, title_paras)
 
+    # A deck this generator produced names its composed parts; that name is the
+    # most reliable signal there is, so it wins over every geometric guess.
+    named = _named_parts(texts)
+    if named:
+        return out(named)
     has = lambda k: any(r["kind"] == k for r in recs)
     figures = [r for r in recs if r["kind"] == "picture" and r["area"] >= FIGURE_AREA]
     if has("table"):
@@ -333,6 +415,10 @@ def _classify(slide, recs, i, is_first, report):
     if has("chart"):
         return out("chart")
     if figures:
+        # Figure BESIDE its reading is a different composition from figure ABOVE
+        # its caption — and the difference is the whole point of `split`.
+        if _looks_like_split(figures, body):
+            return out("split")
         return out("image")
 
     body_paras = [pr for r in body for pr in r["paras"]]
@@ -347,7 +433,13 @@ def _classify(slide, recs, i, is_first, report):
     if not title and lone and lone[0][1][0] in QUOTE_OPEN and words <= 300:
         return out("quote", "")
 
-    if "title slide" in layout_name or (is_first and len(body) <= 1 and words <= 160):
+    if "title slide" in layout_name:
+        return out("title")
+    # A sentence alone on a title-only layout is a statement, not a deck title.
+    if ("title only" in layout_name or "statement" in layout_name) and title_paras \
+            and not body and len(title) <= 160:
+        return out("statement")
+    if is_first and len(body) <= 1 and words <= 160:
         return out("title")
 
     if (lone and NUMBERISH_RE.match(lone[0][1]) and len(lone[0][1]) <= 12
@@ -362,6 +454,12 @@ def _classify(slide, recs, i, is_first, report):
         return out("section")
     if "section" in layout_name and words <= 80:
         return out("section", title or (lone[0][1] if lone else ""), [])
+
+    if _looks_like_cards(body):
+        report.add(WARN, i, "a row of equal boxes was read as `cards` — check that the "
+                            "items really are equivalent; if they are a sequence, make "
+                            "it `steps`, and if they are a list, `bullets`")
+        return out("cards")
 
     if len(body) == 2:
         a, b = sorted(body, key=lambda r: r["x"])
@@ -478,6 +576,18 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
             if len(charts) > 1:
                 report.add(LOSS, i, "%d charts on one slide — only the first was kept; "
                                     "split the slide" % len(charts))
+        elif kind == "split":
+            figs = [r for r in recs if r["kind"] == "picture" and r["area"] >= FIGURE_AREA]
+            path = _save_picture(figs[0], i, 1, media_dir, spec_dir, report)
+            if path:
+                s["image"] = path
+            if body and body[0].get("bold0") and len(body[0]["paras"]) > 1:
+                s["heading"] = body_paras[0][1]
+                s["bullets"] = _items(body_paras[1:])
+            else:
+                s["bullets"] = _items(body_paras)
+            if body and figs[0]["x"] < body[0]["x"]:
+                s["flip"] = True          # the figure sits on the left
         elif kind == "image":
             figs = [r for r in recs if r["kind"] == "picture" and r["area"] >= FIGURE_AREA]
             path = _save_picture(figs[0], i, 1, media_dir, spec_dir, report)
@@ -493,6 +603,29 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
                 s["caption"] = body_paras[0][1]
                 if len(body_paras) > 1:
                     s["note"] = " ".join(t for _, t in body_paras[1:])
+        elif kind == "lead":
+            head = [r for r in body if r.get("name", "").startswith("part/lead")]
+            rest = [r for r in body if r.get("name", "").startswith("part/rest")]
+            items = _part_items_from(head or body[:1])
+            if items:
+                s["lead"] = items[0]
+            s["rest"] = _part_items_from(rest or body[1:])
+        elif kind in ("cards", "steps", "matrix"):
+            key = {"cards": "cards", "steps": "steps", "matrix": "quadrants"}[kind]
+            pre = {"cards": "part/card", "steps": "part/step",
+                   "matrix": "part/quadrant"}[kind]
+            parts = [r for r in body if r.get("name", "").startswith(pre)] or body
+            s[key] = _part_items_from(parts, drop_index=(kind == "steps"))
+            if kind == "matrix":
+                ax = [r for r in body if r.get("name", "") == "part/axis"]
+                if len(ax) == 4 and parts:
+                    left = min(r["x"] for r in parts)
+                    ys = sorted([r for r in ax if r["x"] < left], key=lambda r: r["y"])
+                    xs = sorted([r for r in ax if r["x"] >= left], key=lambda r: r["x"])
+                    if len(ys) == 2:
+                        s["y_axis"] = [ys[1]["paras"][0][1], ys[0]["paras"][0][1]]
+                    if len(xs) == 2:
+                        s["x_axis"] = [xs[0]["paras"][0][1], xs[1]["paras"][0][1]]
         elif kind == "two_col":
             for key, r in zip(("left", "right"), sorted(body, key=lambda r: r["x"])):
                 s[key] = _column(r)
@@ -505,6 +638,12 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
             s["quote"] = lines[0].strip("".join(QUOTE_OPEN) + "\u201d\u2019\u300d\u300f\u00bb")
             if len(lines) > 1:      # the line after the quote is who said it
                 s["attribution"] = lines[1].lstrip("\u2014\u2013-\u2010\u2015\u30fc\u203b ").strip()
+        elif kind == "statement":
+            lines = [t for _, t in (title_paras or [])]
+            s.pop("title", None)
+            s["text"] = lines[0] if lines else ""
+            if len(lines) > 1:
+                s["sub"] = " ".join(lines[1:])
         elif kind == "title":
             sub = " ".join(t for _, t in body_paras)
             if sub:
@@ -522,6 +661,8 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
             if items:
                 s["bullets"] = items
 
+        if kind in ("section", "statement") and _dark(slide):
+            s["invert"] = True          # the dark page is a deliberate turn
         src = _split_footnotes(recs, i, report)
         if src:
             s["source"] = src

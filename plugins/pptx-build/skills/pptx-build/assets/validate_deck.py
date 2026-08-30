@@ -46,8 +46,20 @@ ASSERT_RE = re.compile(
     r"ない|べき|だ$|である|った|increase|grow|grew|fall|fell|rose|drove|wins?|"
     r"should|will|is|are|was|were|up|down", re.I)
 
-CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart"}
-KNOWN_TYPES = CONTENT_TYPES | {"title", "section", "quote", "blank"}
+CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart",
+                 "cards", "steps", "matrix", "split", "lead"}
+KNOWN_TYPES = CONTENT_TYPES | {"title", "section", "quote", "blank", "statement"}
+# Each composed archetype exists for ONE shape of content, and the count is part
+# of that shape: cards are equivalent units, steps are a real sequence, a matrix
+# has four quadrants because it has two axes. Counts outside the range mean the
+# content is not that shape — the fix is a different type, not a smaller font.
+PART_RANGE = {"cards": ("cards", 2, 4), "steps": ("steps", 3, 5),
+              "matrix": ("quadrants", 4, 4), "lead": ("rest", 2, 3)}
+# A title has to fit ONE line at the top of the type scale for the jump between
+# title and body to read. Past this it wraps, the renderer steps the size down,
+# and the deck flattens — so the length limit is what makes a large title
+# possible, not a separate style rule.
+TITLE_WIDTH = 22
 ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
 
 
@@ -57,7 +69,22 @@ ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
 def _slide_title(s):
     if s.get("type") == "quote":
         return (s.get("quote") or "").strip()
+    if s.get("type") == "statement":
+        return (s.get("text") or s.get("title") or "").strip()
     return (s.get("title") or "").strip()
+
+
+def _part_texts(s):
+    """Every string inside a composed archetype's items."""
+    out = []
+    for key in ("cards", "steps", "quadrants"):
+        for it in s.get(key) or []:
+            if isinstance(it, str):
+                out.append(it)
+            else:
+                out.append(it.get("label", ""))
+                out.append(it.get("text", ""))
+    return out
 
 
 def _looks_like_topic(title):
@@ -89,6 +116,7 @@ def _has_data_claim(s):
             texts.append(it["text"])
     if s.get("caption"):
         texts.append(s["caption"])
+    texts.extend(_part_texts(s))
     return any(DATA_RE.search(t or "") for t in texts)
 
 
@@ -160,6 +188,10 @@ def validate(spec, theme, g):
             _, over = B._fit_title_size(title, theme, g)
             if over:
                 add(WARN, i, "title needs >2 lines even at the floor size — shorten or split: %r" % title)
+            elif B._disp_width(title) > TITLE_WIDTH:
+                add(INFO, i, "title is %d wide — over ~%d it wraps and the renderer drops "
+                             "a size, flattening the title/body contrast: %r"
+                    % (B._disp_width(title), TITLE_WIDTH, title))
 
         # one-message-per-slide density
         if t == "bullets":
@@ -209,6 +241,58 @@ def validate(spec, theme, g):
                 add(WARN, i, "a pie/doughnut shows one series — use column/bar to compare several")
             if kind in ("pie", "doughnut") and len(cats) > 6:
                 add(WARN, i, "%d slices — over ~6 a pie is unreadable; use a bar chart" % len(cats))
+
+        # composed archetypes: the count IS the claim about the content's shape
+        if t in PART_RANGE:
+            key, lo, hi = PART_RANGE[t]
+            items = s.get(key) or []
+            if not items:
+                add(ERROR, i, "%s slide has no `%s`" % (t, key))
+            elif not lo <= len(items) <= hi:
+                sev = ERROR if t == "matrix" else WARN
+                add(sev, i, "%s takes %s %s (got %d) — %s"
+                    % (t, ("exactly %d" % lo) if lo == hi else "%d-%d" % (lo, hi),
+                       key, len(items),
+                       "a matrix has four quadrants because it has two axes"
+                       if t == "matrix" else
+                       "if the content is not that shape, use bullets or split the slide"))
+            for it in items:
+                label = it if isinstance(it, str) else it.get("label", "")
+                body = "" if isinstance(it, str) else it.get("text", "")
+                if not str(label).strip():
+                    add(WARN, i, "an item has no `label` — the label is what the reader scans")
+                if B._disp_width(body) > 70:
+                    add(INFO, i, "an item's `text` is long (%d) — a part is a summary, "
+                                 "put the detail in the notes" % B._disp_width(body))
+            emph = s.get("emphasis")
+            if emph is not None and not (isinstance(emph, int) and 1 <= emph <= len(items)):
+                add(WARN, i, "`emphasis: %r` is not one of the %d items — nothing will be "
+                             "highlighted" % (emph, len(items)))
+        if t == "lead" and not (s.get("lead") or []):
+            add(ERROR, i, "lead slide has no `lead:` item — the featured unit is the point")
+        if t == "steps":
+            add(INFO, i, "steps draws arrows — keep it only if the stages are a real "
+                         "sequence (order or dependency); equivalent items are `cards`")
+        if t == "matrix":
+            for axis in ("x_axis", "y_axis"):
+                if len(s.get(axis) or []) != 2:
+                    add(WARN, i, "`%s` needs two labels (low, high) — a matrix without "
+                                 "named axes is four boxes" % axis)
+        if t == "split":
+            if not s.get("image"):
+                add(ERROR, i, "split is a figure beside its reading — it needs `image:`")
+            if len(B._normalize_bullets(s.get("bullets"))) > 4:
+                add(WARN, i, "more than 4 bullets in the narrow column — the figure is "
+                             "the message here; move the detail to notes or another slide")
+        if t == "statement":
+            if not (s.get("text") or "").strip():
+                add(ERROR, i, "statement slide has no `text`")
+            elif B._disp_width(s["text"]) > 46:
+                add(WARN, i, "the statement runs %d wide — it is punctuation for the deck, "
+                             "so it has to land in one breath" % B._disp_width(s["text"]))
+            if s.get("bullets"):
+                add(WARN, i, "a statement is one sentence alone — bullets belong on a "
+                             "`bullets` slide")
 
         # sources on data claims
         if t in CONTENT_TYPES and _has_data_claim(s) and not s.get("source"):

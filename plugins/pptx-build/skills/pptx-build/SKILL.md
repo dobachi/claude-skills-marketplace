@@ -2,17 +2,16 @@
 name: pptx-build
 description: >-
   Generate clean, white-based .pptx decks that don't look AI-made, and rebuild decks that
-  already exist — built on python-pptx. Three modes, one spec: (1) default — grid-anchored
-  layout with no drifting decorative bands; (2) template-fill — open a real corporate
-  .pptx/.potx and write into ITS layouts and placeholders, inheriting its master, theme,
-  fonts, and logos; (3) refactor — `extract_deck.py` reads an EXISTING deck (inherited,
-  AI-made, hand-floated) back into a spec and reports what it cannot carry, so the argument
-  is fixed as text and re-rendered into real placeholders. Use when an actual PowerPoint file
-  must be produced or fixed, not just designed — "simple white deck", "テンプレに沿ったパワポ",
-  "会社のテンプレートで作って", "この資料を作り直して/整えて". Covers bullets/two-column/
-  big-number/quote/image plus table and chart, so a deck never falls back to hand-written
-  python-pptx. Ships `validate_deck.py` (spec lint + narrative spine) and `audit_pptx.py`
-  (fails a deck whose content is not in layout placeholders).
+  already exist — built on python-pptx. Three modes, one spec: (1) default — a grid-anchored
+  layout with no drifting bands, plus composed archetypes (cards / steps / matrix / split /
+  statement) picked from the content's shape and drawn on one spacing scale with one corner
+  radius and one line weight; (2) template-fill — open a real corporate .pptx/.potx and write
+  into ITS layouts and placeholders, inheriting its master, theme, fonts and logos;
+  (3) refactor — `extract_deck.py` reads an EXISTING deck back into a spec and reports what it
+  cannot carry. Use when an actual PowerPoint file must be produced or fixed, not just designed
+  — "simple white deck", "テンプレに沿ったパワポ", "会社のテンプレートで作って", "この資料を作り直して
+  /整えて". Ships `validate_deck.py` (spec lint, archetype conditions, narrative spine) and
+  `audit_pptx.py` (fails a deck whose content is not in layout placeholders).
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -157,7 +156,33 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 
 ## Slide types
 
-`title`, `section`, `bullets`, `two_col`, `big_number`, `quote`, `image`, `table`, `chart`, `blank`.
+Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`,
+`image`, `table`, `chart`, `blank`.
+
+**Composed archetypes** — `cards`, `steps`, `lead`, `matrix`, `split`, `statement` — are
+drawn from the body placeholder's region rather than filled with text. Each one
+exists for one shape of content, and picking the type IS the design decision:
+
+| The content is | Type | The condition that earns it |
+|---|---|---|
+| 2-4 equivalent units | `cards` | They are the same kind of thing (not a ranking, not a list) |
+| One unit that outweighs the rest | `lead` | The lead takes 46% of the width — area is the argument |
+| A real sequence, 3-5 stages | `steps` | Order or dependency actually exists — the only type that draws arrows |
+| Two meaningful axes | `matrix` | Both axes are named and all four quadrants say something |
+| A figure and its reading | `split` | 38/62 asymmetry: the figure is the message, the text is the reading |
+| A turn in the argument | `statement` | One sentence alone under the rule — the deck's punctuation |
+
+Contrast is deck-level as well as slide-level: `section` and `statement` accept
+`invert: true` (a deep, accent-toned page with light text) for the turns, and a
+`chart` accepts `series_style: tonal` when its series are the same kind of thing.
+All neutrals — part fills, borders, the dark page — are derived in HSL from the
+accent, so a deck is one hue at several lightnesses rather than a color plus greys.
+
+The vocabulary is **closed on purpose**. Parts are available because the content
+has that structure, never as ornament — the information test applies to a card
+exactly as it applies to a box someone drew by hand. `validate_deck.py` enforces
+the counts, and every part is named `part/<kind>` in the file so `audit_pptx.py`
+can tell a composed graphic from a floated textbox.
 
 `table` and `chart` exist so that a deck needing one never has to leave the generator. Both
 are inserted at the **body placeholder's** region and adopt its placeholder marker — the same
@@ -198,6 +223,9 @@ what the presenter says is half the argument.
 - [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (hairline + emphasis only); **no full-width band**; hairline lines up across all slides (flip the PNGs — the accent should never jump).
 - [ ] **Template mode:** every intended placeholder is actually filled (read the build log + a PNG); no slide fell back to the wrong layout; the deck still looks like the template, not like us.
 - [ ] Data slides carry a `source:` footnote.
+- [ ] **Archetypes:** each composed slide passes its condition — cards are equivalent, steps have real order, both matrix axes are named, `split` has a figure worth 62% of the slide.
+- [ ] **Rhythm:** no more than about three consecutive slides share the same skeleton; turns are marked (`section` / `statement`), not just implied — `audit_pptx.py` reports runs of identical skeletons.
+- [ ] **Contrast:** at least one dark page (`invert`) at a turn; titles ≤ ~22 full-width characters so they keep the large size; no saturated fill covering more than ~10% of a slide (`audit_pptx.py` measures it).
 - [ ] **Refactor:** every `LOSS` line from `extract_deck.py` was decided on (redrawn, split, or accepted) — not skimmed.
 - [ ] **Refactor:** no claim was changed while cleaning up; contradictions and unsupported numbers were reported back, not quietly fixed.
 - [ ] **Refactor:** speaker notes survived (`notes:`), and extracted figures still resolve from the spec's directory.
@@ -209,11 +237,11 @@ Apply the **information test** before adding any shape: if deleting it changes n
 
 ## References
 
+- `references/spec-format.md` — every spec field and slide type, including the composed archetypes and `meta.shape`
 - `references/refactor-mode.md` — rebuilding a deck that already exists: extract → fix the argument as text → rebuild → audit, what extraction recovers and what it cannot carry
 - `references/narrative-and-logic.md` — the cross-slide argument check (Pyramid Principle, SCQA, MECE, action titles, summary consistency) that `validate_deck.py` sets up but can't decide for you
 - `references/template-mode.md` — filling a real `.pptx`/`.potx`: inspect → map → fill, and how foreign layouts/placeholders are resolved
 - `references/anti-band-design.md` — why bands drift and the computed-grid alternative this generator uses
-- `references/spec-format.md` — every spec field and slide type, with examples
 - `assets/samples/` — argument-shaped example decks (recommendation / review / decision) + `README.md` mapping each to its structure
 - `assets/validate_deck.py` — spec linter (structure, logic, table/chart sanity) and narrative-spine printer; run before rendering
 - `assets/audit_pptx.py` — artifact auditor: fails a deck whose content is not in layout placeholders; run after rendering

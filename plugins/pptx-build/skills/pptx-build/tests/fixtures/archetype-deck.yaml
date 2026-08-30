@@ -1,0 +1,52 @@
+# 構図の型の統制: statement / cards / steps / matrix / split を1枚ずつ。
+# extract_deck.py がこれらを型として復元できなければ、リファクタリングで
+# 構図が箇条書きに潰れる。roundtrip_check.py が項目のロールまで照合する。
+meta: {accent: "2F5DA8"}
+slides:
+  - type: statement
+    text: "調達に3か月かかる限り、どの改善案も間に合わない"
+    sub: "第2四半期 事業レビュー"
+  - type: cards
+    title: "遅延の要因は3つに整理できる"
+    cards:
+      - {label: "承認の直列化", text: "5部署を順に回すため、1件あたり平均42日かかる"}
+      - {label: "仕様の後出し", text: "着手後の変更が全案件の6割で発生している"}
+      - {label: "評価基準の不在", text: "比較軸が案件ごとに違い、再利用できない"}
+    emphasis: 1
+    source: "出典: 社内調達ログ 2026-05"
+  - type: steps
+    title: "承認は5段を直列に通る"
+    steps:
+      - {label: "起案", text: "現場が申請"}
+      - {label: "一次審査", text: "部門長"}
+      - {label: "調達", text: "見積照会"}
+      - {label: "法務", text: "契約確認"}
+      - {label: "決裁", text: "役員"}
+  - type: matrix
+    title: "効果が大きく着手が早い施策から取る"
+    x_axis: ["着手が遅い", "着手が早い"]
+    y_axis: ["効果が小さい", "効果が大きい"]
+    quadrants:
+      - {label: "制度改正", text: "効果は大きいが半年かかる"}
+      - {label: "並列承認", text: "規程変更だけで来月から可能"}
+      - {label: "帳票統合", text: "効果は限定的で工数も大きい"}
+      - {label: "テンプレ整備", text: "すぐ効くが効果は小さい"}
+    emphasis: 2
+  - type: section
+    number: "02"
+    title: "打ち手"
+    invert: true
+
+  - type: lead
+    title: "取るのは並列承認、他は前提整理"
+    lead: {label: "並列承認への切替", text: "規程改正だけで来月から着手でき、42日を18日に縮められる"}
+    rest:
+      - {label: "帳票の統合", text: "来期に検討。効果は限定的"}
+      - {label: "制度改正", text: "半年かかる。並行して準備"}
+
+  - type: split
+    title: "図と読みは同じ重さではない"
+    image: "figure.png"
+    heading: "読み取れること"
+    bullets: ["入口の転換率は業界並み", "落ちるのは体験開始の直後"]
+    source: "出典: 社内BI 2026-05"

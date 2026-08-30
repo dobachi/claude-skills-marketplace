@@ -1,0 +1,19 @@
+# 欠陥注入版: 型ごとの規約（個数・軸・図の有無・宣言の長さ）を全部破る。
+# validate_deck.py がここで黙るなら、型の検査は死んでいる。
+slides:
+  - type: cards
+    title: "5つの論点"
+    cards: [{label: "A"}, {label: "B"}, {label: "C"}, {label: "D"}, {label: "E"}]
+    emphasis: 9
+  - type: matrix
+    title: "3象限"
+    quadrants: [{label: "A"}, {label: "B"}, {label: "C"}]
+  - type: split
+    title: "図がない"
+    bullets: ["a", "b", "c", "d", "e"]
+  - type: statement
+    text: "この文はあまりにも長すぎて一息では読めないし、宣言として機能しないうえに、句読点としての役割も果たさない"
+    bullets: ["余計な箇条書き"]
+  - type: lead
+    title: "主役がない"
+    rest: [{label: "A"}, {label: "B"}, {label: "C"}, {label: "D"}]
