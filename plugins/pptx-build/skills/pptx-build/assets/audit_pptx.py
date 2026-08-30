@@ -27,6 +27,7 @@ What it checks
   INFO   per-slide layout / placeholder / free-shape counts
 """
 import argparse
+import colorsys
 import sys
 
 from pptx import Presentation
@@ -44,8 +45,13 @@ DECORATION_CHARS = 6      # a free box this short is a marker, not body content
 # arrow). Those are a graphic built FROM the body placeholder's region, not text
 # someone floated onto the slide — the distinction this auditor exists to make.
 PART_PREFIX = "part/"
-# A fill this saturated is the accent, not a neutral surface.
-SATURATION = 24
+# What counts as "the accent used as a surface". Saturation alone misfires on a
+# dark deck, where the quiet surfaces are dark tints of the accent and have a
+# wide channel spread. What separates an accent fill from a quiet surface is not
+# its own lightness but its DISTANCE from the slide's ground: a quiet surface
+# sits near the ground, an accent stands away from it.
+SATURATION = 0.25         # HSL saturation
+GROUND_DISTANCE = 0.25    # lightness away from the slide's own ground
 # Above this fraction of the slide, a shape IS the background (the dark page).
 BACKDROP = 0.90
 # Accent fills past this share of a slide stop being emphasis.
@@ -82,6 +88,28 @@ def _fill_rgb(shape):
     return (rgb[0], rgb[1], rgb[2]) if rgb is not None else None
 
 
+def _lightness(rgb):
+    return colorsys.rgb_to_hls(*[c / 255.0 for c in rgb])[1]
+
+
+def _ground_lightness(slide):
+    """Lightness of the slide's own ground; white when it paints none."""
+    try:
+        rgb = slide.background.fill.fore_color.rgb
+        if rgb is not None:
+            return _lightness((rgb[0], rgb[1], rgb[2]))
+    except Exception:
+        pass
+    return 1.0
+
+
+def _is_accent_fill(rgb, ground):
+    """A saturated fill standing away from the ground — the accent doing a
+    surface's job. A quiet surface, light or dark, stays near the ground."""
+    _h, light, sat = colorsys.rgb_to_hls(*[c / 255.0 for c in rgb])
+    return sat >= SATURATION and abs(light - ground) > GROUND_DISTANCE
+
+
 def _skeleton(layout_name, kinds, has_gfx, has_pic):
     """What a slide looks like from across the room: its layout, the parts drawn
     on it, and whether it carries a figure. Slides with the same skeleton read as
@@ -110,13 +138,14 @@ def audit(path):
         ph_text, ph_empty, ph_pinned, free_body, free_foot, graphics = 0, 0, 0, 0, 0, 0
         parts = 0
         accent_area, kinds, has_pic = 0.0, set(), False
+        ground = _ground_lightness(slide)
         for sh in slide.shapes:
             named_part = (sh.name or "").startswith(PART_PREFIX)
             if named_part:
                 kinds.add((sh.name or "")[len(PART_PREFIX):])
             area = float(sh.width or 0) * float(sh.height or 0) / (page_area or 1)
             rgb = _fill_rgb(sh)
-            if rgb and max(rgb) - min(rgb) >= SATURATION and area < BACKDROP:
+            if rgb and area < BACKDROP and _is_accent_fill(rgb, ground):
                 accent_area += area
             if sh.shape_type is not None and "PICTURE" in str(sh.shape_type):
                 has_pic = True

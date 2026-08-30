@@ -95,7 +95,8 @@ def _shape_defaults(theme, meta=None):
         if isinstance(v, (int, float)):
             sh[k] = v
     theme["shape"] = sh
-    for k in ("surface", "surface_hi", "border", "invert_bg"):
+    for k in ("surface", "surface_hi", "border", "invert_bg", "invert_ink",
+              "invert_muted"):
         theme["color"].setdefault(k, "auto")
     return theme
 
@@ -112,15 +113,32 @@ def _u(theme, n=1):
 # and saturation is held (scaled down only enough to keep pale steps from
 # looking like poster paint). Every surface, border and pale series in the deck
 # is one of these, so a deck really is one hue at several weights.
-TONE = {                     # target lightness for each named role
+# Target lightness per role, per ground. A dark deck is not "the same numbers
+# with a dark background": every derived tone has to move to the other side, and
+# the inverted page inverts the other way (a LIGHT page marks the turn).
+TONE_LIGHT = {
     "surface": 0.965,        # a part's ground
     "surface_hi": 0.930,     # the highlighted part's ground
     "border": 0.900,         # a part's edge
-    "invert": 0.120,         # the dark page
+    "invert": 0.120,         # the page that marks a turn
+}
+TONE_DARK = {
+    "surface": 0.180,
+    "surface_hi": 0.260,
+    "border": 0.320,
+    "invert": 0.955,
 }
 # Series ramp for a `tonal` chart: absolute lightness steps, >= 0.13 apart, so
 # the bars stay distinguishable in projection and in greyscale.
 SERIES_TONES = (None, 0.58, 0.72, 0.85)     # None = the accent's own lightness
+SERIES_TONES_DARK = (None, 0.60, 0.74, 0.86)
+
+
+def _lightness(hex6):
+    """HSL lightness of a hex color, 0..1."""
+    hex6 = str(hex6).lstrip("#")
+    r, g, b = (int(hex6[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    return colorsys.rgb_to_hls(r, g, b)[1]
 
 
 def _tone(hex6, lightness, sat_scale=None):
@@ -165,13 +183,15 @@ def _inverted(theme):
     Every color is the same hue at a different lightness, not a new palette."""
     t = dict(theme)
     src, c = theme["color"], dict(theme["color"])
+    dark_deck = theme.get("mode") == "dark"
     c["bg"] = src["invert_bg"]
     c["ink"] = src["invert_ink"]
     c["muted"] = src["invert_muted"]
-    c["accent"] = _tone(src["accent"], 0.66)      # the rule has to read on dark
-    c["surface"] = _tone(src["accent"], 0.20)
-    c["surface_hi"] = _tone(src["accent"], 0.28)
-    c["border"] = _tone(src["accent"], 0.32)
+    # On a dark turn page the rule has to lighten; on a light one it darkens.
+    c["accent"] = _tone(src["accent"], 0.42 if dark_deck else 0.66)
+    tones = TONE_LIGHT if dark_deck else TONE_DARK
+    for key in ("surface", "surface_hi", "border"):
+        c[key] = _tone(src["accent"], tones[key])
     t["color"] = c
     return t
 
@@ -180,15 +200,25 @@ def _resolve_colors(theme):
     """Neutrals are derived from the accent unless the theme pins them.
 
     A pure-grey surface next to a colored accent reads as two colors; the same
-    surface carried 4% toward the accent reads as one. `"auto"` (the default)
-    asks for the derived value; a literal hex opts out."""
+    surface carried a few percent toward the accent reads as one. `"auto"` (the
+    default) asks for the derived value; a literal hex opts out.
+
+    The ground decides which way every tone runs: `meta.bg`/theme `bg` darker
+    than mid-grey puts the deck in dark mode, and the derivation flips with it."""
     c = theme["color"]
-    for key, role in (("surface", "surface"), ("surface_hi", "surface_hi"),
-                      ("border", "border"), ("invert_bg", "invert")):
+    theme["mode"] = "dark" if _lightness(c["bg"]) < 0.5 else "light"
+    tones = TONE_DARK if theme["mode"] == "dark" else TONE_LIGHT
+    for key in ("surface", "surface_hi", "border"):
         if str(c.get(key, "auto")).lower() in ("", "auto", "none"):
-            c[key] = _tone(c["accent"], TONE[role])
-    c.setdefault("invert_ink", "FFFFFF")
-    c.setdefault("invert_muted", _tone(c["accent"], 0.72, sat_scale=0.25))
+            c[key] = _tone(c["accent"], tones[key])
+    if str(c.get("invert_bg", "auto")).lower() in ("", "auto", "none"):
+        c["invert_bg"] = _tone(c["accent"], tones["invert"])
+    if str(c.get("invert_ink", "auto")).lower() in ("", "auto", "none"):
+        c["invert_ink"] = ("FFFFFF" if theme["mode"] == "light"
+                           else _tone(c["accent"], 0.10))
+    if str(c.get("invert_muted", "auto")).lower() in ("", "auto", "none"):
+        c["invert_muted"] = _tone(c["accent"], 0.72 if theme["mode"] == "light" else 0.42,
+                                  sat_scale=0.25)
     return theme
 
 
@@ -1148,7 +1178,10 @@ def _series_colors(theme, style="focus"):
         return [str(c).lstrip("#") for c in pal]
     accent = theme["color"]["accent"]
     if str(style).lower() == "tonal":
-        return [accent if t is None else _tone(accent, t) for t in SERIES_TONES]
+        tones = SERIES_TONES if theme.get("mode") != "dark" else SERIES_TONES_DARK
+        return [accent if t is None else _tone(accent, t) for t in tones]
+    if theme.get("mode") == "dark":       # greys that recede on a dark ground
+        return [accent, "5B6472", "78818F", "97A0AD", "B6BDC8"]
     return [accent, "B6BDC8", "8A93A1", "5B6472", "343B45"]
 
 

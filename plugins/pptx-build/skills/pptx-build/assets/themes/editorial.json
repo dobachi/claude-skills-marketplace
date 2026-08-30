@@ -1,0 +1,42 @@
+{
+  "name": "editorial",
+  "aspect": "16:9",
+
+  "color": {
+    "bg": "FCFBF9",
+    "ink": "16171A",
+    "muted": "6E6A63",
+    "accent": "2E4B6B"
+  },
+
+  "font": {
+    "heading": "BIZ UDPMincho Medium",
+    "body": "BIZ UDPMincho",
+    "number": "BIZ UDPMincho Medium"
+  },
+
+  "rule": true,
+  "pageNumbers": true,
+
+  "grid": {
+    "marginX": 1.25,
+    "top": 0.70,
+    "titleH": 1.10
+  },
+
+  "shape": {
+    "unit": 0.0833,
+    "radius": 0,
+    "line": 0.5
+  },
+
+  "size": {
+    "title_max": 36,
+    "title_min": 26,
+    "body": 18,
+    "body_sub": 16,
+    "part_label": 19,
+    "part_text": 16,
+    "statement": 34
+  }
+}

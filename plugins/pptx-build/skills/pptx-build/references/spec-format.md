@@ -80,6 +80,11 @@ The derivation works in **HSL**, not by mixing with white: white-mixing drops
 saturation as it raises lightness, and the pale steps come out muddy — visibly so
 behind thin Japanese strokes.
 
+**The ground decides the direction.** A `bg` darker than mid-grey puts the deck in
+dark mode: surfaces and borders become dark tints of the accent, and an `invert:`
+page becomes *light* — the turn has to stand away from the ground it sits on.
+Nothing else in the spec changes, so the same deck builds in either mode.
+
 ## slides
 
 A list. Each item has a `type` and type-specific fields. Default type is `bullets`.

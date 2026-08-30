@@ -54,6 +54,16 @@ CASES=(
   "0|python3 $A/audit_pptx.py $TMP/fresh.pptx --quiet"
   "0|python3 roundtrip_check.py $f/archetype-deck.yaml $TMP/fresh.pptx"
 
+  # ---- 同梱テーマ: どの見た目でも構図と監査が壊れないか ----
+  # テーマは色・書体・造形の値しか変えない。値を変えたら監査が落ちる、という
+  # 状態になっていないことを、明暗の両方で確かめる。
+  "0|python3 $A/build_deck.py $f/archetype-deck.yaml -o $TMP/t1.pptx --theme $A/themes/editorial.json"
+  "0|python3 $A/audit_pptx.py $TMP/t1.pptx --quiet"
+  "0|python3 $A/build_deck.py $f/archetype-deck.yaml -o $TMP/t2.pptx --theme $A/themes/warm.json"
+  "0|python3 $A/audit_pptx.py $TMP/t2.pptx --quiet"
+  "0|python3 $A/build_deck.py $f/archetype-deck.yaml -o $TMP/t3.pptx --theme $A/themes/slate-dark.json"
+  "0|python3 $A/audit_pptx.py $TMP/t3.pptx --quiet"
+
   # ---- 欠陥注入: 型の個数・軸・図の規約が効いているか ----
   "1|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
   "has:matrix takes exactly 4 quadrants|python3 $A/validate_deck.py $f/bad-archetypes.yaml"

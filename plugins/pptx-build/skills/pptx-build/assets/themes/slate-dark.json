@@ -1,0 +1,39 @@
+{
+  "name": "slate-dark",
+  "aspect": "16:9",
+
+  "color": {
+    "bg": "111315",
+    "ink": "F2F2F2",
+    "muted": "9AA1AC",
+    "accent": "6FA8DC"
+  },
+
+  "font": {
+    "heading": "Yu Gothic Medium",
+    "body": "Yu Gothic",
+    "number": "Yu Gothic Medium"
+  },
+
+  "rule": true,
+  "pageNumbers": true,
+
+  "grid": {
+    "marginX": 0.92,
+    "top": 0.62,
+    "titleH": 1.04
+  },
+
+  "shape": {
+    "unit": 0.0833,
+    "radius": 0.06,
+    "line": 0.75
+  },
+
+  "size": {
+    "title_max": 34,
+    "title_min": 24,
+    "body": 18,
+    "body_sub": 16
+  }
+}

@@ -205,8 +205,32 @@ what the presenter says is half the argument.
 | The user has… | Use | What carries the look |
 |---|---|---|
 | no template, wants a clean deck | default mode | `themes/minimal-white.json` |
+| a taste in mind but no brand | default mode + `--theme themes/<preset>.json` | one of the shipped presets below |
 | a brand palette/fonts but no file | default mode + `--theme` | a JSON theme you transcribe |
 | an actual `.pptx`/`.potx` template | `--template` | the template's own master/layouts/placeholders |
+
+### Shipped presets
+
+Same spec, same archetypes, different taste. Every preset sets only tokens —
+colors, fonts, grid, and the three shape values — so the composition rules do not
+change with the look.
+
+| Preset | Taste | What it changes |
+|---|---|---|
+| `minimal-white` | Quiet, neutral, the default | White paper, blue accent, 0.06in radius |
+| `editorial` | Serif, printed-page | Mincho faces, square corners, wide margins, larger title |
+| `warm` | Approachable, human | Cream paper, terracotta accent, rounder corners, heavier line |
+| `slate-dark` | Screen-first, technical | Dark ground; every derived tone flips with it |
+
+**A dark preset is a whole-deck decision, not a slide effect.** Set a dark `bg`
+and the derivation flips: surfaces and borders become dark tints of the accent,
+and `invert: true` produces a *light* page, since the turn has to contrast with
+the ground it sits on. Do not mix light and dark decks; `invert` is the only
+place a deck changes ground, and only on `section` / `statement`.
+
+Design judgement — which taste suits which audience — belongs to
+**design-for-agents**, not here. This skill owns the values, that one owns the
+choice.
 
 `meta.*` in the spec overrides individual theme values in default mode (see `spec-format.md`). In template-fill mode the look comes from the template, so `meta` color/font keys are ignored by design.
 
