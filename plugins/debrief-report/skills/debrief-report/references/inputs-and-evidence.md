@@ -3,6 +3,14 @@
 How to read each input type, the ledger schema, the verification protocol, and the
 confidentiality rules.
 
+## Contents
+
+- [Input inventory (Step 1)](#input-inventory-step-1) — 入力の棚卸し
+- [Per-type rules](#per-type-rules) — 入力の種類ごとの扱い
+- [Ledger schema](#ledger-schema) — 根拠台帳の項目
+- [Verification protocol (run before Gate 2)](#verification-protocol-run-before-gate-2) — Gate 2 前に走らせる検証
+- [Confidentiality](#confidentiality) — 秘匿区分の付け方
+
 ## Input inventory (Step 1)
 
 Build the table in `assets/input-inventory.md` before reading anything in depth. Two

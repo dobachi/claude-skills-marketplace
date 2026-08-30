@@ -10,6 +10,15 @@ one report, not two, unless the disclosure scopes differ.
 
 ---
 
+## Contents
+
+- [A. 国際学会 / Academic conference](#a-国際学会-academic-conference) — カバレッジ、査読の重み、発表の扱い
+- [B. 商業カンファレンス / ベンダーイベント / 展示会](#b-商業カンファレンス-ベンダーイベント-展示会) — GA/Preview/ロードマップの分類
+- [C. 標準化会合 / 業界団体・委員会](#c-標準化会合-業界団体委員会) — 決定と係争点、次の会合まで
+- [D. 商談・顧客訪問・パートナー協議](#d-商談顧客訪問パートナー協議) — 先方の関心と宿題
+- [E. 社内会議・討議](#e-社内会議討議) — 決めたことと持ち帰り
+- [Rules that apply to all large multi-track events (A and B especially)](#rules-that-apply-to-all-large-multi-track-events-a-and-b-especially) — 並行トラックでの共通規則
+
 ## A. 国際学会 / Academic conference
 
 **Reader's real question**: where is the field going, are we behind, who should we be talking

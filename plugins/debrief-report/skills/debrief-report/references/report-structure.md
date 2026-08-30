@@ -3,6 +3,13 @@
 Per-reader variants, section rules, length budgets, and the Markdown → slide mapping. This is
 the common skeleton; the sections a specific event type adds are in `event-profiles.md`.
 
+## Contents
+
+- [Reader variants](#reader-variants) — 読者ごとの型
+- [Section rules](#section-rules) — 節ごとの規則
+- [Length budgets](#length-budgets) — 分量の上限
+- [Markdown → slide mapping](#markdown-slide-mapping) — 報告書からデッキへの対応
+
 ## Reader variants
 
 | Reader | Deliverable | Length | What they want | What to cut |
