@@ -25,6 +25,9 @@ uses_rules:
   - core-image-earns-place
   - pptx-master-theme-colors
   - pptx-master-no-stock-theme
+  - core-layout-archetype-fits-content
+  - core-structure-skeleton-varies
+  - core-title-one-line
 done_when:
   - id: claims-unchanged
     applies_to: deck

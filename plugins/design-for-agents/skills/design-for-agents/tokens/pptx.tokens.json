@@ -259,5 +259,101 @@
       "$value": 0.5,
       "$description": "段落間隔。行数"
     }
+  },
+  "colorTonal": {
+    "$type": "color",
+    "$description": "core-color-tonal-ramp。accent と同じ色相を明度違いで使う。白と混ぜず HSL で明度を指定する。accent が #2F5DA8 のときの値を書く。ブランド色に差し替えたら同じ明度で作り直す。",
+    "surface": {
+      "$value": "#F4F6F8",
+      "$description": "部品の地。accent の明度 0.965"
+    },
+    "surfaceHi": {
+      "$value": "#E9ECF1",
+      "$description": "強調された部品の地。accent の明度 0.93。1スライドに1つ"
+    },
+    "border": {
+      "$value": "#E0E4EB",
+      "$description": "部品の縁。accent の明度 0.90"
+    },
+    "invertGround": {
+      "$value": "#0F1B2E",
+      "$description": "転換のページの地。accent の明度 0.12（core-emphasis-dark-page）"
+    },
+    "series1": {
+      "$value": "#2F5DA8",
+      "$description": "同系で並べるグラフの第1系列。accent そのもの"
+    },
+    "series2": {
+      "$value": "#6E8BB9",
+      "$description": "第2系列。明度 0.58"
+    },
+    "series3": {
+      "$value": "#A2B2CD",
+      "$description": "第3系列。明度 0.72"
+    },
+    "series4": {
+      "$value": "#CFD6E2",
+      "$description": "第4系列。明度 0.85。隣接段との明度差は 0.13 以上あける"
+    }
+  },
+  "shape": {
+    "$type": "number",
+    "$description": "pptx-ornament-three-tokens。部品の造形はこの3つだけで決まる。単位は spacingUnit と cornerRadius が inch、lineWeight が pt。",
+    "spacingUnit": {
+      "$value": 0.083,
+      "$description": "余白の基準単位（96dpi の 8px）。部品の隙間と内側の余白はこの整数倍にする"
+    },
+    "partGap": {
+      "$value": 0.167,
+      "$description": "部品どうしの間隔。spacingUnit の2倍"
+    },
+    "partPadding": {
+      "$value": 0.167,
+      "$description": "部品の内側の余白。spacingUnit の2倍"
+    },
+    "cornerRadius": {
+      "$value": 0.06,
+      "$description": "デッキで唯一の角丸半径。0 にすれば角のある意匠になる"
+    },
+    "lineWeight": {
+      "$value": 0.75,
+      "$description": "デッキで唯一の線幅。ヘアライン・部品の縁・表の罫を共通にする"
+    }
+  },
+  "archetype": {
+    "$type": "number",
+    "$description": "core-layout-archetype-fits-content。構図ごとの上限。数そのものが「内容がその形をしている」という主張の一部である。",
+    "cardsMax": {
+      "$value": 4,
+      "$description": "カードに並べる等価な単位の上限"
+    },
+    "stepsMax": {
+      "$value": 5,
+      "$description": "ステップの段数の上限"
+    },
+    "quadrants": {
+      "$value": 4,
+      "$description": "マトリクスの象限。2軸なので4で固定"
+    },
+    "leadRestMax": {
+      "$value": 3,
+      "$description": "リードの従の上限。主役は1件"
+    },
+    "splitTextShare": {
+      "$value": 0.38,
+      "$description": "非対称分割で文章側が占める横幅の割合"
+    },
+    "titleWidthMax": {
+      "$value": 22,
+      "$description": "タイトルの全角文字数の上限（core-title-one-line）"
+    },
+    "sameSkeletonRunMax": {
+      "$value": 3,
+      "$description": "同じ骨格を続けてよい枚数（core-structure-skeleton-varies）"
+    },
+    "darkPagesMax": {
+      "$value": 3,
+      "$description": "1デッキの反転ページの上限（core-emphasis-dark-page）"
+    }
   }
 }

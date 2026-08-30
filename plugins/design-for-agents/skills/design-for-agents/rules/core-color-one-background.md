@@ -9,7 +9,7 @@ values:
   - "明るい地: paper #FFFFFF / ink #1A1A1A"
   - "暗い地: paper #111315 / ink #F2F2F2"
   - "純黒 #000000 と純白 #FFFFFF の組み合わせは使わない"
-not_applicable_when: "全面配置の画像スライド。ただし画像の上に載る文字のコントラストは core-a11y-contrast-body に従う"
+not_applicable_when: "全面配置の画像スライド。ただし画像の上に載る文字のコントラストは core-a11y-contrast-body に従う。および章扉と一文だけのページの反転（core-emphasis-dark-page）。同じ役割のページは全て同じ扱いにする"
 source:
   kind: house
   key: house
@@ -18,7 +18,7 @@ done_when:
   - id: one-background-mode
     applies_to: deck
     predicate: equal
-    statement: "全スライドの背景色が同一である（全面配置の画像スライドを除く）"
+    statement: "全スライドの背景色が同一である（全面配置の画像スライドと、章扉・一文だけのページの反転を除く）"
     check: manual
     floor: "本文スライドが3枚以上ある"
 ---
@@ -28,6 +28,10 @@ done_when:
 ## なぜ
 
 途中で背景が入れ替わるデッキは、2つのデッキを繋いだように読める。
+
+禁じているのは**混在**であって、反転そのものではない。役割で決まった反転
+——章扉は全て暗い、本文は全て明るい——は、混在ではなく規則である
+（`core-emphasis-dark-page`）。気分で1枚だけ暗くすることが、ここでの違反にあたる。
 明暗の切り替えは、章の区切りよりも強い断絶として働いてしまう。
 
 ## どちらを選ぶか

@@ -16,6 +16,7 @@ uses_rules:
   - core-source-line-on-data
   - core-density-budget
   - core-a11y-alt-text
+  - core-color-tonal-ramp
 done_when: []
 needs_human:
   - "グラフの数値が本文の主張と一致しているか（数値の突き合わせ）"

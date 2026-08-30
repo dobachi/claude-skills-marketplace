@@ -16,6 +16,9 @@ uses_rules:
   - pptx-diagram-smartart-none
   - pptx-master-placeholder
   - core-image-icon-one-family
+  - core-layout-archetype-fits-content
+  - core-ornament-part-vocabulary
+  - pptx-ornament-three-tokens
 done_when: []
 needs_human:
   - "その図が実際に構造を伝えているか（描いた側では判定できない）"

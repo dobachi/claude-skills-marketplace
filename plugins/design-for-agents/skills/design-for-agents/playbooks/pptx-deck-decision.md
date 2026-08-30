@@ -30,6 +30,13 @@ uses_rules:
   - pptx-master-theme-colors
   - pptx-master-no-stock-theme
   - pptx-file-embed-fonts
+  - core-layout-archetype-fits-content
+  - core-ornament-part-vocabulary
+  - core-color-tonal-ramp
+  - core-emphasis-dark-page
+  - core-title-one-line
+  - core-structure-skeleton-varies
+  - pptx-ornament-three-tokens
 done_when:
   - id: ask-slide-exists
     applies_to: deck

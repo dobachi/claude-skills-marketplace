@@ -10,7 +10,7 @@ values:
   - "ink: #1A1A1A"
   - "muted: #6B7280"
   - "accent: #2F5DA8"
-not_applicable_when: "グラフと表の内部（core-color-semantic-data-only）。組織のテンプレートがある場合はそちらが優先する（pptx-constraint-template）"
+not_applicable_when: "グラフと表の内部（core-color-semantic-data-only）。組織のテンプレートがある場合はそちらが優先する（pptx-constraint-template）。面と罫に使う accent の明度違いも枠に数えない（core-color-tonal-ramp）"
 source:
   kind: house
   key: house
@@ -52,6 +52,12 @@ done_when:
 | accent | ヘアライン1本と、1スライドにつき1箇所の強調 |
 
 `accent` を1スライドで2回以上使わない。2回使えば、それは強調ではなく地の色である。
+
+## 面と罫の色は、5つ目の枠ではない
+
+数えるのは**文字の色数**である。部品の地や罫に使う色は accent と同じ色相の
+明度違いで作るので（`core-color-tonal-ramp`）、色相は増えていない。無彩色の
+グレーを別に持ち込むと、そこで初めて2色になる。
 
 ## ブランド色の入れ方
 
