@@ -72,7 +72,8 @@ if not dm:
 desc = dm.group(1)
 # 折り畳みスカラー (>- | |-) のときは、続く字下げ行が本体。1行目だけを見ると
 # 常に 2 字と数え、上限チェックが素通りする。
-if desc.strip() in (">", ">-", ">+", "|", "|-", "|+"):
+folded_scalar = desc.strip() in (">", ">-", ">+", "|", "|-", "|+")
+if folded_scalar:
     folded = []
     for line in fm[dm.end():].split("\n")[1:]:
         if line.strip() and not line[:1].isspace():
@@ -84,7 +85,11 @@ if len(desc) > 1024:
     print("  NG   description が %d 字 (上限 1024)" % len(desc)); bad = 1
 else:
     print("  OK   description %d 字" % len(desc))
-if ": " in desc and not (desc.startswith(('"', "'", "|", ">"))):
+# ": " が危険なのは、引用符も折り畳みも無い素のスカラーだけである。折り畳み
+# スカラーの中身は行末まで1つの値なので、コロン+空白があっても切れない。
+# 展開後の値で startswith を見ても ">" では始まらないため、展開したかどうかを
+# 覚えておかないと、安全な書き方まで NG になる（debrief-report で踏んだ）。
+if not folded_scalar and ": " in desc and not desc.startswith(('"', "'")):
     print("  NG   description に \": \" があり、YAML が途中で切れます"); bad = 1
 else:
     print("  OK   description に YAML を壊す \": \" は無い")
