@@ -819,15 +819,21 @@ def _part_items(s, key):
 
 
 def _part_height(items, theme, w, min_h, max_h):
-    """Tall enough for the wordiest item at readable sizes, within the region."""
-    pad = _u(theme, 4)
+    """Tall enough for the wordiest item at readable sizes, within the region.
+
+    The padding is counted TWICE — once for the left/right margins that narrow the
+    line, once for the top/bottom margins that add height — plus the gap the label
+    leaves under itself. Missing either one puts the last line on the card's edge."""
+    pad = _u(theme, 4)                      # both margins, horizontally
     inner = max(0.5, w - pad)
+    label_gap = 5 / 72.0                    # _part_text's space_after under the label
     need = 0.0
     for it in items:
         lines_l = _est_lines(it["label"], theme["size"]["part_label"], inner)
         lines_t = _est_lines(it["text"], theme["size"]["part_text"], inner)
-        need = max(need, lines_l * theme["size"]["part_label"] * 1.25 / 72.0
-                   + lines_t * theme["size"]["part_text"] * 1.35 / 72.0)
+        need = max(need, lines_l * theme["size"]["part_label"] * 1.3 / 72.0
+                   + (label_gap if lines_l and lines_t else 0.0)
+                   + lines_t * theme["size"]["part_text"] * 1.5 / 72.0)
     return max(min_h, min(max_h, need + pad))
 
 
