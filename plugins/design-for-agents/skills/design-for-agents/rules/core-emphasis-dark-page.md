@@ -26,7 +26,8 @@ done_when:
     applies_to: deck
     predicate: count
     statement: "地の暗いページが3枚以下である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが6枚以上ある"
   - id: same-role-same-ground
     applies_to: deck

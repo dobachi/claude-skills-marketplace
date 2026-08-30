@@ -5,8 +5,9 @@
 1対1に対応する。閾値は tokens/pptx.tokens.json から読む（値をここに書かない）。
 
 検証の状態:
-  13 条件は、正常系（pptx-build のサンプル3本）で偽陽性ゼロ、欠陥を注入した
-  異常系で全て発火することを確認済み。rules/ 側も `check: automated` にしてある。
+  正常系（pptx-build のサンプル3本）で偽陽性ゼロ、欠陥を注入した異常系で全て
+  発火することを確認した条件だけ、rules/ 側を `check: automated` にしてある。
+  構図の3件（同一骨格の連続・地の暗いページ・角丸と線幅）は 2026-08-30 に追加した。
   以下2件は実装済みだが**発火を確認していない**ので、rules/ 側は manual のまま。
     - pptx-diagram-smartart-none#no-smartart（python-pptx で SmartArt を作れない）
     - pptx-master-no-stock-theme#theme-is-not-stock（実物の Office テーマが要る）
@@ -23,6 +24,7 @@
 from __future__ import annotations
 
 import argparse
+import colorsys
 import json
 import pathlib
 import sys
@@ -616,6 +618,109 @@ def check_one_claim(prs, tok, f):
                           f"タイトルが「{hit[0]}」で2つの主張を繋いでいる「{t[:28]}」")
 
 
+# ---------------------------------------------------------------- 構図と造形
+
+def _hls(hex6: str):
+    hex6 = str(hex6).lstrip("#")
+    r, g, b = (int(hex6[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    return colorsys.rgb_to_hls(r, g, b)
+
+
+def _ground_lightness(slide) -> float:
+    """スライドが自分で塗った地の明度。塗っていなければ白とみなす。"""
+    try:
+        rgb = slide.background.fill.fore_color.rgb
+        if rgb is not None:
+            return _hls("%02X%02X%02X" % (rgb[0], rgb[1], rgb[2]))[1]
+    except Exception:
+        pass
+    return 1.0
+
+
+def _skeleton(slide) -> tuple:
+    """遠目に見たときのスライドの姿。レイアウト名、載っている部品の種類、
+    図表の有無。同じ姿のスライドは同じスライドに見える。"""
+    kinds = tuple(sorted({(sh.name or "").split("/", 1)[1]
+                          for sh in slide.shapes
+                          if (sh.name or "").startswith("part/")}))
+    gfx = any(getattr(sh, "has_table", False) or getattr(sh, "has_chart", False)
+              for sh in slide.shapes)
+    pic = any("PICTURE" in str(sh.shape_type) for sh in slide.shapes)
+    return (slide.slide_layout.name, kinds, gfx, pic)
+
+
+def check_skeleton_run(prs, tok, f):
+    """同じ骨格が続くと、内容の違いをレイアウトが均してしまう。"""
+    limit = int(tok["archetype"]["sameSkeletonRunMax"]["$value"])
+    if body_slide_count(prs) < 6:
+        f.skip("core-structure-skeleton-varies#no-long-identical-run",
+               "本文スライドが6枚未満（下限を割っている）")
+        return
+    skel = [_skeleton(s) for s in prs.slides]
+    run, start = 1, 1
+    for i in range(1, len(skel) + 1):
+        same = i < len(skel) and skel[i] == skel[i - 1]
+        if same:
+            run += 1
+            continue
+        if run > limit:
+            f.add("core-structure-skeleton-varies#no-long-identical-run", start,
+                  f"同じ骨格が {run} 枚続く（{skel[start - 1][0]}）")
+        start, run = i + 1, 1
+
+
+def check_dark_pages(prs, tok, f):
+    """転換の印は、多用すれば印ではなくなる。"""
+    limit = int(tok["archetype"]["darkPagesMax"]["$value"])
+    if body_slide_count(prs) < 6:
+        f.skip("core-emphasis-dark-page#dark-pages-limited",
+               "本文スライドが6枚未満（下限を割っている）")
+        return
+    grounds = [_ground_lightness(s) for s in prs.slides]
+    common = max(set(grounds), key=grounds.count)      # デッキの地
+    odd = [i for i, g in enumerate(grounds, 1) if abs(g - common) > 0.25]
+    if len(odd) > limit:
+        f.add("core-emphasis-dark-page#dark-pages-limited", odd[0],
+              f"地の異なるページが {len(odd)} 枚（上限 {limit}）")
+
+
+def _corner_radius(shape):
+    """角丸の調整値。角丸を持たない図形は None。"""
+    try:
+        adj = shape.adjustments
+        if len(adj) == 0:
+            return None
+        return round(float(adj[0]), 4)
+    except Exception:
+        return None
+
+
+def check_shape_tokens(prs, tok, f):
+    """角丸と線幅がデッキで1種類か。2種類あると、理由は言えないのに雑に見える。"""
+    radii, widths = {}, {}
+    for i, slide in enumerate(prs.slides, 1):
+        for sh in shapes_of(slide):
+            r = _corner_radius(sh)
+            if r is not None and r > 0:
+                radii.setdefault(r, i)
+            try:
+                w = sh.line.width
+            except Exception:
+                w = None
+            if w:
+                widths.setdefault(round(Emu(int(w)).pt, 2), i)
+    if len(radii) < 2 and len(widths) < 2:
+        if not radii and not widths:
+            f.skip("pptx-ornament-three-tokens#one-corner-radius",
+                   "角丸または線を持つ図形が無い（下限を割っている）")
+    if len(radii) > 1:
+        f.add("pptx-ornament-three-tokens#one-corner-radius", min(radii.values()),
+              "角丸が %d 種類ある（%s）" % (len(radii), ", ".join(str(k) for k in sorted(radii))))
+    if len(widths) > 1:
+        f.add("pptx-ornament-three-tokens#one-line-weight", min(widths.values()),
+              "線幅が %d 種類ある（%s pt）" % (len(widths), ", ".join(str(k) for k in sorted(widths))))
+
+
 CHECKS = [
     ("core-type-one-scale#sizes-from-scale", check_type_scale),
     ("core-type-body-floor#body-not-below-floor", check_body_floor),
@@ -640,6 +745,9 @@ CHECKS = [
     ("core-image-resolution#no-stretched-images", check_images),
     ("pptx-master-placeholder#content-in-placeholders", check_placeholders),
     ("core-density-one-message#one-claim-per-slide", check_one_claim),
+    ("core-structure-skeleton-varies#no-long-identical-run", check_skeleton_run),
+    ("core-emphasis-dark-page#dark-pages-limited", check_dark_pages),
+    ("pptx-ornament-three-tokens#one-corner-radius", check_shape_tokens),
 ]
 
 

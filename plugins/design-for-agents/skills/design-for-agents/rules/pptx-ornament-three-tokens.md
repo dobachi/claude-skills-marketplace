@@ -21,13 +21,15 @@ done_when:
     applies_to: element
     predicate: equal
     statement: "角丸を持つ図形の角丸半径が全て同じ値である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "角丸を持つ図形が2つ以上ある"
   - id: one-line-weight
     applies_to: element
     predicate: equal
     statement: "線を持つ図形の線幅が全て同じ値である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "線を持つ図形が2つ以上ある"
   - id: gaps-on-the-scale
     applies_to: element

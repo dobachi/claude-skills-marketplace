@@ -18,7 +18,8 @@ done_when:
     applies_to: deck
     predicate: count
     statement: "同じレイアウトかつ同じ部品構成のスライドが4枚以上連続する箇所が 0 である"
-    check: manual
+    check: automated
+    detector: "scripts/check_deck.py <deck.pptx>"
     floor: "本文スライドが6枚以上ある"
 ---
 

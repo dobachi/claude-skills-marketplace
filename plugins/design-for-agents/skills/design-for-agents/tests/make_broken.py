@@ -53,6 +53,10 @@ INJECTED = {
     "グリッド外の図形":     ["core-layout-one-grid#left-edges-aligned"],
     "プレースホルダ外の文字": ["pptx-master-placeholder#content-in-placeholders"],
     "タイトルが空":        ["pptx-master-placeholder#unique-slide-titles"],
+    "同じ骨格が5枚連続":    ["core-structure-skeleton-varies#no-long-identical-run"],
+    "角丸2種・線幅2種":     ["pptx-ornament-three-tokens#one-corner-radius",
+                           "pptx-ornament-three-tokens#one-line-weight"],
+    "地の暗いページ4枚":    ["core-emphasis-dark-page#dark-pages-limited"],
 }
 # 合成できないもの（実物が要る）。rules 側は manual のまま。
 NOT_INJECTABLE = {
@@ -189,6 +193,30 @@ def build(src: pathlib.Path, out: pathlib.Path) -> None:
     t9 = title_of(sl[9])
     if t9 is not None:
         t9.text_frame.text = ""
+
+    # 同じ骨格を続ける。骨格はレイアウトと部品の構成で決まるので、同じ
+    # レイアウトのスライドを並べれば発火する。タイトルは重複させない
+    # （それは別の条件が拾う欠陥である）。
+    layout = sl[2].slide_layout
+    for n in range(5):
+        added = sl.add_slide(layout)
+        if added.shapes.title is not None:
+            added.shapes.title.text_frame.text = f"同じ骨格のスライド {n + 1}"
+
+    # 角丸と線幅を2種類ずつ置く。
+    for n, (radius, weight) in enumerate(((0.05, 0.75), (0.30, 2.5))):
+        box = sl[4].shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                     Inches(1.0 + n * 3.0), Inches(5.6),
+                                     Inches(2.4), Inches(0.9))
+        box.adjustments[0] = radius
+        box.line.width = Pt(weight)
+        box.line.color.rgb = RGBColor(0xE0, 0xE4, 0xEB)
+        box.text_frame.text = f"造形 {n + 1}"
+
+    # 地の暗いページを上限より多く置く。
+    for slide in list(sl)[-4:]:
+        slide.background.fill.solid()
+        slide.background.fill.fore_color.rgb = RGBColor(0x0F, 0x1B, 0x2E)
 
     prs.save(str(out))
 
