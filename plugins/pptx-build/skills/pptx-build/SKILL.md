@@ -165,7 +165,10 @@ title (the number is the figure); `statement` = sentence / rule / gloss on its o
 "Statement" layout; `quote` = an indented block beside a vertical bar, no rule.
 Content pages carry a running section label (`number  title`, from the first
 `section` on) above the title, so the reader always knows where in the argument
-they are. Table and rationale: `references/spec-format.md`.
+they are. The title slide has a presenter block (`presenter` / `affiliation` /
+`date`), and `meta.footer` puts a running footer beside the page number — both
+are real placeholders (page numbers are `slidenum` fields), never textboxes.
+Table and rationale: `references/spec-format.md`.
 
 **Composed archetypes** — `cards`, `steps`, `lead`, `matrix`, `split`, `statement` — are
 drawn from the body placeholder's region rather than filled with text. Each one

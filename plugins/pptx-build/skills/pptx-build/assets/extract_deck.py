@@ -38,7 +38,7 @@ except ImportError:                                    # pragma: no cover
     sys.exit(2)
 
 from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.util import Emu
 
 LOSS, WARN, INFO = "LOSS", "WARN", "INFO"
@@ -132,6 +132,30 @@ def _is_smartart(shape):
     return "graphicData" in xml and "diagram" in xml
 
 
+# build_deck adds the title slide's presenter block as a BODY placeholder at this idx.
+PRESENTER_IDX = 13
+
+
+def _ph_idx(sh):
+    try:
+        return sh.placeholder_format.idx if sh.is_placeholder else None
+    except Exception:
+        return None
+
+
+def _furniture_type(sh):
+    """The placeholder type when `sh` is a date / footer / slide-number
+    placeholder, else None."""
+    try:
+        if not sh.is_placeholder:
+            return None
+        t = sh.placeholder_format.type
+    except Exception:
+        return None
+    return t if t in (PP_PLACEHOLDER.DATE, PP_PLACEHOLDER.FOOTER,
+                      PP_PLACEHOLDER.SLIDE_NUMBER) else None
+
+
 def _records(slide, page_w, page_h, idx, report):
     """Flatten a slide into content records, ordered top-to-bottom, left-to-right.
 
@@ -172,8 +196,15 @@ def _records(slide, page_w, page_h, idx, report):
                 continue
             if sh.has_text_frame and sh.text_frame.text.strip():
                 # `annot/...` is page furniture build_deck re-emits (running
-                # section label, page number) — never content.
+                # section label, page number) — never content. Footer-family
+                # placeholders (date / footer / slide number) are the master's.
                 if str(sh.name or "").startswith("annot/"):
+                    continue
+                if _furniture_type(sh) is not None:
+                    if _furniture_type(sh) == PP_PLACEHOLDER.FOOTER:
+                        recs.append({"kind": "footer", "sh": sh,
+                                     "text": sh.text_frame.text.strip(), "x": 0, "y": 0,
+                                     "w": 0, "h": 0})
                     continue
                 recs.append(_text_rec(sh, in_group))
                 continue
@@ -558,6 +589,11 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
     wanted = _parse_range(slides_arg, len(prs.slides))
 
     meta = {"aspect": "4:3" if page_w and page_h / page_w > 0.7 else "16:9"}
+    footer = next((r["text"] for sl in prs.slides
+                   for r in _records(sl, page_w, page_h, 0, Report())
+                   if r["kind"] == "footer" and r["text"]), None)
+    if footer:
+        meta["footer"] = footer
     accent = _accent_of(prs)
     if accent:
         meta["accent"] = accent
@@ -657,9 +693,14 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
             if sub.strip():
                 s["sub"] = sub.strip()
         elif kind == "title":
-            sub = " ".join(t for _, t in body_paras)
+            pres = [r for r in body if _ph_idx(r["sh"]) == PRESENTER_IDX]
+            rest = [r for r in body if _ph_idx(r["sh"]) != PRESENTER_IDX]
+            sub = " ".join(t for r in rest for _, t in r["paras"])
             if sub:
                 s["subtitle"] = sub
+            plines = [t for r in pres for _, t in r["paras"]]
+            for key, val in zip(("presenter", "affiliation", "date"), plines):
+                s[key] = val
         elif kind == "section":
             # A bare number beside the title is the section number, not content.
             nums = [t for _, t in body_paras if SECTION_NUM_RE.match(t)]

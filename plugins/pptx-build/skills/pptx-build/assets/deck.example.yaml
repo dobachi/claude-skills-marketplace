@@ -12,6 +12,7 @@ meta:
   accent: "2F5DA8"          # a single restrained accent — hairline + emphasis only
   rule: true                # short accent rule on the turn pages only (title/section/statement); "all" adds it under content titles
   eyebrow: true             # running section label above content titles
+  footer: "© 2026 Example Corp."   # running footer, right-aligned beside the page number (real FOOTER placeholder)
   font_heading: "Yu Gothic Medium"
   font_body: "Yu Gothic"
 
@@ -19,6 +20,9 @@ slides:
   - type: title
     title: "新サービスの市場投入計画"
     subtitle: "2026年度 第2四半期レビュー"
+    presenter: "土橋 昌"                 # optional; falls back to meta.presenter / meta.author
+    affiliation: "事業企画部"            # optional; meta.affiliation / meta.organization
+    date: "2026-09-13"                  # optional; meta.date
 
   - type: section
     number: "01"

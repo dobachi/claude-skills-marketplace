@@ -45,7 +45,8 @@ def _canon(slide):
         if col.get("heading"):
             body.append("%s.heading=%s" % (key, col["heading"]))
         body += _texts(col.get("bullets"))
-    for key in ("subtitle", "number", "caption", "note", "quote", "attribution",
+    for key in ("subtitle", "presenter", "affiliation", "date",
+                "number", "caption", "note", "quote", "attribution",
                 "source", "notes", "text", "sub", "heading"):
         # `image` is deliberately excluded: extraction rewrites the figure into
         # its own media directory, so the path cannot match by construction.

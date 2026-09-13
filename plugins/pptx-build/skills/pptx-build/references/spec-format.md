@@ -23,6 +23,8 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 | `accent` | `2F5DA8` | The single accent — hairline + emphasis only |
 | `rule` | `true` | The short accent rule on the pages that mark a turn (`title` / `section` / `statement`). `"all"` also draws it under every content title; `false` drops it |
 | `eyebrow` | `true` | Running section label (number + section title) above each content title, from the first `section` on. `false` drops it |
+| `footer` | — | Running footer text (e.g. `© 2026 Example Corp.`), written into every slide's **FOOTER placeholder**, right-aligned beside the page number. Works in template-fill mode too, when the template's layouts have a footer placeholder |
+| `presenter` / `affiliation` / `date` | — | Defaults for the title slide's presenter block (`author` / `organization` are accepted as aliases) |
 | `font_heading` | `Yu Gothic Medium` | Heading typeface |
 | `font_body` | `Yu Gothic` | Body typeface |
 | `font_number` | `Yu Gothic Medium` | Typeface for the `big_number` figure |
@@ -109,7 +111,24 @@ Any slide may also carry `notes:` — a string written into the slide's real **s
 - type: title
   title: "Deck title"
   subtitle: "optional kicker"        # optional
+  presenter: "Name"                  # optional; falls back to meta.presenter / meta.author
+  affiliation: "Organization"        # optional; meta.affiliation / meta.organization
+  date: "2026-09-13"                 # optional; meta.date
 ```
+Composition: rule / title / subtitle, then the presenter block (name in ink,
+affiliation and date muted) lower on the page. The block is a real BODY
+placeholder (idx 13, "Presenter Placeholder") that build_deck adds to the Title
+Slide layout, so it is master-governed like everything else. In template-fill
+mode the lines go into the title layout's second body placeholder if it has one,
+else under the subtitle.
+
+### Page furniture (default mode)
+Page numbers are the layout's **SLIDE_NUMBER placeholder** (a real `slidenum`
+field — reorder slides in PowerPoint and they renumber), and `meta.footer` is
+the layout's **FOOTER placeholder**; both are positioned and styled once on the
+layouts, and each slide gets its own instance the way PowerPoint's "Header &
+Footer → Apply to All" does. The `source:` line keeps the left of the footer
+line and shortens when a footer is set.
 
 ### section (divider)
 ```yaml
@@ -244,8 +263,10 @@ equivalent units → `cards`; a real sequence → `steps`; two meaningful axes �
   source: "出典: …"
 ```
 Equivalence is the condition. Items that are not the same kind of thing are a
-list — use `bullets`. The row is centered in the region and every card is the
-same height, so the eye compares them instead of ranking them.
+list — use `bullets`. The row starts at the top of the body region, directly
+under the title, and takes only the height its text needs; every card is the
+same height, so the eye compares them instead of ranking them. It is not
+centered in the region — a centered row leaves a hole above and below it.
 
 ### steps
 ```yaml

@@ -24,6 +24,7 @@ Inspect a template first to build/verify a map:  python3 inspect_template.py cor
 """
 import argparse
 import colorsys
+import copy
 import json
 import math
 import os
@@ -237,6 +238,8 @@ def apply_meta(theme, meta):
         theme["pageNumbers"] = meta["page_numbers"]
     if isinstance(meta.get("eyebrow"), bool):
         theme["eyebrow"] = meta["eyebrow"]
+    if meta.get("footer") is not None:
+        theme["footer"] = str(meta["footer"]).strip()
     if meta.get("aspect") in ("16:9", "4:3"):
         theme["aspect"] = meta["aspect"]
     return theme
@@ -282,7 +285,7 @@ def make_grid(theme):
         "section": 3.02,
         "statement": 4.27,
     }
-    g["titleSlide"] = {"title": (2.76, 1.42), "sub": (4.18, 0.80)}
+    g["titleSlide"] = {"title": (2.76, 1.42), "sub": (4.18, 0.80), "presenter": (5.50, 1.20)}
     g["sectionSlide"] = {"number": (1.30, 1.60), "title": (3.16, 1.50)}
     g["statementSlide"] = {"text": (1.95, 2.20), "sub": (4.42, 0.90),
                            "widthFrac": 0.84}
@@ -308,10 +311,17 @@ def _asset(path):
     return near if os.path.exists(near) else path
 
 
+def _built_slides(prs, slides):
+    """The slides this build added — the LAST len(slides) of the deck, since a
+    template may bring slides of its own in front of them."""
+    all_slides = list(prs.slides)
+    return all_slides[len(all_slides) - len(slides):] if slides else []
+
+
 def _apply_notes(prs, slides):
     """Carry `notes:` into the real notes slide — what the presenter says is part
     of the deck, and a refactor that drops it loses half the argument."""
-    for slide, s in zip(prs.slides, slides):
+    for slide, s in zip(_built_slides(prs, slides), slides):
         text = (s or {}).get("notes")
         if text:
             slide.notes_slide.notes_text_frame.text = str(text)
@@ -443,6 +453,12 @@ BLANK_LAYOUT = 6        # "Blank"                — only for type: blank
 # sentence, the caption BODY holds the gloss, the OBJECT placeholder is dropped.
 STATEMENT_LAYOUT = 7
 STATEMENT_LAYOUT_NAME = "Statement"
+# The title slide's presenter block (name / affiliation / date) is a BODY
+# placeholder added to the Title Slide layout at this idx — a real placeholder,
+# so PowerPoint's own stock layout gains the slot the stock deck lacks.
+PRESENTER_IDX = 13
+FOOTER_W = 4.2          # running footer region (in), right-aligned beside the page number
+PAGE_NUM_W = 0.9
 
 
 def _normalize_bullets(items):
@@ -589,6 +605,24 @@ def setup_layouts(prs, theme, g):
             _place(ph, g["marginX"], sm["sub"][0], st_w, sm["sub"][1])
             ph.text_frame.vertical_anchor = MSO_ANCHOR.TOP
 
+    # Title Slide: a presenter block (name / affiliation / date) below the
+    # subtitle. The stock layout has no slot for it, so one BODY placeholder is
+    # added to the LAYOUT (idx 13) and every title slide inherits it.
+    _add_presenter_placeholder(prs.slide_layouts[TITLE_LAYOUT], g)
+
+    # Page furniture, on every layout: the running footer sits right-aligned
+    # beside the page number, both at the footer line. Formatting lives in the
+    # layout's list style so the slide-level instances inherit it.
+    for layout in prs.slide_layouts:
+        for ph in layout.placeholders:
+            pt = ph.placeholder_format.type
+            if pt == PP_PLACEHOLDER.SLIDE_NUMBER:
+                _place(ph, g["pageW"] - g["marginX"] - PAGE_NUM_W, g["footY"], PAGE_NUM_W, 0.3)
+                _furniture_style(ph, theme, PP_ALIGN.RIGHT)
+            elif pt == PP_PLACEHOLDER.FOOTER:
+                _place(ph, g["pageW"] - g["marginX"] - PAGE_NUM_W - FOOTER_W, g["footY"],
+                       FOOTER_W, 0.3)
+                _furniture_style(ph, theme, PP_ALIGN.RIGHT)
     # Two Content: title region + two body columns on the grid.
     tc, tcb = _phs_by_role(prs.slide_layouts[TWO_CONTENT_LAYOUT])
     _place(tc, g["marginX"], g["top"], g["contentW"], g["titleH"])
@@ -609,6 +643,105 @@ def setup_layouts(prs, theme, g):
     if itb:
         _place(itb[0], g["marginX"], cap_top, g["contentW"], 0.9)
         itb[0].text_frame.vertical_anchor = MSO_ANCHOR.TOP
+
+
+def _furniture_style(ph, theme, align):
+    """Size, color, font and alignment of a footer-family placeholder, set once
+    in the LAYOUT's list style (`a:lstStyle/a:lvl1pPr`) so the per-slide
+    instances inherit them instead of carrying their own formatting."""
+    tx = ph._element.find(qn("p:txBody"))
+    if tx is None:
+        return
+    lst = tx.find(qn("a:lstStyle"))
+    if lst is None:
+        lst = tx.makeelement(qn("a:lstStyle"), {})
+        body_pr = tx.find(qn("a:bodyPr"))
+        if body_pr is not None:
+            body_pr.addnext(lst)
+        else:
+            tx.insert(0, lst)
+    for old in lst.findall(qn("a:lvl1pPr")):
+        lst.remove(old)
+    lvl = lst.makeelement(qn("a:lvl1pPr"), {"algn": {PP_ALIGN.RIGHT: "r", PP_ALIGN.CENTER: "ctr"}
+                                            .get(align, "l")})
+    d = lvl.makeelement(qn("a:defRPr"), {"sz": str(int(theme["size"]["page_number"] * 100))})
+    fill = d.makeelement(qn("a:solidFill"), {})
+    fill.append(fill.makeelement(qn("a:srgbClr"), {"val": theme["color"]["muted"]}))
+    d.append(fill)
+    for tag in ("a:latin", "a:ea"):
+        d.append(d.makeelement(qn(tag), {"typeface": theme["font"]["body"]}))
+    lvl.append(d)
+    lst.insert(0, lvl)
+    tf = ph.text_frame
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+
+
+def _add_presenter_placeholder(layout, g):
+    """Add one BODY placeholder (idx PRESENTER_IDX) to the title layout, cloned
+    from its subtitle placeholder so it carries the same inheritance chain."""
+    for ph in layout.placeholders:
+        if ph.placeholder_format.idx == PRESENTER_IDX:
+            return ph
+    _, bodies = _phs_by_role(layout)
+    if not bodies:
+        return None
+    el = copy.deepcopy(bodies[0]._element)
+    ids = [int(e.get("id")) for e in layout.shapes._spTree.iter(qn("p:cNvPr")) if e.get("id")]
+    el.nvSpPr.cNvPr.set("id", str(max(ids + [1]) + 1))
+    el.nvSpPr.cNvPr.set("name", "Presenter Placeholder")
+    ph_el = el.nvSpPr.nvPr.find(qn("p:ph"))
+    ph_el.set("type", "body")
+    ph_el.set("idx", str(PRESENTER_IDX))
+    layout.shapes._spTree.insert_element_before(el, "p:extLst")
+    for ph in layout.placeholders:
+        if ph.placeholder_format.idx == PRESENTER_IDX:
+            _place(ph, g["marginX"], g["titleSlide"]["presenter"][0], g["contentW"],
+                   g["titleSlide"]["presenter"][1])
+            ph.text_frame.vertical_anchor = MSO_ANCHOR.TOP
+            return ph
+    return None
+
+
+def _clone_furniture(slide, ph_type):
+    """Give the slide its own instance of the layout's footer-family placeholder
+    (footer / slide number) — what PowerPoint does for "Apply to All". The
+    copy has no geometry of its own, so it follows the layout."""
+    for sh in slide.placeholders:
+        if sh.placeholder_format.type == ph_type:
+            return sh
+    for ph in slide.slide_layout.placeholders:
+        if ph.placeholder_format.type != ph_type:
+            continue
+        el = copy.deepcopy(ph._element)
+        sp_pr = el.find(qn("p:spPr"))
+        if sp_pr is not None:
+            for child in list(sp_pr):
+                sp_pr.remove(child)
+        new_id = slide.shapes._next_shape_id
+        el.nvSpPr.cNvPr.set("id", str(new_id))
+        slide.shapes._spTree.insert_element_before(el, "p:extLst")
+        for sh in slide.shapes:
+            if sh.shape_id == new_id:
+                return sh
+    return None
+
+
+def _apply_footer(prs, theme, slides, skip_types=()):
+    """`meta.footer`: the running footer text on every slide, in the layout's
+    FOOTER placeholder — master-governed, not a textbox per slide."""
+    text = (theme.get("footer") or "").strip()
+    if not text:
+        return
+    for slide, s in zip(_built_slides(prs, slides), slides):
+        if (s or {}).get("type", "bullets") in skip_types:
+            continue
+        ph = _clone_furniture(slide, PP_PLACEHOLDER.FOOTER)
+        if ph is None:
+            continue
+        tf = ph.text_frame
+        tf.clear()
+        tf.paragraphs[0].add_run().text = text
 
 
 def _fit_title_size(text, theme, g, width=None):
@@ -713,7 +846,8 @@ def _check_body_overflow(height_in, g, idx):
 def _source(slide, theme, g, text):
     if not text:
         return
-    tf = add_textbox(slide, g["marginX"], g["footY"] - 0.02, g["contentW"] - 0.9, 0.3)
+    w = g["contentW"] - PAGE_NUM_W - ((FOOTER_W + 0.2) if theme.get("footer") else 0)
+    tf = add_textbox(slide, g["marginX"], g["footY"] - 0.02, w, 0.3)
     set_simple(tf, text, theme, font="body", size=theme["size"]["source"], color="muted")
 
 
@@ -724,12 +858,15 @@ ANNOT_PREFIX = "annot/"
 
 
 def _page_number(slide, theme, g, n):
+    """The page number as the layout's SLIDE_NUMBER placeholder — a real
+    `slidenum` field, so reordering slides in PowerPoint renumbers them."""
     if not theme.get("pageNumbers"):
         return
-    tf = add_textbox(slide, g["pageW"] - g["marginX"] - 0.9, g["footY"], 0.9, 0.3,
-                     name=ANNOT_PREFIX + "page")
-    set_simple(tf, str(n), theme, font="body", size=theme["size"]["page_number"],
-               color="muted", align=PP_ALIGN.RIGHT)
+    ph = _clone_furniture(slide, PP_PLACEHOLDER.SLIDE_NUMBER)
+    if ph is None:
+        return
+    for t in ph._element.iter(qn("a:t")):
+        t.text = str(n)             # the field's cached value; viewers recompute
 
 
 def _eyebrow(slide, theme, g, text):
@@ -754,7 +891,7 @@ def _apply_eyebrows(prs, theme, g, slides):
     if not theme.get("eyebrow", True):
         return
     current = None
-    for slide, s in zip(prs.slides, slides):
+    for slide, s in zip(_built_slides(prs, slides), slides):
         t = (s or {}).get("type", "bullets")
         if t == "section":
             num, ttl = s.get("number"), (s.get("title") or "").strip()
@@ -950,7 +1087,8 @@ def _render_cards(slide, theme, g, s, i):
     gap = _u(theme, 2)
     cw = (w - gap * (n - 1)) / n
     ch = _part_height(items, theme, cw, min(1.3, h), min(h, 3.0))
-    y += max(0.0, (h - ch) / 2)          # the row sits centered in its region
+    # The row starts at the top of the body region, under the title, like any
+    # other body. Centering it left a hole above and below that read as waste.
     emph = s.get("emphasis")
     c = theme["color"]
     for k, it in enumerate(items):
@@ -976,7 +1114,6 @@ def _render_steps(slide, theme, g, s, i):
     span = arrow_w + arrow_gap * 2
     cw = (w - span * (n - 1)) / n
     ch = _part_height(items, theme, cw, min(1.3, h), min(h, 2.6))
-    y += max(0.0, (h - ch) / 2)
     c = theme["color"]
     for k, it in enumerate(items):
         left = x + k * (cw + span)
@@ -1409,7 +1546,46 @@ def _render_chart(slide, theme, g, s, i):
         plot.data_labels.font.color.rgb = RGBColor.from_string(theme["color"]["ink"])
 
 
-def render_default(prs, theme, g, slides):
+def _presenter_lines(s, meta):
+    """(presenter, affiliation, date) for a title slide: the slide's own fields,
+    falling back to `meta`. `author` / `organization` are accepted as aliases."""
+    meta = meta or {}
+    def pick(*keys):
+        for src in (s, meta):
+            for k in keys:
+                v = src.get(k)
+                if v:
+                    return str(v).strip()
+        return ""
+    return pick("presenter", "author"), pick("affiliation", "organization"), pick("date")
+
+
+def _render_presenter(ph, theme, s, meta):
+    """Name (ink) / affiliation and date (muted) in the title layout's presenter
+    placeholder. Dropped when the deck names nobody."""
+    if ph is None:
+        return
+    who, org, when = _presenter_lines(s, meta)
+    if not (who or org or when):
+        _drop_placeholder(ph)
+        return
+    tf = _prep_ph_tf(ph, anchor=MSO_ANCHOR.TOP)
+    sz = theme["size"]
+    first = True
+    for text, color, size in ((who, "ink", sz["body"]), (org, "muted", sz["body_sub"]),
+                              (when, "muted", sz["body_sub"])):
+        if not text:
+            continue
+        if first:
+            set_simple(tf, text, theme, font="body", size=size, color=color,
+                       align=PP_ALIGN.LEFT)
+            first = False
+        else:
+            p = _trailing_para(tf, text, theme, "body", size, color, space_before=2)
+            p.alignment = PP_ALIGN.LEFT
+
+
+def render_default(prs, theme, g, slides, meta=None):
     """Every slide is built on a STANDARD layout and its content is written into
     that layout's real placeholders — no free textboxes floated onto blank pages.
     (Peripheral footnotes — source line, page number — remain small annotations.)"""
@@ -1425,10 +1601,16 @@ def render_default(prs, theme, g, slides):
             _prep_ph_tf(title_ph)
             set_simple(title_ph.text_frame, s.get("title", ""), theme, font="heading",
                        size=theme["size"]["title_slide"], bold=True, color="ink", line_spacing=1.1)
+            pres_ph = next((ph for ph in slide.placeholders
+                            if ph.placeholder_format.idx == PRESENTER_IDX), None)
+            bodies = [b for b in bodies if b.placeholder_format.idx != PRESENTER_IDX]
             if s.get("subtitle") and bodies:
                 _prep_ph_tf(bodies[0])
                 set_simple(bodies[0].text_frame, s["subtitle"], theme,
                            font="body", size=theme["size"]["subtitle"], color="muted")
+            elif bodies:
+                _drop_placeholder(bodies[0])
+            _render_presenter(pres_ph, theme, s, meta)
             continue
 
         if t == "section":
@@ -1740,6 +1922,14 @@ def _set_ph_text(ph, text):
     ph.text_frame.text = str(text)
 
 
+def _append_ph_lines(ph, lines):
+    """Add plain paragraphs to a placeholder (after whatever it already holds)."""
+    tf = ph.text_frame
+    for line in lines:
+        p = tf.paragraphs[0] if not tf.text.strip() and len(tf.paragraphs) == 1 else tf.add_paragraph()
+        p.text = line
+
+
 def _set_ph_bullets(ph, items):
     """Write multi-level bullets into a placeholder; the template styles them."""
     if ph is None:
@@ -1885,10 +2075,21 @@ def render_template(prs, spec, map_cfg):
             _drop_placeholder(roles["title"])   # no title text — don't leave it empty
 
         if t == "title":
-            _set_ph_text(_tpl_need(pick("subtitle", roles["subtitle"]
-                                        or (roles["body"][0] if roles["body"] else None)),
-                                   i, layout.name, "subtitle", s.get("subtitle")),
-                         s.get("subtitle"))
+            sub_ph = _tpl_need(pick("subtitle", roles["subtitle"]
+                                    or (roles["body"][0] if roles["body"] else None)),
+                               i, layout.name, "subtitle", s.get("subtitle"))
+            _set_ph_text(sub_ph, s.get("subtitle"))
+            # Presenter / affiliation / date: a second body placeholder if the
+            # template's title layout has one, else lines under the subtitle.
+            lines = [x for x in _presenter_lines(s, spec.get("meta")) if x]
+            if lines:
+                others = [b for b in roles["body"] if sub_ph is None or b.shape_id != sub_ph.shape_id]
+                target = others[0] if others else sub_ph
+                if target is not None:
+                    _append_ph_lines(target, lines)
+                else:
+                    _warn("slide %d: layout %r has no placeholder for the presenter block"
+                          % (i, layout.name))
         elif t == "section":
             pass  # title placeholder already filled
         elif t == "table":
@@ -2007,6 +2208,12 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, bas
             with open(map_path, encoding="utf-8") as f:
                 map_cfg = json.load(f)
         chosen = render_template(prs, spec, map_cfg)
+        meta = spec.get("meta") or {}
+        furniture = {"footer": meta.get("footer"), "pageNumbers": bool(meta.get("page_numbers"))}
+        _apply_footer(prs, furniture, slides)
+        if furniture["pageNumbers"]:
+            for n, slide in enumerate(_built_slides(prs, slides), start=1):
+                _page_number(slide, furniture, None, n)
         _apply_notes(prs, slides)
         prs.save(out)
         print("wrote %s  (template-fill: %s)" % (out, os.path.basename(template)))
@@ -2023,8 +2230,9 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, bas
         prs.slide_width = Inches(g["pageW"])
         prs.slide_height = Inches(g["pageH"])
         del _WARNINGS[:]
-        render_default(prs, theme, g, slides)
+        render_default(prs, theme, g, slides, spec.get("meta"))
         _apply_eyebrows(prs, theme, g, slides)
+        _apply_footer(prs, theme, slides)
         _apply_notes(prs, slides)
         prs.save(out)
         print("wrote %s  (default theme: %s)" % (out, theme.get("name", "?")))

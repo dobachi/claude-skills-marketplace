@@ -100,6 +100,12 @@ layout. A `statement` looks for the template's one-message page ("Title Only"/
 The word table is `LAYOUT_WORDS` in `build_deck.py`; `inspect_template.py --map` reads
 the same table. Reach for a map only when names are non-standard or a guess is wrong.
 
+`meta.footer` and `meta.page_numbers: true` also work here: each built slide gets its
+own instance of the layout's FOOTER / SLIDE_NUMBER placeholder (geometry and style stay
+the template's). Layouts without those placeholders are skipped silently. The title
+slide's `presenter` / `affiliation` / `date` go into the title layout's second body
+placeholder when it has one, else as lines under the subtitle.
+
 ### Pinning one slide without a whole map
 
 ```yaml
