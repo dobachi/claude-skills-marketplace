@@ -64,7 +64,7 @@ def load_theme(path):
 # are floors the renderer will NOT shrink past — when content won't fit at the
 # floor it warns to split the slide instead of shrinking (see _check_overflow).
 SIZE_DEFAULTS = {
-    "title_max": 34, "title_min": 24, "title_slide": 40, "subtitle": 20,
+    "title_max": 34, "title_min": 24, "title_slide": 40, "title_slide_min": 28, "subtitle": 20,
     "section": 34, "section_number": 88,     # the number is the page's figure (= big_number)
     "body": 18, "body_sub": 16, "min_body": 16,
     "big_number": 88, "big_caption": 20,
@@ -285,7 +285,11 @@ def make_grid(theme):
         "section": 3.02,
         "statement": 4.27,
     }
-    g["titleSlide"] = {"title": (2.76, 1.42), "sub": (4.18, 0.80), "presenter": (5.50, 1.20)}
+    # The title region holds two lines at title_slide size with CJK line height;
+    # it is MIDDLE-anchored, so a one-line title floats between rule and
+    # subtitle and a two-line title fills the region — and the subtitle starts a
+    # fixed gap below the region either way, so they can never touch.
+    g["titleSlide"] = {"title": (2.76, 1.56), "sub": (4.56, 0.80), "presenter": (5.50, 1.20)}
     g["sectionSlide"] = {"number": (1.30, 1.60), "title": (3.16, 1.50)}
     g["statementSlide"] = {"text": (1.95, 2.20), "sub": (4.42, 0.90),
                            "widthFrac": 0.84}
@@ -571,7 +575,7 @@ def setup_layouts(prs, theme, g):
     ts, tsb = _phs_by_role(prs.slide_layouts[TITLE_LAYOUT])
     tt = g["titleSlide"]
     _place(ts, g["marginX"], tt["title"][0], g["contentW"], tt["title"][1])
-    ts.text_frame.vertical_anchor = MSO_ANCHOR.TOP
+    ts.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
     if tsb:
         _place(tsb[0], g["marginX"], tt["sub"][0], g["contentW"], tt["sub"][1])
         tsb[0].text_frame.vertical_anchor = MSO_ANCHOR.TOP
@@ -744,15 +748,18 @@ def _apply_footer(prs, theme, slides, skip_types=()):
         tf.paragraphs[0].add_run().text = text
 
 
-def _fit_title_size(text, theme, g, width=None):
-    """Largest size in [title_min, title_max] that keeps the title to two lines.
-    Returns (size, overflow) — overflow True means it still needs >2 lines at the
-    floor, so we keep it at the floor (never tiny) and warn to split/shorten."""
+def _fit_title_size(text, theme, g, width=None, hi=None, lo=None):
+    """Largest size in [lo, hi] (default [title_min, title_max]) that keeps the
+    title to two lines. Returns (size, overflow) — overflow True means it still
+    needs >2 lines at the floor, so we keep it at the floor (never tiny) and
+    warn to split/shorten."""
     sz, w = theme["size"], (width or g["contentW"])
-    for size in range(int(sz["title_max"]), int(sz["title_min"]) - 1, -1):
+    hi = int(hi if hi is not None else sz["title_max"])
+    lo = int(lo if lo is not None else sz["title_min"])
+    for size in range(hi, lo - 1, -1):
         if _est_lines(text, size, w) <= 2:
             return size, False
-    return int(sz["title_min"]), True
+    return lo, True
 
 
 def _set_bg(slide, theme):
@@ -1598,9 +1605,15 @@ def render_default(prs, theme, g, slides, meta=None):
             _set_bg(slide, theme)
             _hairline(slide, theme, g, g["ruleY"]["title"])
             title_ph, bodies = _phs_by_role(slide)
-            _prep_ph_tf(title_ph)
+            _prep_ph_tf(title_ph, anchor=MSO_ANCHOR.MIDDLE)
+            size, overflow = _fit_title_size(s.get("title", ""), theme, g,
+                                             hi=theme["size"]["title_slide"],
+                                             lo=theme["size"]["title_slide_min"])
+            if overflow:
+                _warn("slide %d: deck title needs >2 lines even at %dpt — shorten it or move "
+                      "the qualifier into `subtitle`" % (i, size))
             set_simple(title_ph.text_frame, s.get("title", ""), theme, font="heading",
-                       size=theme["size"]["title_slide"], bold=True, color="ink", line_spacing=1.1)
+                       size=size, bold=True, color="ink", line_spacing=1.1)
             pres_ph = next((ph for ph in slide.placeholders
                             if ph.placeholder_format.idx == PRESENTER_IDX), None)
             bodies = [b for b in bodies if b.placeholder_format.idx != PRESENTER_IDX]

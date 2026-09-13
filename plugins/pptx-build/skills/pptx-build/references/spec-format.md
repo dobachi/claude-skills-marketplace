@@ -42,6 +42,7 @@ Every size the default renderer uses is routed through one type scale, so text c
 | Key | Default | Used for |
 |---|---|---|
 | `title_max` / `title_min` | `30` / `24` | Title auto-fit range — see below |
+| `title_slide` / `title_slide_min` | `40` / `28` | Deck-title auto-fit range on the title slide (largest size that keeps it to two lines; warns past that) |
 | `body` / `body_sub` | `18` / `16` | Bullets at level 0 / level 1+ |
 | `caption` / `caption_note` | `15` / `14` | Figure caption label / explanation (`image` slide) |
 | `big_caption` | `20` | Caption under a `big_number` |
@@ -116,7 +117,11 @@ Any slide may also carry `notes:` — a string written into the slide's real **s
   date: "2026-09-13"                 # optional; meta.date
 ```
 Composition: rule / title / subtitle, then the presenter block (name in ink,
-affiliation and date muted) lower on the page. The block is a real BODY
+affiliation and date muted) lower on the page. The title region holds two lines
+and is middle-anchored, and the subtitle starts a fixed gap below the region, so
+a two-line title never touches the subtitle; the title auto-fits from
+`title_slide` down to `title_slide_min` to stay within two lines and warns when
+it cannot (shorten it, or move the qualifier into `subtitle`). The block is a real BODY
 placeholder (idx 13, "Presenter Placeholder") that build_deck adds to the Title
 Slide layout, so it is master-governed like everything else. In template-fill
 mode the lines go into the title layout's second body placeholder if it has one,
