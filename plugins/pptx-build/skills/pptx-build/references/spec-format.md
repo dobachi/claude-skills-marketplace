@@ -21,7 +21,8 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 | `ink` | `1A1A1A` | Primary text. Avoid pure `000000` (halation) |
 | `muted` | `6B7280` | Secondary text, captions, sources |
 | `accent` | `2F5DA8` | The single accent — hairline + emphasis only |
-| `rule` | `true` | Draw the short master-level accent hairline under titles. `false` to drop it |
+| `rule` | `true` | The short accent rule on the pages that mark a turn (`title` / `section` / `statement`). `"all"` also draws it under every content title; `false` drops it |
+| `eyebrow` | `true` | Running section label (number + section title) above each content title, from the first `section` on. `false` drops it |
 | `font_heading` | `Yu Gothic Medium` | Heading typeface |
 | `font_body` | `Yu Gothic` | Body typeface |
 | `font_number` | `Yu Gothic Medium` | Typeface for the `big_number` figure |
@@ -42,6 +43,9 @@ Every size the default renderer uses is routed through one type scale, so text c
 | `body` / `body_sub` | `18` / `16` | Bullets at level 0 / level 1+ |
 | `caption` / `caption_note` | `15` / `14` | Figure caption label / explanation (`image` slide) |
 | `big_caption` | `20` | Caption under a `big_number` |
+| `statement` / `statement_min` | `40` / `30` | Statement auto-fit range (largest size that keeps the sentence to three lines) |
+| `section_number` | `96` | The section number, set as the divider's figure |
+| `eyebrow` | `12` | Running section label above content titles |
 | `subtitle` `section` `quote` `source` `page_number` … | see `SIZE_DEFAULTS` in `build_deck.py` | Other elements |
 
 ```yaml
@@ -49,7 +53,7 @@ meta:
   size: { body: 20, title_min: 26 }   # bigger floors for a low-density deck
 ```
 
-**Titles are master-governed and cannot overlap.** Each title is written into a slide-layout **title placeholder** whose geometry is configured once and **bottom-anchored**, so a two-line title grows *upward* into the top margin and never reaches the hairline or body. The renderer auto-fits the title to the **largest** size in `[title_min, title_max]` that keeps it to two lines — it never shrinks below `title_min`. If a title needs more than two lines even at the floor, the build prints a `warning:` to shorten or split it (it is **not** crammed into illegible type). The same warning fires when bullet content won't fit the body at readable sizes — split the slide instead.
+**Titles are master-governed and cannot overlap.** Each title is written into a slide-layout **title placeholder** whose geometry is configured once and **bottom-anchored**, so a two-line title grows *upward* into the top margin and never reaches the body. The renderer auto-fits the title to the **largest** size in `[title_min, title_max]` that keeps it to two lines — it never shrinks below `title_min`. If a title needs more than two lines even at the floor, the build prints a `warning:` to shorten or split it (it is **not** crammed into illegible type). The same warning fires when bullet content won't fit the body at readable sizes — split the slide instead.
 
 ### meta.shape — the three numbers every part agrees on
 
@@ -110,9 +114,13 @@ Any slide may also carry `notes:` — a string written into the slide's real **s
 ### section (divider)
 ```yaml
 - type: section
-  number: "01"                       # optional, shown in accent
+  number: "01"                       # optional — the page's figure: large, ghost tone
   title: "Section name"
 ```
+Composition: number / rule / title. The number is set at `section_number` (96pt)
+in the ghost tone (the accent's hue at nearly the paper's lightness), so keep it
+to a digit or two (`validate_deck.py` warns past 4 characters). From this slide
+on, every content page carries `number  title` as its running label (`eyebrow`).
 
 ### bullets
 ```yaml
@@ -155,6 +163,8 @@ Both columns split the same grid content width — edges align by construction.
   quote: "The quotation text."
   attribution: "Name"                # optional
 ```
+Set in from the margin beside a vertical accent bar (`part/quote-bar`), the way
+print marks a block quote. No rule: the bar is the mark. Built on "Title Only".
 
 ### image
 ```yaml
@@ -306,9 +316,28 @@ still master-governed.
   text: "調達に3か月かかる限り、どの改善案も間に合わない"
   sub: "第2四半期 事業レビュー"        # optional
 ```
-One sentence, alone, under the rule — the deck's punctuation at a turn or a
-verdict. Keep it to about 46 display-width characters so it lands in one breath.
-It is not "a slide with little on it": emptiness here is the emphasis.
+One sentence, alone — the deck's punctuation at a turn or a verdict. Keep it to
+about 46 display-width characters so it lands in one breath. It is not "a slide
+with little on it": emptiness here is the emphasis.
+
+Composition: sentence / rule / gloss. Built on its own **"Statement"** layout
+(the stock "Content with Caption" layout, renamed): the sentence sits in the
+TITLE placeholder, bottom-anchored onto the rule so its baseline is the same
+whether it runs one line or three; `sub` goes in the layout's BODY placeholder
+below the rule. The size auto-fits down from `statement` to `statement_min`
+within three lines and warns past that — a fourth line means two sentences.
+
+#### The four large-type pages are four compositions
+| Type | Composition | What marks it |
+|---|---|---|
+| `title` | rule / title / subtitle, upper-middle of the page | rule above |
+| `section` | ghost number / rule / title | the number |
+| `statement` | sentence / rule / gloss, baseline just below the middle | rule below |
+| `quote` | indented block beside a vertical bar | the bar, no rule |
+
+Same three elements (a block of type, a short rule, a line of gloss), fixed once
+per layout. A deck whose openers, dividers and verdicts all look like "a line and
+a bold sentence" reads as generated; these do not share a skeleton.
 
 ## Contrast — the dark page and the tonal chart
 

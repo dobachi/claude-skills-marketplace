@@ -171,6 +171,10 @@ def _records(slide, page_w, page_h, idx, report):
                              "w": _in(sh.width), "h": _in(sh.height)})
                 continue
             if sh.has_text_frame and sh.text_frame.text.strip():
+                # `annot/...` is page furniture build_deck re-emits (running
+                # section label, page number) — never content.
+                if str(sh.name or "").startswith("annot/"):
+                    continue
                 recs.append(_text_rec(sh, in_group))
                 continue
             # No text and not a content object: a band, a connector, an icon.
@@ -435,13 +439,20 @@ def _classify(slide, recs, i, is_first, report):
 
     if "title slide" in layout_name:
         return out("title")
-    # A sentence alone on a title-only layout is a statement, not a deck title.
+    # A sentence alone on a title-only / statement layout is a statement, not a
+    # deck title. build_deck's "Statement" layout also carries the gloss (`sub`)
+    # in one body placeholder.
     if ("title only" in layout_name or "statement" in layout_name) and title_paras \
-            and not body and len(title) <= 160:
+            and len(body) <= 1 and len(title) <= 160:
         return out("statement")
     if is_first and len(body) <= 1 and words <= 160:
         return out("title")
 
+    # A bare section number is set large on a divider too — the layout tells
+    # the two apart before size does.
+    if ("section" in layout_name and title and len(lone) == 1
+            and SECTION_NUM_RE.match(lone[0][1])):
+        return out("section")
     if (lone and NUMBERISH_RE.match(lone[0][1]) and len(lone[0][1]) <= 12
             and len(lone) <= 2
             and (body[0]["pt"] is None or body[0]["pt"] >= BIG_NUMBER_PT)):
@@ -642,8 +653,9 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
             lines = [t for _, t in (title_paras or [])]
             s.pop("title", None)
             s["text"] = lines[0] if lines else ""
-            if len(lines) > 1:
-                s["sub"] = " ".join(lines[1:])
+            sub = " ".join(lines[1:]) + " " + " ".join(t for _, t in body_paras)
+            if sub.strip():
+                s["sub"] = sub.strip()
         elif kind == "title":
             sub = " ".join(t for _, t in body_paras)
             if sub:

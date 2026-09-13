@@ -45,6 +45,9 @@ DECORATION_CHARS = 6      # a free box this short is a marker, not body content
 # arrow). Those are a graphic built FROM the body placeholder's region, not text
 # someone floated onto the slide — the distinction this auditor exists to make.
 PART_PREFIX = "part/"
+# Page furniture build_deck re-emits per slide (running section label, page
+# number). Named so it is never mistaken for content floated onto the page.
+ANNOT_PREFIX = "annot/"
 # What counts as "the accent used as a surface". Saturation alone misfires on a
 # dark deck, where the quiet surfaces are dark tints of the accent and have a
 # wide channel spread. What separates an accent fill from a quiet surface is not
@@ -164,6 +167,9 @@ def audit(path):
                 continue
             if named_part:
                 parts += 1
+                continue
+            if (sh.name or "").startswith(ANNOT_PREFIX):
+                free_foot += 1                        # furniture, not content
                 continue
             if not sh.has_text_frame or not sh.text_frame.text.strip():
                 continue                              # hairline, picture, spacer

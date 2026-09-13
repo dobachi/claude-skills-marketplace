@@ -58,6 +58,7 @@ Emits a starter map: for each slide `type`, the layout index and the placeholder
   "two_col":    {"layout": 3, "title": 0, "left": 1, "right": 2},
   "big_number": {"layout": 1, "title": 0, "body": 1},
   "image":      {"layout": 8, "title": 0, "image": 1, "caption": 2},
+  "statement":  {"layout": 5, "title": 0},
   "blank":      {"layout": 6}
 }
 ```
@@ -90,10 +91,14 @@ map → a name/type heuristic.** Placeholders are chosen by: **explicit idx in t
 placeholder type on the chosen layout** (title = TITLE/CENTER_TITLE; body = the
 BODY/OBJECT placeholders in reading order; subtitle = SUBTITLE; picture = PICTURE).
 
-The auto-heuristic (no map) matches common layout names — "Title Slide", "Section
-Header", "Title and Content", "Two Content"/"Comparison", "Picture with Caption",
-"Blank" — and falls back to a content layout. It handles the standard PowerPoint
-layout set well; reach for a map only when names are non-standard or a guess is wrong.
+The auto-heuristic (no map) matches common layout names in English and Japanese
+— "Title Slide"/"タイトル スライド", "Section Header"/"セクション"/"中扉", "Title and
+Content"/"タイトルとコンテンツ", "Two Content"/"Comparison"/"2 つのコンテンツ"/"比較",
+"Picture with Caption"/"図"/"画像", "Blank"/"白紙" — and falls back to a content
+layout. A `statement` looks for the template's one-message page ("Title Only"/
+"タイトルのみ"/"メッセージ"/"キーメッセージ"), then the section divider, then content.
+The word table is `LAYOUT_WORDS` in `build_deck.py`; `inspect_template.py --map` reads
+the same table. Reach for a map only when names are non-standard or a guess is wrong.
 
 ### Pinning one slide without a whole map
 

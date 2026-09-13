@@ -64,16 +64,16 @@ def load_theme(path):
 # floor it warns to split the slide instead of shrinking (see _check_overflow).
 SIZE_DEFAULTS = {
     "title_max": 34, "title_min": 24, "title_slide": 40, "subtitle": 20,
-    "section": 34, "section_number": 22,
+    "section": 34, "section_number": 96,     # the number is the page's figure
     "body": 18, "body_sub": 16, "min_body": 16,
     "big_number": 88, "big_caption": 20,
     "quote": 28, "quote_attr": 18,
     "caption": 15, "caption_note": 14,
     "table": 15, "table_header": 15, "chart_label": 12,
-    "source": 11, "page_number": 11,
+    "source": 11, "page_number": 11, "eyebrow": 12,
     # composed parts (cards / steps / matrix) and the statement archetype
     "part_label": 18, "part_text": 16, "part_index": 13, "axis": 13,
-    "statement": 32, "statement_sub": 18,
+    "statement": 40, "statement_min": 30, "statement_sub": 18,
 }
 
 # --- shape tokens -----------------------------------------------------------
@@ -95,7 +95,7 @@ def _shape_defaults(theme, meta=None):
         if isinstance(v, (int, float)):
             sh[k] = v
     theme["shape"] = sh
-    for k in ("surface", "surface_hi", "border", "invert_bg", "invert_ink",
+    for k in ("surface", "surface_hi", "border", "ghost", "invert_bg", "invert_ink",
               "invert_muted"):
         theme["color"].setdefault(k, "auto")
     return theme
@@ -121,12 +121,14 @@ TONE_LIGHT = {
     "surface_hi": 0.930,     # the highlighted part's ground
     "border": 0.900,         # a part's edge
     "invert": 0.120,         # the page that marks a turn
+    "ghost": 0.860,          # the section number: a figure IN the paper, not on it
 }
 TONE_DARK = {
     "surface": 0.180,
     "surface_hi": 0.260,
     "border": 0.320,
     "invert": 0.955,
+    "ghost": 0.300,
 }
 # Series ramp for a `tonal` chart: absolute lightness steps, >= 0.13 apart, so
 # the bars stay distinguishable in projection and in greyscale.
@@ -190,7 +192,7 @@ def _inverted(theme):
     # On a dark turn page the rule has to lighten; on a light one it darkens.
     c["accent"] = _tone(src["accent"], 0.42 if dark_deck else 0.66)
     tones = TONE_LIGHT if dark_deck else TONE_DARK
-    for key in ("surface", "surface_hi", "border"):
+    for key in ("surface", "surface_hi", "border", "ghost"):
         c[key] = _tone(src["accent"], tones[key])
     t["color"] = c
     return t
@@ -208,7 +210,7 @@ def _resolve_colors(theme):
     c = theme["color"]
     theme["mode"] = "dark" if _lightness(c["bg"]) < 0.5 else "light"
     tones = TONE_DARK if theme["mode"] == "dark" else TONE_LIGHT
-    for key in ("surface", "surface_hi", "border"):
+    for key in ("surface", "surface_hi", "border", "ghost"):
         if str(c.get(key, "auto")).lower() in ("", "auto", "none"):
             c[key] = _tone(c["accent"], tones[key])
     if str(c.get("invert_bg", "auto")).lower() in ("", "auto", "none"):
@@ -231,10 +233,12 @@ def apply_meta(theme, meta):
     for k, dst in (("font_heading", "heading"), ("font_body", "body"), ("font_number", "number")):
         if meta.get(k):
             theme["font"][dst] = meta[k]
-    if isinstance(meta.get("rule"), bool):
+    if isinstance(meta.get("rule"), bool) or meta.get("rule") in ("turns", "all"):
         theme["rule"] = meta["rule"]
     if isinstance(meta.get("page_numbers"), bool):
         theme["pageNumbers"] = meta["page_numbers"]
+    if isinstance(meta.get("eyebrow"), bool):
+        theme["eyebrow"] = meta["eyebrow"]
     if meta.get("aspect") in ("16:9", "4:3"):
         theme["aspect"] = meta["aspect"]
     return theme
@@ -263,15 +267,28 @@ def make_grid(theme):
     }
     g["contentW"] = g["pageW"] - 2 * g["marginX"]
     g["titleBottom"] = g["top"] + g["titleH"]
-    # Hairline sits in the gap below the title region; body starts below the hairline.
+    # Body starts a gap below the title region (a content-page rule, when the
+    # theme asks for one, sits in that gap).
     g["bodyTop"] = g["titleBottom"] + g["gap"]
     g["bodyH"] = g["footY"] - g["bodyTop"] - 0.1
+    # The four large-type pages are four different COMPOSITIONS of the same three
+    # elements (a block of type, a short rule, a line of gloss), not one layout
+    # with four names. Each is fixed here, once, so the pages never drift:
+    #   title      rule ABOVE the title, block in the upper-middle of the page
+    #   section    ghost number / rule / title — the number is the figure
+    #   statement  sentence / rule / gloss, baseline just below the page's middle
+    #   quote      no rule: an indented block beside a vertical bar
     g["ruleY"] = {
-        "content": g["titleBottom"] + 0.08,
-        "title": 2.30,
-        "section": 2.78,
-        "quote": 2.02,
+        "content": g["titleBottom"] + 0.12,
+        "title": 2.62,
+        "section": 3.02,
+        "statement": 4.27,
     }
+    g["titleSlide"] = {"title": (2.76, 1.42), "sub": (4.18, 0.80)}
+    g["sectionSlide"] = {"number": (1.30, 1.60), "title": (3.16, 1.50)}
+    g["statementSlide"] = {"text": (1.95, 2.20), "sub": (4.42, 0.90),
+                           "widthFrac": 0.84}
+    g["quoteSlide"] = {"top": 2.30, "h": 2.60, "indent": 0.55}
     return g
 
 
@@ -422,6 +439,12 @@ TWO_CONTENT_LAYOUT = 3  # "Two Content"          — TITLE + two bodies (OBJECT)
 IMAGE_LAYOUT = 8        # "Picture with Caption" — TITLE + PICTURE + caption (BODY)
 QUOTE_LAYOUT = 5        # "Title Only"           — its TITLE placeholder holds the quote
 BLANK_LAYOUT = 6        # "Blank"                — only for type: blank
+# "Content with Caption" is repurposed and RENAMED "Statement": the stock deck
+# has no layout for one sentence alone, and borrowing "Title Only" made the
+# statement and the quote fight over one placeholder's anchor. TITLE holds the
+# sentence, the caption BODY holds the gloss, the OBJECT placeholder is dropped.
+STATEMENT_LAYOUT = 7
+STATEMENT_LAYOUT_NAME = "Statement"
 
 
 def _normalize_bullets(items):
@@ -521,25 +544,52 @@ def setup_layouts(prs, theme, g):
         _place(cbodies[0], g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"])
         cbodies[0].text_frame.vertical_anchor = MSO_ANCHOR.TOP
 
-    # Quote: its own layout ("Title Only"), so the centered quote block is layout
-    # geometry like every other family — never a slide-level override.
+    # Quote: its own layout ("Title Only"). The block is indented so the vertical
+    # bar (drawn at the margin) reads as a blockquote; anchored TOP so the bar and
+    # the first line start together.
     qt, _ = _phs_by_role(prs.slide_layouts[QUOTE_LAYOUT])
+    q = g["quoteSlide"]
     if qt is not None:
-        _place(qt, g["marginX"], 2.4, g["contentW"], 2.2)
-        qt.text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+        _place(qt, g["marginX"] + q["indent"], q["top"], g["contentW"] - q["indent"], q["h"])
+        qt.text_frame.vertical_anchor = MSO_ANCHOR.TOP
 
-    # Title Slide: title block + subtitle below it.
+    # Title Slide: rule above, title block, subtitle below it.
     ts, tsb = _phs_by_role(prs.slide_layouts[TITLE_LAYOUT])
-    _place(ts, g["marginX"], 2.45, g["contentW"], 1.3)
+    tt = g["titleSlide"]
+    _place(ts, g["marginX"], tt["title"][0], g["contentW"], tt["title"][1])
+    ts.text_frame.vertical_anchor = MSO_ANCHOR.TOP
     if tsb:
-        _place(tsb[0], g["marginX"], 3.78, g["contentW"], 0.8)
+        _place(tsb[0], g["marginX"], tt["sub"][0], g["contentW"], tt["sub"][1])
+        tsb[0].text_frame.vertical_anchor = MSO_ANCHOR.TOP
 
-    # Section Header: an eyebrow/number body above, the section title below.
+    # Section Header: the number is the page's figure — large, in the ghost tone,
+    # bottom-anchored onto the rule; the section title sits below the rule.
     sc, scb = _phs_by_role(prs.slide_layouts[SECTION_LAYOUT])
-    _place(sc, g["marginX"], 2.86, g["contentW"], 1.4)
+    ss = g["sectionSlide"]
+    _place(sc, g["marginX"], ss["title"][0], g["contentW"], ss["title"][1])
+    sc.text_frame.vertical_anchor = MSO_ANCHOR.TOP
     if scb:
-        _place(scb[0], g["marginX"], 2.18, g["contentW"], 0.6)
+        _place(scb[0], g["marginX"], ss["number"][0], g["contentW"], ss["number"][1])
         scb[0].text_frame.vertical_anchor = MSO_ANCHOR.BOTTOM
+
+    # Statement: sentence bottom-anchored onto the rule, gloss below it. The
+    # sentence's baseline is fixed whether it runs one line or three, so every
+    # statement in the deck lands in the same place.
+    st_layout = prs.slide_layouts[STATEMENT_LAYOUT]
+    try:
+        st_layout.name = STATEMENT_LAYOUT_NAME
+    except Exception:
+        pass
+    sm = g["statementSlide"]
+    st_w = g["contentW"] * sm["widthFrac"]
+    for ph in st_layout.placeholders:
+        pt = ph.placeholder_format.type
+        if pt in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
+            _place(ph, g["marginX"], sm["text"][0], st_w, sm["text"][1])
+            ph.text_frame.vertical_anchor = MSO_ANCHOR.BOTTOM
+        elif pt == PP_PLACEHOLDER.BODY:
+            _place(ph, g["marginX"], sm["sub"][0], st_w, sm["sub"][1])
+            ph.text_frame.vertical_anchor = MSO_ANCHOR.TOP
 
     # Two Content: title region + two body columns on the grid.
     tc, tcb = _phs_by_role(prs.slide_layouts[TWO_CONTENT_LAYOUT])
@@ -579,8 +629,21 @@ def _set_bg(slide, theme):
     slide.background.fill.fore_color.rgb = RGBColor.from_string(theme["color"]["bg"])
 
 
-def _hairline(slide, theme, g, y):
-    if not theme.get("rule"):
+def _rule_wanted(theme, family):
+    """`rule` in the theme: false = never; true / "turns" = only on the pages
+    that mark a turn (title, section, statement); "all" = also under every
+    content title. A mark on every page is wallpaper, not punctuation — which is
+    why the default stops at the turns."""
+    rule = theme.get("rule", True)
+    if rule in (False, None, "none"):
+        return False
+    if family == "content":
+        return rule == "all"
+    return True
+
+
+def _hairline(slide, theme, g, y, family="turn"):
+    if not _rule_wanted(theme, family):
         return
     shp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(g["marginX"]), Inches(y),
                                  Inches(g["ruleLen"]), Inches(g["ruleH"]))
@@ -612,7 +675,7 @@ def _title(slide, theme, g, text, idx):
     run.text = text
     _set_run_font(run, name=theme["font"]["heading"], size=size, bold=True,
                   color=theme["color"]["ink"])
-    _hairline(slide, theme, g, g["ruleY"]["content"])
+    _hairline(slide, theme, g, g["ruleY"]["content"], family="content")
 
 
 def _fill_bullets(tf, theme, items):
@@ -656,12 +719,50 @@ def _source(slide, theme, g, text):
     set_simple(tf, text, theme, font="body", size=theme["size"]["source"], color="muted")
 
 
+# Page furniture is named `annot/<kind>` so audit_pptx / extract_deck can tell it
+# from content someone floated onto the slide. (The source line is left unnamed
+# on purpose: extract_deck recovers it from the footer band as `source:`.)
+ANNOT_PREFIX = "annot/"
+
+
 def _page_number(slide, theme, g, n):
     if not theme.get("pageNumbers"):
         return
-    tf = add_textbox(slide, g["pageW"] - g["marginX"] - 0.9, g["footY"], 0.9, 0.3)
+    tf = add_textbox(slide, g["pageW"] - g["marginX"] - 0.9, g["footY"], 0.9, 0.3,
+                     name=ANNOT_PREFIX + "page")
     set_simple(tf, str(n), theme, font="body", size=theme["size"]["page_number"],
                color="muted", align=PP_ALIGN.RIGHT)
+
+
+def _eyebrow(slide, theme, g, text):
+    """The running section label above a content title: where in the argument
+    this page sits. It carries information (the reader's position), which is
+    what lets it on the page; it is also what keeps ten content pages from
+    reading as ten copies of one skeleton."""
+    if not text:
+        return
+    tf = add_textbox(slide, g["marginX"], g["top"] - 0.34, g["contentW"], 0.26,
+                     name=ANNOT_PREFIX + "eyebrow")
+    set_simple(tf, text, theme, font="body", size=theme["size"]["eyebrow"], color="muted")
+
+
+CONTENT_FAMILY = ("bullets", "two_col", "big_number", "image", "table", "chart",
+                  "cards", "steps", "matrix", "split", "lead")
+
+
+def _apply_eyebrows(prs, theme, g, slides):
+    """After the deck is built: label every content page with the section it
+    belongs to. Pages before the first `section` get no label."""
+    if not theme.get("eyebrow", True):
+        return
+    current = None
+    for slide, s in zip(prs.slides, slides):
+        t = (s or {}).get("type", "bullets")
+        if t == "section":
+            num, ttl = s.get("number"), (s.get("title") or "").strip()
+            current = ("%s  %s" % (num, ttl)).strip() if num is not None else ttl
+        elif t in CONTENT_FAMILY and current:
+            _eyebrow(slide, theme, g, current)
 
 
 def _fill_col(tf, theme, col):
@@ -1021,23 +1122,51 @@ def _render_split(slide, theme, g, s, i):
         _part_text(sp, theme, "", "[ image: %s ]" % (s.get("image") or "missing"))
 
 
+def _fit_statement_size(text, theme, width):
+    """Largest size in [statement_min, statement] that keeps the sentence to three
+    lines. At the floor it still warns — a statement that needs a fourth line is
+    two sentences."""
+    sz = theme["size"]
+    hi, lo = int(sz["statement"]), int(sz.get("statement_min", sz["statement"]))
+    for size in range(hi, lo - 1, -1):
+        if _est_lines(text, size, width) <= 3:
+            return size, False
+    return lo, True
+
+
 def _render_statement(slide, theme, g, s, i):
     """One sentence, alone. The deck's punctuation: a turn, a verdict, a stake in
-    the ground. Never a slide that merely has little on it."""
-    title_ph, _ = _phs_by_role(slide)
+    the ground. Never a slide that merely has little on it.
+
+    Built on the "Statement" layout: the sentence sits in its TITLE placeholder
+    (bottom-anchored onto the rule), the gloss in its BODY placeholder below the
+    rule. The layout fixes both, so nothing here overrides geometry."""
+    text = s.get("text") or s.get("title") or ""
+    title_ph, sub_ph = None, None
+    for ph in list(slide.placeholders):
+        pt = ph.placeholder_format.type
+        if pt in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
+            title_ph = ph
+        elif pt == PP_PLACEHOLDER.BODY:
+            sub_ph = ph
+        elif pt == PP_PLACEHOLDER.OBJECT:
+            _drop_placeholder(ph)          # the layout's content slot: unused here
     if title_ph is None:
         return
-    # Anchored TOP so the sentence sits directly under the rule: the rule is the
-    # mark that something is being declared, and a gap between them breaks that.
-    tf = _prep_ph_tf(title_ph, anchor=MSO_ANCHOR.TOP)
-    set_simple(tf, s.get("text") or s.get("title") or "", theme, font="heading",
-               size=theme["size"]["statement"], bold=True, color="ink",
-               align=PP_ALIGN.LEFT, line_spacing=1.25)
-    if s.get("sub"):
-        p = _trailing_para(tf, s["sub"], theme, "body", theme["size"]["statement_sub"],
-                           "muted", space_before=12)
-        if p is not None:
-            p.alignment = PP_ALIGN.LEFT
+    width = g["contentW"] * g["statementSlide"]["widthFrac"]
+    size, overflow = _fit_statement_size(text, theme, width)
+    if overflow:
+        _warn("slide %d: statement needs >3 lines even at %dpt — it is two sentences; "
+              "split it: %r" % (i, size, text[:24] + ("…" if len(text) > 24 else "")))
+    tf = _prep_ph_tf(title_ph, anchor=MSO_ANCHOR.BOTTOM)
+    set_simple(tf, text, theme, font="heading", size=size, bold=True, color="ink",
+               align=PP_ALIGN.LEFT, line_spacing=1.2)
+    if s.get("sub") and sub_ph is not None:
+        tf2 = _prep_ph_tf(sub_ph, anchor=MSO_ANCHOR.TOP)
+        set_simple(tf2, s["sub"], theme, font="body", size=theme["size"]["statement_sub"],
+                   color="muted", align=PP_ALIGN.LEFT)
+    else:
+        _drop_placeholder(sub_ph)
 
 
 # ---------------------------------------------------------------------------
@@ -1311,10 +1440,16 @@ def render_default(prs, theme, g, slides):
             _hairline(slide, th, g, g["ruleY"]["section"])
             title_ph, bodies = _phs_by_role(slide)
             if s.get("number") is not None and bodies:
+                # The number is the figure of the page: large, in the ghost tone
+                # (the accent's hue, nearly the paper's lightness), sitting on
+                # the rule. It says "second of four" — which is information.
                 _prep_ph_tf(bodies[0], anchor=MSO_ANCHOR.BOTTOM)
-                set_simple(bodies[0].text_frame, str(s["number"]), th, font="heading",
-                           size=th["size"]["section_number"], bold=True, color="accent")
-            _prep_ph_tf(title_ph)
+                set_simple(bodies[0].text_frame, str(s["number"]), th, font="number",
+                           size=th["size"]["section_number"], bold=True, color="ghost",
+                           line_spacing=1.0)
+            elif bodies:
+                _drop_placeholder(bodies[0])
+            _prep_ph_tf(title_ph, anchor=MSO_ANCHOR.TOP)
             set_simple(title_ph.text_frame, s.get("title", ""), th, font="heading",
                        size=th["size"]["section"], bold=True, color="ink", line_spacing=1.1)
             continue
@@ -1324,15 +1459,28 @@ def render_default(prs, theme, g, slides):
             # geometry was set once in setup_layouts (no slide-level override).
             slide = prs.slides.add_slide(prs.slide_layouts[QUOTE_LAYOUT])
             _set_bg(slide, theme)
-            _hairline(slide, theme, g, g["ruleY"]["quote"])
             quote_ph, _ = _phs_by_role(slide)
             if quote_ph is not None:
-                tf = _prep_ph_tf(quote_ph, anchor=MSO_ANCHOR.MIDDLE)
-                set_simple(tf, "“" + s.get("quote", "") + "”", theme, font="heading",
-                           size=theme["size"]["quote"], color="ink", line_spacing=1.25)
+                # No hairline here: a quote is marked the way print marks it — set
+                # in from the margin beside a vertical bar. The bar's height is
+                # computed from the text, so it spans the words and no more.
+                q = g["quoteSlide"]
+                text = "“" + s.get("quote", "") + "”"
+                sz = theme["size"]
+                lines = _est_lines(text, sz["quote"], g["contentW"] - q["indent"])
+                bar_h = lines * sz["quote"] * 1.25 / 72
                 if s.get("attribution"):
-                    _trailing_para(tf, "— " + s["attribution"], theme, "body",
-                                   theme["size"]["quote_attr"], "muted", space_before=10)
+                    bar_h += (10 + sz["quote_attr"] * 1.2) / 72
+                bar_h = min(bar_h, q["h"])
+                _part(slide, "quote-bar", g["marginX"], q["top"] + 0.04,
+                      g["ruleH"], bar_h, theme, fill=theme["color"]["accent"])
+                tf = _prep_ph_tf(quote_ph, anchor=MSO_ANCHOR.TOP)
+                set_simple(tf, text, theme, font="heading",
+                           size=sz["quote"], color="ink", line_spacing=1.25)
+                if s.get("attribution"):
+                    p = _trailing_para(tf, "— " + s["attribution"], theme, "body",
+                                       sz["quote_attr"], "muted", space_before=10)
+                    p.alignment = PP_ALIGN.LEFT
             continue
 
         if t == "two_col":
@@ -1361,11 +1509,10 @@ def render_default(prs, theme, g, slides):
             continue
 
         if t == "statement":
-            # "Title Only" — one sentence in that layout's title placeholder.
             th = _inverted(theme) if s.get("invert") else theme
-            slide = prs.slides.add_slide(prs.slide_layouts[QUOTE_LAYOUT])
+            slide = prs.slides.add_slide(prs.slide_layouts[STATEMENT_LAYOUT])
             _set_bg(slide, th)
-            _hairline(slide, th, g, g["ruleY"]["quote"])
+            _hairline(slide, th, g, g["ruleY"]["statement"])
             _render_statement(slide, th, g, s, i)
             _page_number(slide, th, g, i)
             continue
@@ -1500,6 +1647,23 @@ def _ph_type_name(ph):
         return "?"
 
 
+# Layout-name words per role, English and Japanese (the stock Office names in
+# both languages, plus the names corporate templates commonly use for the
+# one-message page). Matching is substring, case-insensitive, first layout wins.
+# inspect_template.py reads the same table so `--map` and the auto-pick agree.
+LAYOUT_WORDS = {
+    "title": ("title slide", "タイトル スライド", "タイトルスライド", "表紙"),
+    "content": ("title and content", "content", "タイトルとコンテンツ", "コンテンツ", "本文"),
+    "section": ("section", "セクション", "中扉", "章扉", "扉"),
+    "two_col": ("two content", "comparison", "two-col", "2 content",
+                "2 つのコンテンツ", "２つのコンテンツ", "2つのコンテンツ", "比較"),
+    "statement": ("title only", "statement", "message", "タイトルのみ",
+                  "メッセージ", "キーメッセージ", "主張"),
+    "image": ("picture", "image", "caption", "図", "画像", "写真"),
+    "blank": ("blank", "白紙"),
+}
+
+
 def _layout_index_by_role(prs):
     """Heuristic: pick a sensible layout index per slide type from layout names
     and placeholder types. Used when the spec/map does not pin layouts."""
@@ -1519,30 +1683,29 @@ def _layout_index_by_role(prs):
         nm = (lo.name or "").lower()
         return any(w in nm for w in words)
 
-    content = find(lambda lo: name_match(lo, "title and content", "content")
+    content = find(lambda lo: name_match(lo, *LAYOUT_WORDS["content"])
                    or has_types(lo, (PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT)), 1)
     # image: a layout with a real PICTURE placeholder wins over any "...caption" name.
     img = find(lambda lo: has_types(lo, (PP_PLACEHOLDER.PICTURE,)), -1)
     if img < 0:
-        img = find(lambda lo: name_match(lo, "picture", "image", "caption"), content)
+        img = find(lambda lo: name_match(lo, *LAYOUT_WORDS["image"]), content)
     return {
-        "title": find(lambda lo: name_match(lo, "title slide")
+        "title": find(lambda lo: name_match(lo, *LAYOUT_WORDS["title"])
                       or has_types(lo, (PP_PLACEHOLDER.SUBTITLE,)), 0),
-        "section": find(lambda lo: name_match(lo, "section"), content),
-        "two_col": find(lambda lo: name_match(lo, "two content", "comparison",
-                                              "two-col", "2 content"), content),
+        "section": find(lambda lo: name_match(lo, *LAYOUT_WORDS["section"]), content),
+        "two_col": find(lambda lo: name_match(lo, *LAYOUT_WORDS["two_col"]), content),
         "bullets": content, "big_number": content, "quote": content,
         "table": content, "chart": content,
         # Composed archetypes are drawn into the body placeholder's region, so
         # they want the same layout a bullets slide would use.
         "cards": content, "steps": content, "matrix": content, "split": content,
         "lead": content,
-        # A statement is one sentence alone: a title-only layout if the template
-        # has one, else the section divider, else content.
-        "statement": find(lambda lo: name_match(lo, "title only", "statement"),
-                          find(lambda lo: name_match(lo, "section"), content)),
+        # A statement is one sentence alone: the template's message / title-only
+        # layout if it has one, else the section divider, else content.
+        "statement": find(lambda lo: name_match(lo, *LAYOUT_WORDS["statement"]),
+                          find(lambda lo: name_match(lo, *LAYOUT_WORDS["section"]), content)),
         "image": img,
-        "blank": find(lambda lo: name_match(lo, "blank"), content),
+        "blank": find(lambda lo: name_match(lo, *LAYOUT_WORDS["blank"]), content),
     }
 
 
@@ -1863,6 +2026,7 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, bas
         prs.slide_height = Inches(g["pageH"])
         del _WARNINGS[:]
         render_default(prs, theme, g, slides)
+        _apply_eyebrows(prs, theme, g, slides)
         _apply_notes(prs, slides)
         prs.save(out)
         print("wrote %s  (default theme: %s)" % (out, theme.get("name", "?")))

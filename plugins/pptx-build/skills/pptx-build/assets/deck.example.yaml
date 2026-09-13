@@ -10,7 +10,8 @@ meta:
   bg: "FFFFFF"              # FAFAFA for a softer paper white
   ink: "1A1A1A"
   accent: "2F5DA8"          # a single restrained accent — hairline + emphasis only
-  rule: true                # short master-level hairline (NOT a full-width band)
+  rule: true                # short accent rule on the turn pages only (title/section/statement); "all" adds it under content titles
+  eyebrow: true             # running section label above content titles
   font_heading: "Yu Gothic Medium"
   font_body: "Yu Gothic"
 

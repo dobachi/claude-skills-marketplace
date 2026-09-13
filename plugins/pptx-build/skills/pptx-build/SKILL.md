@@ -51,14 +51,14 @@ whose text ended up in free textboxes. If either fires, fix the generator or the
 ## The three guarantees this skill is built around
 
 1. **White-based and quiet (default mode).** `#FFFFFF`/`#FAFAFA` paper, near-black ink (`#1A1A1A`, never pure black), a single accent used only for a hairline and emphasis. No gradients, shadows, WordArt, or clipart.
-2. **No drifting bands (default mode).** The classic ugly AI/Office tell is a full-width colored rectangle behind each title that ends up a few pixels off from slide to slide. This skill **never draws per-slide bands.** The accent is a short hairline whose coordinates are computed once from the shared grid, so it is identical on every slide of a family and cannot drift. See `references/anti-band-design.md`.
+2. **No drifting bands (default mode).** The classic ugly AI/Office tell is a full-width colored rectangle behind each title that ends up a few pixels off from slide to slide. This skill **never draws per-slide bands.** The accent is a short rule whose coordinates are computed once from the shared grid, so it is identical on every page that carries it and cannot drift — and by default only the pages that mark a turn (`title` / `section` / `statement`) carry it; content titles stand on weight and whitespace alone (`meta.rule: "all"` puts it back under them). See `references/anti-band-design.md`.
 3. **Honors a real template (template-fill mode).** Pass `--template corp.pptx`. python-pptx opens it, and each spec slide is mapped to one of the template's **layouts** and written into its **placeholders** (title, body, subtitle, picture). The template's own master/theme/fonts/logos come through untouched. See `references/template-mode.md`.
 
 ## Three more things the default mode guarantees
 
 These target the failure modes that make generated decks look careless. All are automatic — you don't configure them.
 
-4. **Master-governed placeholders that never overlap.** Default mode builds every slide on a **standard PowerPoint layout** (Title Slide / Section Header / Title and Content / Two Content / Picture with Caption / Blank) and writes titles **and body content** into that layout's real **placeholders** — never free textboxes on a blank page. Each placeholder's geometry is set once on the layout (the "use the slide master" property — edit a layout later in PowerPoint and every slide built on it moves together). Title boxes are **bottom-anchored**, so a long two-line title grows *upward* into the top margin and can never collide with the hairline or the body. The title size **auto-fits** to the largest value that stays within two lines; body placeholders have autofit turned **off** so the template's shrink-to-fit can never override the readable-size floors (#5).
+4. **Master-governed placeholders that never overlap.** Default mode builds every slide on a **standard PowerPoint layout** (Title Slide / Section Header / Title and Content / Two Content / Picture with Caption / Blank, plus "Content with Caption" renamed **Statement** for the one-sentence page) and writes titles **and body content** into that layout's real **placeholders** — never free textboxes on a blank page. Each placeholder's geometry is set once on the layout (the "use the slide master" property — edit a layout later in PowerPoint and every slide built on it moves together). Title boxes are **bottom-anchored**, so a long two-line title grows *upward* into the top margin and can never collide with the body. The title size **auto-fits** to the largest value that stays within two lines; body placeholders have autofit turned **off** so the template's shrink-to-fit can never override the readable-size floors (#5).
 5. **Text stays readable — it is never shrunk to fit.** Every size flows through one type scale with floors (`title_min` 24pt, `body`/`body_sub` 18/16pt). When a title or body genuinely won't fit at those sizes, the build prints a `warning:` telling you to **split or shorten** that slide — it does not silently shrink text to an unreadable size. One message per slide; split rather than cram. Tune floors with `meta.size` (see `references/spec-format.md`).
 6. **Figures get a real caption, not a footnote.** An `image` slide's `caption` is a **bold, readable label** and its `note` (alias `description`) is a wrapping explanation at a readable size; the image height is reduced automatically to reserve room for them, so figure and explanation never collide. Give every figure a `caption` that names it and a `note` that states the takeaway.
 
@@ -159,6 +159,14 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`,
 `image`, `table`, `chart`, `blank`.
 
+**The four large-type pages are four compositions, not one layout with four
+names.** `title` = rule / title / subtitle; `section` = ghost number / rule /
+title (the number is the figure); `statement` = sentence / rule / gloss on its own
+"Statement" layout; `quote` = an indented block beside a vertical bar, no rule.
+Content pages carry a running section label (`number  title`, from the first
+`section` on) above the title, so the reader always knows where in the argument
+they are. Table and rationale: `references/spec-format.md`.
+
 **Composed archetypes** — `cards`, `steps`, `lead`, `matrix`, `split`, `statement` — are
 drawn from the body placeholder's region rather than filled with text. Each one
 exists for one shape of content, and picking the type IS the design decision:
@@ -242,9 +250,9 @@ choice.
 - [ ] Every title is an **action title** (states the takeaway), not a topic label.
 - [ ] One message per slide; no wall of text (split if it won't fit).
 - [ ] **No build `warning:` left unaddressed** — each one means a title or body overflows at readable sizes; split or shorten that slide rather than ignoring it.
-- [ ] **Titles:** none collide with the hairline or body (a two-line title should sit above the hairline with clear space); titles share one baseline across slides (flip the PNGs).
+- [ ] **Titles:** none collide with the body; titles share one baseline across slides (flip the PNGs).
 - [ ] **Figures:** every `image` has a `caption` that names it and a `note` that gives the takeaway; the caption is clearly readable, not a tiny footnote.
-- [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (hairline + emphasis only); **no full-width band**; hairline lines up across all slides (flip the PNGs — the accent should never jump).
+- [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (rule + emphasis only); **no full-width band**; the rule appears only on turn pages unless `meta.rule: "all"`, and lines up across them (flip the PNGs — the accent should never jump); the four large-type pages (`title` / `section` / `statement` / `quote`) do not look like one another.
 - [ ] **Template mode:** every intended placeholder is actually filled (read the build log + a PNG); no slide fell back to the wrong layout; the deck still looks like the template, not like us.
 - [ ] Data slides carry a `source:` footnote.
 - [ ] **Archetypes:** each composed slide passes its condition — cards are equivalent, steps have real order, both matrix axes are named, `split` has a figure worth 62% of the slide.

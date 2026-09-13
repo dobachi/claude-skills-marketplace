@@ -284,6 +284,10 @@ def validate(spec, theme, g):
             if len(B._normalize_bullets(s.get("bullets"))) > 4:
                 add(WARN, i, "more than 4 bullets in the narrow column — the figure is "
                              "the message here; move the detail to notes or another slide")
+        if t == "section" and s.get("number") is not None \
+                and B._disp_width(str(s["number"])) > 4:
+            add(WARN, i, "section number %r is set as the page's figure (large) — keep it "
+                         "to a digit or two" % str(s["number"]))
         if t == "statement":
             if not (s.get("text") or "").strip():
                 add(ERROR, i, "statement slide has no `text`")

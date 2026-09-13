@@ -18,6 +18,9 @@ import sys
 from pptx import Presentation
 from pptx.enum.shapes import PP_PLACEHOLDER
 
+sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
+from build_deck import LAYOUT_WORDS   # one table for --map and the auto-pick
+
 
 def ph_type(ph):
     try:
@@ -75,12 +78,16 @@ def suggest_map(prs):
                 return i
         return None
 
-    content_i = find_layout("title and content", "content") or 1
+    W = LAYOUT_WORDS
+    content_i = find_layout(*W["content"]) or 1
     content = layouts[content_i]
-    title_i = find_layout("title slide") or 0
-    section_i = find_layout("section") or content_i
-    two_i = find_layout("two content", "comparison", "2 content") or content_i
-    img_i = find_layout_with(PP_PLACEHOLDER.PICTURE) or find_layout("picture", "caption") or content_i
+    title_i = find_layout(*W["title"]) or 0
+    section_i = find_layout(*W["section"]) or content_i
+    two_i = find_layout(*W["two_col"]) or content_i
+    img_i = find_layout_with(PP_PLACEHOLDER.PICTURE) or find_layout(*W["image"]) or content_i
+    stmt_i = find_layout(*W["statement"])
+    if stmt_i is None:
+        stmt_i = section_i
 
     cbody = body_idxs(content)
     tbody = body_idxs(layouts[two_i])
@@ -109,7 +116,12 @@ def suggest_map(prs):
                   "title": idx_of(layouts[img_i], PP_PLACEHOLDER.TITLE),
                   "image": idx_of(layouts[img_i], PP_PLACEHOLDER.PICTURE),
                   "caption": idx_of(layouts[img_i], PP_PLACEHOLDER.BODY)},
-        "blank": {"layout": find_layout("blank") or content_i},
+        "statement": {"layout": stmt_i,
+                      "title": idx_of(layouts[stmt_i], PP_PLACEHOLDER.TITLE,
+                                      PP_PLACEHOLDER.CENTER_TITLE),
+                      "subtitle": idx_of(layouts[stmt_i], PP_PLACEHOLDER.SUBTITLE,
+                                         PP_PLACEHOLDER.BODY)},
+        "blank": {"layout": find_layout(*W["blank"]) or content_i},
     }
     # drop None-valued role keys so the map only pins what was actually found
     return {t: {k: v for k, v in roles.items() if v is not None} for t, roles in m.items()}
