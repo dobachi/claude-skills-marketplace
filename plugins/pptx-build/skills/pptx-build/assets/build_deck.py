@@ -64,7 +64,7 @@ def load_theme(path):
 # floor it warns to split the slide instead of shrinking (see _check_overflow).
 SIZE_DEFAULTS = {
     "title_max": 34, "title_min": 24, "title_slide": 40, "subtitle": 20,
-    "section": 34, "section_number": 96,     # the number is the page's figure
+    "section": 34, "section_number": 88,     # the number is the page's figure (= big_number)
     "body": 18, "body_sub": 16, "min_body": 16,
     "big_number": 88, "big_caption": 20,
     "quote": 28, "quote_attr": 18,
@@ -95,7 +95,7 @@ def _shape_defaults(theme, meta=None):
         if isinstance(v, (int, float)):
             sh[k] = v
     theme["shape"] = sh
-    for k in ("surface", "surface_hi", "border", "ghost", "invert_bg", "invert_ink",
+    for k in ("surface", "surface_hi", "border", "invert_bg", "invert_ink",
               "invert_muted"):
         theme["color"].setdefault(k, "auto")
     return theme
@@ -121,14 +121,12 @@ TONE_LIGHT = {
     "surface_hi": 0.930,     # the highlighted part's ground
     "border": 0.900,         # a part's edge
     "invert": 0.120,         # the page that marks a turn
-    "ghost": 0.860,          # the section number: a figure IN the paper, not on it
 }
 TONE_DARK = {
     "surface": 0.180,
     "surface_hi": 0.260,
     "border": 0.320,
     "invert": 0.955,
-    "ghost": 0.300,
 }
 # Series ramp for a `tonal` chart: absolute lightness steps, >= 0.13 apart, so
 # the bars stay distinguishable in projection and in greyscale.
@@ -192,7 +190,7 @@ def _inverted(theme):
     # On a dark turn page the rule has to lighten; on a light one it darkens.
     c["accent"] = _tone(src["accent"], 0.42 if dark_deck else 0.66)
     tones = TONE_LIGHT if dark_deck else TONE_DARK
-    for key in ("surface", "surface_hi", "border", "ghost"):
+    for key in ("surface", "surface_hi", "border"):
         c[key] = _tone(src["accent"], tones[key])
     t["color"] = c
     return t
@@ -210,7 +208,7 @@ def _resolve_colors(theme):
     c = theme["color"]
     theme["mode"] = "dark" if _lightness(c["bg"]) < 0.5 else "light"
     tones = TONE_DARK if theme["mode"] == "dark" else TONE_LIGHT
-    for key in ("surface", "surface_hi", "border", "ghost"):
+    for key in ("surface", "surface_hi", "border"):
         if str(c.get(key, "auto")).lower() in ("", "auto", "none"):
             c[key] = _tone(c["accent"], tones[key])
     if str(c.get("invert_bg", "auto")).lower() in ("", "auto", "none"):
@@ -562,7 +560,7 @@ def setup_layouts(prs, theme, g):
         _place(tsb[0], g["marginX"], tt["sub"][0], g["contentW"], tt["sub"][1])
         tsb[0].text_frame.vertical_anchor = MSO_ANCHOR.TOP
 
-    # Section Header: the number is the page's figure — large, in the ghost tone,
+    # Section Header: the number is the page's figure — large, muted,
     # bottom-anchored onto the rule; the section title sits below the rule.
     sc, scb = _phs_by_role(prs.slide_layouts[SECTION_LAYOUT])
     ss = g["sectionSlide"]
@@ -1440,13 +1438,13 @@ def render_default(prs, theme, g, slides):
             _hairline(slide, th, g, g["ruleY"]["section"])
             title_ph, bodies = _phs_by_role(slide)
             if s.get("number") is not None and bodies:
-                # The number is the figure of the page: large, in the ghost tone
-                # (the accent's hue, nearly the paper's lightness), sitting on
-                # the rule. It says "second of four" — which is information.
+                # The number is the figure of the page: large, in the muted
+                # slot (a fifth text color would break the four-slot rule, and
+                # a paler tone fails contrast), sitting on the rule. It says
+                # "second of four" — which is information.
                 _prep_ph_tf(bodies[0], anchor=MSO_ANCHOR.BOTTOM)
                 set_simple(bodies[0].text_frame, str(s["number"]), th, font="number",
-                           size=th["size"]["section_number"], bold=True, color="ghost",
-                           line_spacing=1.0)
+                           size=th["size"]["section_number"], bold=True, color="muted")
             elif bodies:
                 _drop_placeholder(bodies[0])
             _prep_ph_tf(title_ph, anchor=MSO_ANCHOR.TOP)

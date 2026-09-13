@@ -160,7 +160,7 @@ Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`
 `image`, `table`, `chart`, `blank`.
 
 **The four large-type pages are four compositions, not one layout with four
-names.** `title` = rule / title / subtitle; `section` = ghost number / rule /
+names.** `title` = rule / title / subtitle; `section` = large muted number / rule /
 title (the number is the figure); `statement` = sentence / rule / gloss on its own
 "Statement" layout; `quote` = an indented block beside a vertical bar, no rule.
 Content pages carry a running section label (`number  title`, from the first

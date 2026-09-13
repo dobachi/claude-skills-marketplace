@@ -128,8 +128,12 @@
       "$description": "表紙の副題・キッカー"
     },
     "sectionNumber": {
-      "$value": 22,
-      "$description": "章扉の番号"
+      "$value": 88,
+      "$description": "章扉の番号。bigNumber と同じ大きさで、章扉の図として置く"
+    },
+    "eyebrow": {
+      "$value": 12,
+      "$description": "本文タイトルの上に置く走る章名ラベル（pptx-build の eyebrow）。頁物なので本文の下限は適用しない"
     },
     "bigCaption": {
       "$value": 20,

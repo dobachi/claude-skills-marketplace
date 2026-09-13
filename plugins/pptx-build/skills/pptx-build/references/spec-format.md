@@ -44,7 +44,7 @@ Every size the default renderer uses is routed through one type scale, so text c
 | `caption` / `caption_note` | `15` / `14` | Figure caption label / explanation (`image` slide) |
 | `big_caption` | `20` | Caption under a `big_number` |
 | `statement` / `statement_min` | `40` / `30` | Statement auto-fit range (largest size that keeps the sentence to three lines) |
-| `section_number` | `96` | The section number, set as the divider's figure |
+| `section_number` | `88` | The section number, set as the divider's figure (same size as `big_number`) |
 | `eyebrow` | `12` | Running section label above content titles |
 | `subtitle` `section` `quote` `source` `page_number` … | see `SIZE_DEFAULTS` in `build_deck.py` | Other elements |
 
@@ -114,12 +114,12 @@ Any slide may also carry `notes:` — a string written into the slide's real **s
 ### section (divider)
 ```yaml
 - type: section
-  number: "01"                       # optional — the page's figure: large, ghost tone
+  number: "01"                       # optional — the page's figure: large, muted
   title: "Section name"
 ```
-Composition: number / rule / title. The number is set at `section_number` (96pt)
-in the ghost tone (the accent's hue at nearly the paper's lightness), so keep it
-to a digit or two (`validate_deck.py` warns past 4 characters). From this slide
+Composition: number / rule / title. The number is set at `section_number` (88pt,
+the `big_number` size) in the muted slot, so keep it to a digit or two
+(`validate_deck.py` warns past 4 characters). From this slide
 on, every content page carries `number  title` as its running label (`eyebrow`).
 
 ### bullets
@@ -331,7 +331,7 @@ within three lines and warns past that — a fourth line means two sentences.
 | Type | Composition | What marks it |
 |---|---|---|
 | `title` | rule / title / subtitle, upper-middle of the page | rule above |
-| `section` | ghost number / rule / title | the number |
+| `section` | large muted number / rule / title | the number |
 | `statement` | sentence / rule / gloss, baseline just below the middle | rule below |
 | `quote` | indented block beside a vertical bar | the bar, no rule |
 

@@ -109,12 +109,20 @@ def alt_text_of(shape) -> str:
     return (nv.get("descr") or "").strip() if nv is not None else ""
 
 
+# pptx-build が頁物（走る章名ラベル、ページ番号）に付ける名前。位置に関わらず
+# 本文ではない（出典行・ページ番号と同じ扱い）。
+ANNOT_PREFIX = "annot/"
+
+
 def in_footer(shape, tok) -> bool:
-    """フッタ線より下にある要素か。出典行とページ番号がここに入る。
+    """フッタ線より下にある要素か、`annot/` と名付けられた頁物か。出典行と
+    ページ番号、走る章名ラベルがここに入る。
 
     rules の not_applicable_when が「出典行・ページ番号は本文ではない」と
     定めているので、本文向けの検査から外す。
     """
+    if str(getattr(shape, "name", "") or "").startswith(ANNOT_PREFIX):
+        return True
     top = getattr(shape, "top", None)
     if top is None:
         return False
