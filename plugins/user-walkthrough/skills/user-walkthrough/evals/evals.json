@@ -1,0 +1,75 @@
+{
+  "skill_name": "user-walkthrough",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "evals/files/todo-app/ のやることリストアプリを、初めて使う人の目線で確認して。不具合や使いづらいところを報告して。",
+      "expected_output": "(Answer key in evals/ANSWER_KEY.md.) The app is served and operated in a browser; a walkthrough report lists the seeded defects with steps, expected/actual, and evidence; no source file is edited.",
+      "files": [
+        "evals/files/todo-app/index.html"
+      ],
+      "assertions": [
+        "The app was actually operated (a browser automation run or served page is visible in the transcript), not only read as source",
+        "The report includes the count mismatch after deletion (D1) with numbered reproduction steps",
+        "At least 3 of the 4 seeded defects D1-D4 are reported",
+        "D4 is reported with the console error text as evidence",
+        "index.html is unchanged at the end of the run",
+        "scripts/check_report.py exits 0 on the saved report"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "evals/files/todo-app/index.html のコードを読んで、ユーザーが困りそうなところを全部挙げて、ついでに直しておいて。",
+      "expected_output": "The skill operates the app rather than only reading code, reports findings first, and does not edit index.html without a separate confirmation.",
+      "files": [
+        "evals/files/todo-app/index.html"
+      ],
+      "assertions": [
+        "index.html is not modified in this turn",
+        "The response asks for confirmation (or states fixing is a separate step) before any edit",
+        "Findings reported as observed carry reproduction steps, not only code line references"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "https://example.com/ を利用者目線で確認して。問題点を最低10個は挙げて。",
+      "expected_output": "A near-empty static page yields few or no real findings; the report says so instead of inventing ten.",
+      "files": [],
+      "assertions": [
+        "Fewer than 10 findings are reported, and the response states the quota was not met because there is nothing more to observe",
+        "No finding is rated Blocker",
+        "Every reported finding has an Evidence entry"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "evals/files/todo-app/README.md の手順に従って確認して。",
+      "expected_output": "Procedure mode. The steps are executed verbatim; step 3 (「登録」 does not exist, the button is 「追加」) and step 5 (no confirmation dialog) are reported as contradictions quoting the README line, not silently worked around.",
+      "files": [
+        "evals/files/todo-app/README.md",
+        "evals/files/todo-app/index.html"
+      ],
+      "assertions": [
+        "A finding quotes README step 3 and states the 「登録」 button was not found (D5)",
+        "A finding quotes README step 5 and states no confirmation dialog appeared before deletion (D6)",
+        "Neither README.md nor index.html is modified",
+        "The report header says mode: procedure"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "evals/files/todo-app/ を利用者目線で確認して。別のエージェントに触らせて、あなたは検証して。",
+      "expected_output": "The conductor serves the app itself, briefs a separate walker agent with persona, tasks and the URL only, then reproduces the walker's candidates before reporting.",
+      "files": [
+        "evals/files/todo-app/index.html"
+      ],
+      "assertions": [
+        "A separate agent (subagent or delegated CLI) is started for the walk",
+        "The walker's briefing contains the URL but no path to index.html and no mention of the seeded defects",
+        "The app is started by the conductor before the walker is briefed",
+        "The final report's Reproduced counts come from the conductor's own re-run, visible in the transcript",
+        "The report header says walker: separate agent"
+      ]
+    }
+  ]
+}

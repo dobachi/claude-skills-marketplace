@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>やることリスト</title>
+<style>body{font-family:sans-serif;max-width:480px;margin:2em auto}li{margin:.3em 0}#err{color:#c00}</style>
+</head>
+<body>
+<h1>やることリスト</h1>
+<p id="count">残り 0 件</p>
+<form id="f"><input id="t" placeholder="やること"> <button>追加</button></form>
+<p id="err"></p>
+<ul id="list"></ul>
+<button id="all">すべて完了</button>
+<script>
+const items = [];
+const $ = (id) => document.getElementById(id);
+function updateCount() { $("count").textContent = "残り " + items.filter(i => !i.done).length + " 件"; }
+function render() {
+  $("list").innerHTML = "";
+  items.forEach((it, idx) => {
+    const li = document.createElement("li");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = it.done;
+    cb.onchange = () => { it.done = cb.checked; updateCount(); };
+    const del = document.createElement("button"); del.textContent = "削除";
+    del.onclick = () => { items.splice(idx, 1); render(); };
+    li.append(cb, " " + it.title + " ", del);
+    $("list").append(li);
+  });
+}
+$("f").onsubmit = (e) => {
+  e.preventDefault();
+  const v = $("t").value;
+  if (v === "") { $("err").textContent = "やることを入力してください"; return; }
+  if (v.length > 30) { $("err").textContent = "Error: invalid length"; return; }
+  $("err").textContent = "";
+  items.push({ title: v, done: false }); $("t").value = "";
+  render(); updateCount();
+};
+$("all").onclick = () => { items.forEach(i => i.done = true); render(); updateCount(); undefinedHelper(); };
+</script>
+</body>
+</html>

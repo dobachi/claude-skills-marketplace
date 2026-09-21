@@ -106,6 +106,8 @@ excluded:
     reason: "updates git submodules in a local checkout."
   - name: reload-and-reset
     reason: "updates the local instruction install."
+  - name: user-walkthrough
+    reason: "launches the app under test locally and drives it with Playwright / a CLI / curl, and by default hands the walk to a separate subagent; the sandbox has no local app to reach and no Task/Agent tool."
   # EA delivery chain: heavy Python toolchains (requirements.txt) and multi-skill
   # orchestration that assumes a filesystem model file. Out of scope for a first
   # Desktop cut; revisit if there's demand.

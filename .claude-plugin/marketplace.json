@@ -309,6 +309,11 @@
       "name": "web-frontend-dev",
       "source": "./plugins/web-frontend-dev",
       "description": "Build production web front-ends (SPA and beyond): component architecture, state management, API data-fetching with caching, forms and data tables, auth/session UI, and accessibility. Turns frontend-design direction into a real implementation and consumes OpenAPI contracts."
+    },
+    {
+      "name": "user-walkthrough",
+      "source": "./plugins/user-walkthrough",
+      "description": "Walk through an app or service as its user — actually launch and operate it (browser via Playwright, CLI, API), either as a persona doing concrete tasks or by following its README/manual procedure verbatim — to find usability friction, contradictions between screens or between docs and behaviour, unhelpful error messages, and bugs. By default the walk is delegated to a separate agent that has not read the source (a genuinely first-time user), and the conductor re-verifies every finding from a fresh state. Returns a severity-ranked report where every finding carries numbered reproduction steps, expected vs actual, observed evidence, and reproduction count, without changing the code. Bundles check_report.py (rejects findings without evidence, speculative 'actual' results, and Blockers nobody observed) with a three-direction test harness, plus an eval target app and README with seeded defects. Hands fixing to the developer or a dev skill, source review to code-reviewer, design direction to frontend-design."
     }
   ]
 }
