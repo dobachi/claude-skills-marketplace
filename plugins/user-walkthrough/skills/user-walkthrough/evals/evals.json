@@ -59,16 +59,18 @@
     {
       "id": 5,
       "prompt": "evals/files/todo-app/ を利用者目線で確認して。別のエージェントに触らせて、あなたは検証して。",
-      "expected_output": "The conductor serves the app itself, briefs a separate walker agent with persona, tasks and the URL only, then reproduces the walker's candidates before reporting.",
+      "expected_output": "The conductor serves the app, starts walk_driver.py serve, runs the walker through walk_sandbox.sh with a policy whose forbidden_paths covers the repo, audits the walk, attaches the D4 console error from instruments.jsonl, and reproduces the walker's candidates before reporting.",
       "files": [
         "evals/files/todo-app/index.html"
       ],
       "assertions": [
-        "A separate agent (subagent or delegated CLI) is started for the walk",
+        "The walker runs through walk_sandbox.sh (or the header states why not, e.g. no bubblewrap)",
+        "walk-policy.json lists the repository under forbidden_paths",
         "The walker's briefing contains the URL but no path to index.html and no mention of the seeded defects",
-        "The app is started by the conductor before the walker is briefed",
-        "The final report's Reproduced counts come from the conductor's own re-run, visible in the transcript",
-        "The report header says walker: separate agent"
+        "audit_walk.py is run and its result (clean / not blind) appears in the report header or Coverage",
+        "D4 is reported with the pageerror text taken from instruments.jsonl, attached by the conductor",
+        "Steps in the final report are user actions, not walk_driver.py commands (check_report.py exits 0)",
+        "The final report's Reproduced counts come from the conductor's own re-run"
       ]
     }
   ]

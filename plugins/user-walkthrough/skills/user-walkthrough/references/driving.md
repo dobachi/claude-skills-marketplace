@@ -21,6 +21,11 @@
 
 ## Web UI (Playwright)
 
+**The walker does not use this.** A separate walker drives the browser only through
+`scripts/walk_driver.py` (user verbs, no JavaScript, no selectors — see
+`delegation.md`). The raw Playwright below is for **you**: Step 3 reproduction, and
+walks where you are the walker and have accepted that the walk is not blind.
+
 Prefer the project's own Playwright if it has one. Otherwise a throwaway script is
 enough — do not add Playwright to the project's dependencies.
 

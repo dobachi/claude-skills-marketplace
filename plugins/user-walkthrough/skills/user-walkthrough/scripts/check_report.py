@@ -5,7 +5,8 @@ What it checks (structure only — it cannot tell whether a finding is TRUE):
   - every finding heading is `### [Blocker|Major|Minor] title` (JA: 致命/重大/軽微)
   - every finding has Where, Steps (with at least one numbered step), Expected,
     Actual, Evidence, Reproduced — none empty
-  - Actual is not speculation ("might", "probably", 「可能性」「かもしれ」...; quoted text is exempt)
+  - Actual is not speculation ("might", "seems to", 「可能性」「ように見え」...; quoted text is exempt)
+  - Steps are user actions — no walker tooling, devtools, JS, or CSS selectors
   - Expected and Actual are not the same text
   - Reproduced is `n/m`, `not run (static)`, or `observed by user`
   - a Blocker is observed (not `0/m`, not a static guess)
@@ -32,15 +33,21 @@ FINDINGS_H = re.compile(r"^##\s+(findings|指摘)", re.I)
 NOT_CHECKED_H = re.compile(r"^##\s+(not checked|未確認)", re.I)
 H2 = re.compile(r"^##\s+")
 H3 = re.compile(r"^###\s+(.*)$")
-SEV_H = re.compile(r"^\[([^\]]+)\]\s*(.*)$")
-FIELD = re.compile(r"^\s*[-*]\s*\*\*\s*([^*:：]+?)\s*[:：]?\s*\*\*\s*[:：]?\s*(.*)$")
+SEV_H = re.compile(r"^(?:\d+[.)]\s*)?\[([^\]]+)\]\s*(.*)$")   # "[Major] x" or "3. [Major] x"
+# "- **Where:** x", "- **Where**: x", and plain "- Where: x" / "- 場所： x"
+FIELD = re.compile(r"^\s*[-*]\s*(?:\*\*\s*([^*:：]+?)\s*[:：]?\s*\*\*\s*[:：]?|([^*:：]{1,12}?)\s*[:：])\s*(.*)$")
 NUMBERED = re.compile(r"(^|\s)\d+[.)]\s+\S")
 SPECULATION = re.compile(
     r"\b(might|probably|possibly|likely|perhaps|could(?!\s*(?:not|n't)))\b"
-    r"|可能性|かもしれ|と思われ|おそらく|だろう",
+    r"|\bseems? to\b|可能性|かもしれ|と思われ|おそらく|だろう|ように見え|推測",
     re.I)
 # Quoted text is the product speaking (a verbatim message), not the reporter guessing.
 QUOTED = re.compile(r'"[^"]*"|“[^”]*”|「[^」]*」|`[^`]*`')
+# A step a user cannot perform: the walker's tooling, browser internals, selectors.
+NOT_USER_STEP = re.compile(
+    r"walk_driver\.py|\bpage\.\w+\(|\bevaluate\s*\(|document\.|localStorage|sessionStorage|"
+    r"devtools|開発者ツール|デベロッパーツール|`[#.][A-Za-z][\w-]*`|\bxpath\b|querySelector",
+    re.I)
 REPRO_COUNT = re.compile(r"^(\d+)\s*/\s*(\d+)")
 REPRO_STATIC = re.compile(r"not run|static|未実行|静的", re.I)
 REPRO_USER = re.compile(r"observed by user|ユーザー確認|利用者確認", re.I)
@@ -78,9 +85,12 @@ def parse(lines):
         if cur is None:
             continue
         fm = None if in_fence else FIELD.match(line)
-        if fm and fm.group(1).strip().lower() in FIELDS:
-            field = FIELDS[fm.group(1).strip().lower()]
-            cur["fields"][field] = fm.group(2).strip()
+        label = (fm.group(1) or fm.group(2) or "").strip().lower() if fm else ""
+        if label in FIELDS:
+            field = FIELDS[label]
+            cur["fields"][field] = fm.group(3).strip()
+        elif fm and label:
+            field = None          # another labelled item (補足, Note, Direction) ends the field
         elif field:
             cur["fields"][field] += "\n" + line
     return has_findings, has_not_checked, findings
@@ -100,6 +110,10 @@ def check(findings):
                 problems.append("%s: missing or empty %s" % (tag, k.capitalize()))
         if vals.get("steps") and not NUMBERED.search(vals["steps"]):
             problems.append("%s: Steps has no numbered step (1. ...)" % tag)
+        nu = NOT_USER_STEP.search(vals.get("steps", ""))
+        if nu:
+            problems.append("%s: Steps use %r, which a user cannot do — write the user's action "
+                            "(click 「保存」, reload the page)" % (tag, nu.group(0)))
         spec = SPECULATION.search(QUOTED.sub("", vals.get("actual", "")))
         if spec:
             problems.append("%s: Actual is speculative (%r) — report what was observed"

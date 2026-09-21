@@ -1,0 +1,4 @@
+{"tool": "Bash", "input": {"command": "python3 walk_driver.py look"}}
+{"tool": "Bash", "input": {"command": "python3 walk_driver.py click --role button --name 追加"}}
+{"tool": "Bash", "input": {"command": "wget http://localhost:8765/admin"}, "denied": true}
+{"tool": "Write", "input": {"file_path": "report.md", "content": "x"}}

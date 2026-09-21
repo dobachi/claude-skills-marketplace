@@ -1,0 +1,18 @@
+{"type": "system", "subtype": "init", "session_id": "x"}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "ls -la && python3 walk_driver.py --help"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "is_error": false, "content": "usage"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "python3 walk_driver.py look"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "is_error": false, "content": "url: http://localhost:8765/"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "python3 walk_driver.py goto http://localhost:8765/README.md"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t2", "is_error": false, "content": "url"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "python3 walk_driver.py goto http://localhost:8765/help/faq"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t3", "is_error": false, "content": "url"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t4", "name": "Read", "input": {"file_path": "/work/walk/evidence/step-001.png"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t4", "is_error": false, "content": "[image]"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t5", "name": "Bash", "input": {"command": "cat evidence/notes.txt | head -5"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t5", "is_error": false, "content": ""}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t6", "name": "Write", "input": {"file_path": "/work/walk/report.md", "content": "# Walkthrough\n## Findings\n"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t6", "is_error": false, "content": "ok"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "..."}, {"type": "tool_use", "id": "t7", "name": "Write", "input": {"file_path": "/work/walk/probe.py", "content": "page.evaluate('items.length')"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t7", "is_error": false, "content": "ok"}]}}
+{"type": "result", "subtype": "success", "result": "done"}

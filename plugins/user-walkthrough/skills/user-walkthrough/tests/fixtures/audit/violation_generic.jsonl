@@ -1,0 +1,1 @@
+{"tool": "Bash", "input": {"command": "sqlite3 /src/acme/db.sqlite 'select * from items'"}}

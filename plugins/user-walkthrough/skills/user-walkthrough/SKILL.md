@@ -2,17 +2,18 @@
 name: user-walkthrough
 description: >-
   Walks through an app or service AS ITS USER, actually launching and operating it
-  (browser, CLI, API) with a persona and tasks, or following its README/manual
+  with a persona and tasks, or following its README/manual
   procedure verbatim, to find usability friction, contradictions (screen vs screen,
-  docs vs behaviour), unhelpful errors, and bugs. Preferably delegates the walk to a
-  separate agent that has not read the source, then re-verifies each finding. Returns
+  docs vs behaviour), unhelpful errors, and bugs. Delegates the walk to a separate agent
+  held to a user's reach (user-verbs-only browser, bubblewrap sandbox hiding the source,
+  post-walk audit), then re-verifies each finding. Returns
   a severity-ranked report where every finding has reproduction steps, expected vs
   actual, and observed evidence, WITHOUT changing the code. Use when the user says
   "利用者目線で確認して", "ユーザー目線で触ってみて", "使いづらいところを探して",
   "不具合を探して", "動作確認して", "矛盾がないか見て", "手順に従って確認して",
   "手順どおりに動くか試して", "READMEの通りにやってみて", "UXレビュー",
   "walk through the app as a user", "follow the docs and see if it works", "dogfood
-  this", "exploratory test". Read-only. Fixing goes to the developer or a dev skill,
+  this". Read-only. Fixing goes to the developer or a dev skill,
   source review to code-reviewer, design to frontend-design, undefined behaviour to
   requirements-stories.
 ---
@@ -92,13 +93,30 @@ agent-delegate), **split the roles**:
 - Several personas or areas → several walkers in parallel, one persona each.
 - The walker's findings are **candidates**. You reproduce each one yourself from a
   fresh state in Step 3; what you cannot reproduce is dropped or reported as `1/3`.
-- The briefing is the whole trick: it must not leak what the source knows (internal
-  names, where the feature "really" is, known bugs). Prompt template, leak checklist,
-  and per-host invocation → `references/delegation.md`.
+- The briefing must not leak what the source knows (internal names, where the
+  feature "really" is, known bugs). Template and leak checklist →
+  `references/delegation.md`.
 
-If no second agent is available, walk yourself and write
-`walker: same agent (had read the source)` in the report header — the reader should
-know the walk was not blind.
+### What a user can touch and know — enforced, not requested
+
+"Please don't read the source" is a request. The walker is held to a user's reach by
+four layers, each doing what the others cannot:
+
+| Layer | Stops | How |
+|---|---|---|
+| `walk_driver.py` | JavaScript, DOM/page source, CSS selectors, force-clicks on hidden/disabled elements, URLs neither linked nor documented, seeing console/network output | The walker gets a browser that only knows user verbs (click by visible name, fill by label, press, back, …). Playwright runs on **your** side; the walker holds a socket |
+| `walk_sandbox.sh` | Reading the repo, design docs, `~/.claude/projects` transcripts, secrets | bubblewrap: an empty root with a read-only OS and the walker's work dir. The source does not exist there. Refuses to start if a `forbidden_paths` entry would be visible |
+| Tool allowlist | Any command other than the driver and the product's own documented commands; web search | `claude -p --permission-mode dontAsk` with an explicit allowlist (set by `walk_sandbox.sh claude`) |
+| `audit_walk.py` | Whatever slipped through — including knowledge: an internal term from `forbidden_terms` in a walker's command means it knew what the UI never showed | Reads the transcript and the driver log afterwards. Exit 1 → the walk is `not blind` |
+
+The instruments are split the same way: console errors, failed requests, and page
+errors go to a log only you can read. A user never sees the console, so the walker
+reports what was on screen ("clicking すべて完了 changed nothing visible") and **you**
+attach the console line as evidence in Step 3.
+
+Setup, `walk-policy.json`, and the run order → `references/delegation.md`. Without
+bubblewrap or a second agent, fall back and say so in the report header —
+`walker: separate agent (no OS sandbox)` or `walker: same agent (had read the source)`.
 
 ### Step 1 — Walk the happy path as the persona
 
@@ -129,7 +147,11 @@ Now probe like a real user who makes mistakes. Sweep the lenses in
 
 ### Step 3 — Reproduce and verify each candidate
 
-(Done by the conductor, never by the walker that found it.) For every candidate:
+(Done by the conductor, never by the walker that found it.) First run
+`audit_walk.py` on the walk; if it exits 1, the walk was not blind — say so in the
+header and treat findings that depend on the leak as unverified. Read the driver's
+`instruments.jsonl` and attach console / HTTP errors to the finding whose step
+produced them — the step number links the two. Then, for every candidate:
 reproduce it **from a fresh state** (new page / new session /
 clean data) following your own written steps. Record `Reproduced: 2/2`, `1/3`, etc.
 Then argue against it — is this a real user problem, or my taste? Is it the app, or
@@ -209,6 +231,9 @@ the checker when the report is written in Japanese.
 | Padding with cosmetic nits to look thorough | Buries the one Blocker that matters | Short list, severity-ranked |
 | Walking only the happy path | Most real bugs sit on the error and edge paths | Step 2 lenses, every time |
 | Briefing the walker with the repo layout or "the button is under Settings" | The walker inherits your blindness; the walk is no longer a user's | Persona, tasks, entry point, user-facing docs — nothing else |
+| Handing the walker raw Playwright or a shell in the repo | Every guard becomes a request it may ignore | `walk_driver.py` inside `walk_sandbox.sh`, then `audit_walk.py` |
+| Showing the walker console errors | It starts debugging instead of using; a user never sees them | Instruments stay in your log; you attach them in Step 3 |
+| Steps written as tool commands (`walk_driver.py reload`, `#btn-3`) | The developer cannot follow them as a user | Rewrite as user actions — the checker rejects tool commands |
 | Shipping the walker's findings unverified | A fresh agent also mis-clicks and misreads | Conductor reproduces every candidate in Step 3 |
 | In procedure mode, silently fixing a broken step and moving on | The one finding the user asked for disappears | Report the step as written vs what happened, then continue only if the doc allows |
 | Poking production or real payment/email flows | Irreversible side effects | Staging/local only unless explicitly permitted |
@@ -221,3 +246,6 @@ the checker when the report is written in Japanese.
 - `references/delegation.md` — briefing a separate walker agent: prompt template,
   what must not leak, parallel personas, how to invoke per host
 - `scripts/check_report.py` — report checker; exit 0 complete / 1 findings / 2 not a walkthrough report
+- `scripts/walk_driver.py` — user-verbs-only browser: `serve` (conductor) and the walker's client
+- `scripts/walk_sandbox.sh` — runs the walker in bubblewrap with the source out of sight
+- `scripts/audit_walk.py` — post-walk audit of the transcript and driver log; exit 0 clean / 1 left a user's reach / 2 no record

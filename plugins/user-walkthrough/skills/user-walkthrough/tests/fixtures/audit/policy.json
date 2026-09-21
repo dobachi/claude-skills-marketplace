@@ -1,0 +1,15 @@
+{
+ "start_url": "http://localhost:8765/",
+ "allowed_urls": [
+  "http://localhost:8765/README.md",
+  "http://localhost:8765/help/*"
+ ],
+ "allowed_commands": [],
+ "forbidden_paths": [
+  "/src/acme"
+ ],
+ "forbidden_terms": [
+  "TodoStore",
+  "tenant_id"
+ ]
+}
