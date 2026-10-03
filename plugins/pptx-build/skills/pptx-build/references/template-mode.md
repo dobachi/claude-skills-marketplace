@@ -8,6 +8,9 @@ output inherits that template's master, theme, fonts, logos, and **placeholders*
 - [Why this is a real engine feature now](#why-this-is-a-real-engine-feature-now) — what python-pptx makes possible
 - [The workflow: inspect → (map) → fill](#the-workflow-inspect-map-fill) — the three commands, in order
 - [How resolution works (precedence)](#how-resolution-works-precedence) — which layout and placeholder a slide lands on
+- [Annotation placeholders](#annotation-placeholders-source-section-label-section-number) — source line, section label, section number as real placeholders
+- [Figures land in the picture placeholder](#figures-land-in-the-picture-placeholder) — `split`, and `fit: contain`
+- [Dark turn pages, tables, headings](#dark-turn-pages-tables-headings) — `invert`, default table style, `nest_under_heading`
 - [What carries the look](#what-carries-the-look) — master, theme, fonts, logos
 - [Nothing is dropped silently](#nothing-is-dropped-silently) — the warnings that tell you content did not land
 - [When the binary master itself must be carried — this is it](#when-the-binary-master-itself-must-be-carried-this-is-it) — the case only this mode covers
@@ -114,6 +117,56 @@ placeholder when it has one, else as lines under the subtitle.
   title: "…"
   bullets: ["…"]
 ```
+
+## Annotation placeholders: source, section label, section number
+
+The small print of a slide is content too, and a textbox per slide is exactly what a
+master exists to avoid. A template can offer a placeholder for each; the build finds it
+by the **name the placeholder has on the layout** (case-insensitive substring), fills it,
+and removes it from slides that have nothing to put there.
+
+| Role | Layout placeholder name contains | Filled with |
+|---|---|---|
+| `source` | `source`, `出典` | the slide's `source:` — on **every** slide type, tables and two-column slides included |
+| `eyebrow` | `eyebrow`, `section label`, `章名`, `セクション名` | the running section label (`01  Title`) on content pages after the first `section` |
+| `number` | `section number`, `章番号`, `セクション番号` | a `section` slide's `number:` |
+
+These placeholders are BODY-typed, but they are never taken for the content slot. The
+`--map` roles `source` / `eyebrow` / `number` (placeholder idx) override the name match.
+
+A `source:` the chosen layout has no place for is **reported**, like any other dropped
+content — it used to vanish without a word:
+
+```
+  warning: slide 9: layout 'Title and Content' has no source placeholder — the source line
+           was NOT written. Name a placeholder 'Source' on the layout or map the `source` role.
+```
+
+## Figures land in the picture placeholder
+
+- **`split`**: when the template has a figure-and-text layout — a layout named
+  `図と説明` / `figure and text` / `picture and text` holding a PICTURE placeholder and a
+  body — the figure goes into the PICTURE placeholder and the heading + bullets into the
+  body as plain levels (heading at level 0, bullets at level 1). The proportions and the
+  type are the layout's; `ratio:` is ignored. Pin a variant per slide with `layout:` (a
+  wide figure wants a layout with the picture above the text). Without such a layout the
+  split is drawn into the body region as before.
+- The figure is fitted **whole** into the placeholder's box and centred. `insert_picture`
+  crops to fill, which is right for a photograph and wrong for a diagram. An `image` slide
+  keeps the crop by default; `fit: contain` on the slide fits it whole.
+
+## Dark turn pages, tables, headings
+
+- **`invert: true`** on a `section` / `statement` picks the template's dark variant: a
+  layout whose name carries the type's word **and** one of `invert` / `dark` / `濃色` /
+  `反転`. The dark page is then a layout — background, colors and all. A dark variant is
+  never chosen unless asked for.
+- **Tables** take the template's **default table style** (`<a:tblStyleLst def="…">`)
+  instead of the Office style python-pptx stamps on every new table, and honor `widths:`.
+- **`meta.nest_under_heading: true`** puts a `two_col` column's bullets one level below
+  its heading, so the template can style heading (level 0) and bullets (level 1) apart.
+- The content layout is chosen **by name first**; "the first layout with a body" is only
+  the fallback. (Taken first, it lands on a title slide that merely has a presenter block.)
 
 ## What carries the look
 

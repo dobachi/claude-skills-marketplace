@@ -162,7 +162,12 @@ def audit(path):
                 # A placeholder an archetype deliberately re-placed (the narrow
                 # column of a `split`) carries the part name: that geometry is the
                 # composition, not a drifted box.
-                if sh.is_placeholder and not named_part and _slide_level_geometry(sh):
+                # A picture fitted WHOLE into a picture placeholder also has to
+                # carry its own size (its aspect ratio is its own); the box it was
+                # fitted into is still the layout's.
+                is_pic = sh._element.tag == qn("p:pic")
+                if (sh.is_placeholder and not named_part and not is_pic
+                        and _slide_level_geometry(sh)):
                     ph_pinned += 1
                 continue
             if named_part:

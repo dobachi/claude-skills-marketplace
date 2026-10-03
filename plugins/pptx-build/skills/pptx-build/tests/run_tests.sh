@@ -64,6 +64,13 @@ CASES=(
   "0|python3 $A/build_deck.py $f/archetype-deck.yaml -o $TMP/t3.pptx --theme $A/themes/slate-dark.json"
   "0|python3 $A/audit_pptx.py $TMP/t3.pptx --quiet"
 
+  # ---- テンプレート流し込み: 出典・章の名前・章番号が名前つきプレースホルダに入るか ----
+  # 置き場のあるテンプレートでは全部プレースホルダに入り、置き去りのテキストボックスが
+  # 出ない (0)。置き場のないテンプレートでは、出典を黙って落とさず警告する (1)。
+  "0|python3 template_annot_check.py"
+  "1|python3 template_annot_check.py --no-source"
+  "has:期待どおり 1 を返す|python3 template_annot_check.py --no-source"
+
   # ---- 欠陥注入: 型の個数・軸・図の規約が効いているか ----
   "1|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
   "has:matrix takes exactly 4 quadrants|python3 $A/validate_deck.py $f/bad-archetypes.yaml"

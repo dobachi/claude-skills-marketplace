@@ -484,7 +484,12 @@ def _phs_by_role(container):
     content/text/subtitle placeholders in reading order; footer/date/slide-number
     placeholders are ignored. Works on both because both expose `.placeholders`."""
     title, bodies = None, []
+    # A template's annotation placeholders (source / section label / number) are
+    # BODY-typed, but they are never the content slot.
+    skip = set(_annot_idx_by_role(getattr(container, "slide_layout", container)).values())
     for ph in container.placeholders:
+        if ph.placeholder_format.idx in skip:
+            continue
         t = ph.placeholder_format.type
         if t in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
             title = ph
@@ -1853,8 +1858,34 @@ LAYOUT_WORDS = {
     "statement": ("title only", "statement", "message", "タイトルのみ",
                   "メッセージ", "キーメッセージ", "主張"),
     "image": ("picture", "image", "caption", "図", "画像", "写真"),
+    "split": ("figure and text", "picture and text", "図と説明", "図と本文"),
     "blank": ("blank", "白紙"),
+    # The dark variant of a turn page: `invert: true` on a section / statement
+    # picks the layout that carries BOTH these words and the type's own.
+    "invert": ("invert", "dark", "濃色", "反転", "ダーク"),
 }
+
+# Annotation placeholders a template may offer, recognised by the NAME the
+# template's author gave the placeholder on the layout. They are how the small
+# print of a slide — the source line, the running section label, the section
+# number — becomes master-governed instead of a textbox per slide: move the
+# placeholder on the layout and every slide follows.
+ANNOT_WORDS = {
+    "source": ("source", "出典"),
+    "eyebrow": ("eyebrow", "section label", "セクション名", "章名"),
+    "number": ("section number", "章番号", "セクション番号"),
+}
+
+
+def _annot_idx_by_role(layout):
+    """{role: placeholder idx} for the layout's annotation placeholders."""
+    out = {}
+    for ph in layout.placeholders:
+        nm = (ph.name or "").lower()
+        for role, words in ANNOT_WORDS.items():
+            if role not in out and any(w in nm for w in words):
+                out[role] = ph.placeholder_format.idx
+    return out
 
 
 def _layout_index_by_role(prs):
@@ -1874,10 +1905,16 @@ def _layout_index_by_role(prs):
 
     def name_match(lo, *words):
         nm = (lo.name or "").lower()
+        if any(w in nm for w in LAYOUT_WORDS["invert"]):
+            return False            # the dark variant is opt-in (`invert: true`)
         return any(w in nm for w in words)
 
-    content = find(lambda lo: name_match(lo, *LAYOUT_WORDS["content"])
-                   or has_types(lo, (PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT)), 1)
+    # A layout NAMED as the content layout wins; only when no name matches do we
+    # fall back to "the first layout with a body" — which, taken first, would land
+    # on a title slide that merely has a presenter block.
+    content = find(lambda lo: name_match(lo, *LAYOUT_WORDS["content"]), -1)
+    if content < 0:
+        content = find(lambda lo: has_types(lo, (PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT)), 1)
     # image: a layout with a real PICTURE placeholder wins over any "...caption" name.
     img = find(lambda lo: has_types(lo, (PP_PLACEHOLDER.PICTURE,)), -1)
     if img < 0:
@@ -1891,8 +1928,14 @@ def _layout_index_by_role(prs):
         "table": content, "chart": content,
         # Composed archetypes are drawn into the body placeholder's region, so
         # they want the same layout a bullets slide would use.
-        "cards": content, "steps": content, "matrix": content, "split": content,
+        "cards": content, "steps": content, "matrix": content,
         "lead": content,
+        # A split wants the template's figure-and-text layout when it has one
+        # (a PICTURE placeholder beside a body): then the figure lands in a real
+        # placeholder and the 38/62 is the LAYOUT's, not drawn per slide.
+        "split": find(lambda lo: name_match(lo, *LAYOUT_WORDS["split"])
+                      and has_types(lo, (PP_PLACEHOLDER.PICTURE,))
+                      and has_types(lo, (PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT)), content),
         # A statement is one sentence alone: the template's message / title-only
         # layout if it has one, else the section divider, else content.
         "statement": find(lambda lo: name_match(lo, *LAYOUT_WORDS["statement"]),
@@ -1902,10 +1945,14 @@ def _layout_index_by_role(prs):
     }
 
 
-def _placeholders_by_role(slide):
-    """Group a slide's placeholders into title / body[] / subtitle / picture by type."""
+def _placeholders_by_role(slide, skip_idx=()):
+    """Group a slide's placeholders into title / body[] / subtitle / picture by type.
+    `skip_idx`: annotation placeholders (source / eyebrow / number) — they are
+    BODY-typed too, and must never be mistaken for the slide's content slot."""
     roles = {"title": None, "subtitle": None, "body": [], "picture": None}
     for ph in slide.placeholders:
+        if ph.placeholder_format.idx in skip_idx:
+            continue
         t = ph.placeholder_format.type
         if t in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
             roles["title"] = ph
@@ -1967,22 +2014,67 @@ def _tpl_need(ph, idx, layout_name, role, content):
     return ph
 
 
-def _render_table_template(slide, s, i, layout_name):
+def _fit_picture(ph, img):
+    """Put `img` into a PICTURE placeholder WHOLE. `insert_picture` crops to fill
+    the box, which is right for a photograph and wrong for a diagram — a cropped
+    figure has lost labels. Undo the crop and scale the picture to fit inside the
+    placeholder's box, centred; the box itself stays the layout's."""
+    bx, by, bw, bh = ph.left, ph.top, ph.width, ph.height
+    pic = ph.insert_picture(img)
+    pic.crop_left = pic.crop_right = pic.crop_top = pic.crop_bottom = 0
+    iw, ih = pic.image.size
+    k = min(bw / float(iw), bh / float(ih))
+    w, h = int(iw * k), int(ih * k)
+    pic.left, pic.top = int(bx + (bw - w) / 2), int(by + (bh - h) / 2)
+    pic.width, pic.height = w, h
+    return pic
+
+
+_TABLE_STYLES_REL = ("http://schemas.openxmlformats.org/officeDocument/"
+                     "2006/relationships/tableStyles")
+
+
+def _default_table_style_id(prs):
+    """The template's DEFAULT table style (`<a:tblStyleLst def="{GUID}">`).
+    python-pptx stamps every new table with Office's 'Medium Style 2 - Accent 1';
+    a template that declares its own default should get its own."""
+    try:
+        part = prs.part.part_related_by(_TABLE_STYLES_REL)
+        m = re.search(r'<a:tblStyleLst[^>]*\bdef="(\{[0-9A-Fa-f-]+\})"',
+                      part.blob.decode("utf-8", "ignore"))
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def _render_table_template(slide, s, i, layout_name, roles=None, style_id=None):
     """Table in template mode: the template's own table style and theme fonts."""
     header, rows = _table_rows(s)
     if not header and not rows:
         return
     ncols = max([len(header or [])] + [len(r) for r in rows] or [1]) or 1
     nrows = len(rows) + (1 if header else 0)
-    roles = _placeholders_by_role(slide)
+    roles = roles or _placeholders_by_role(slide)
     ph = roles["body"][0] if roles["body"] else None
     if _tpl_need(ph, i, layout_name, "body (for the table)", rows or header) is None:
         return
-    frame = slide.shapes.add_table(nrows, ncols, ph.left, ph.top, ph.width,
+    total_w = ph.width
+    frame = slide.shapes.add_table(nrows, ncols, ph.left, ph.top, total_w,
                                    min(ph.height, Emu(int(Inches(max(0.36 * nrows, 0.4))))))
     _adopt_placeholder(ph, frame)
     tbl = frame.table
     tbl.first_row = bool(header)
+    if style_id:
+        sid = tbl._tbl.tblPr.find(qn("a:tableStyleId"))
+        if sid is not None:
+            sid.text = style_id
+    # `widths`: relative column widths, as in default mode.
+    ws = s.get("widths")
+    if isinstance(ws, (list, tuple)) and len(ws) == ncols and all(
+            isinstance(x, (int, float)) and x > 0 for x in ws):
+        tot = float(sum(ws))
+        for c, x in enumerate(ws):
+            tbl.columns[c].width = int(total_w * x / tot)
     for r, data in enumerate(([header] if header else []) + rows):
         for c in range(ncols):
             tbl.cell(r, c).text_frame.text = data[c] if c < len(data) else ""
@@ -2061,6 +2153,9 @@ def render_template(prs, spec, map_cfg):
     part_theme["aspect"] = ("4:3" if (prs.slide_height or 0) /
                             max(1, prs.slide_width or 1) > 0.7 else "16:9")
     part_g = make_grid(part_theme)
+    table_style = _default_table_style_id(prs)
+    nest = bool((spec.get("meta") or {}).get("nest_under_heading"))
+    section_label = None
 
     for i, s in enumerate(slides, start=1):
         t = s.get("type", "bullets")
@@ -2068,14 +2163,39 @@ def render_template(prs, spec, map_cfg):
         # layout: explicit per-slide > map > heuristic
         li = s.get("layout", m.get("layout", role_layout.get(t, 0)))
         layout = _resolve_layout(prs, li)
+        if s.get("invert") and "layout" not in s and "layout" not in m:
+            layout = _invert_layout(prs, t) or layout
         slide = prs.slides.add_slide(layout)
-        roles = _placeholders_by_role(slide)
+        annot = _annot_idx_by_role(layout)
+        roles = _placeholders_by_role(slide, set(annot.values()))
         chosen.append((t, layout.name))
 
         def pick(role, default_ph):
             if role in m:  # explicit placeholder idx from the map wins
                 return _ph_by_idx(slide, m[role])
             return default_ph
+
+        def annot_ph(role):
+            if role in m:
+                return _ph_by_idx(slide, m[role])
+            return _ph_by_idx(slide, annot[role]) if role in annot else None
+
+        # The running section label, in the layout's own placeholder.
+        if t == "section":
+            num, ttl = s.get("number"), (s.get("title") or "").strip()
+            section_label = ("%s  %s" % (num, ttl)).strip() if num is not None else ttl
+        eb = annot_ph("eyebrow")
+        if eb is not None:
+            if t in CONTENT_FAMILY and section_label:
+                _set_ph_text(eb, section_label)
+            else:
+                _drop_placeholder(eb)
+        nb = annot_ph("number")
+        if nb is not None:
+            if t == "section" and s.get("number") is not None:
+                _set_ph_text(nb, s.get("number"))
+            else:
+                _drop_placeholder(nb)
 
         title_text = s.get("title")
         if t == "quote":
@@ -2106,7 +2226,7 @@ def render_template(prs, spec, map_cfg):
         elif t == "section":
             pass  # title placeholder already filled
         elif t == "table":
-            _render_table_template(slide, s, i, layout.name)
+            _render_table_template(slide, s, i, layout.name, roles, table_style)
         elif t == "chart":
             _render_chart_template(slide, s, i, layout.name)
         elif t == "two_col":
@@ -2114,9 +2234,9 @@ def render_template(prs, spec, map_cfg):
             left = _tpl_need(pick("left", bodies[0] if len(bodies) > 0 else None),
                              i, layout.name, "body", s.get("left"))
             right = pick("right", bodies[1] if len(bodies) > 1 else None)
-            _fill_col_placeholder(left, s.get("left") or {})
+            _fill_col_placeholder(left, s.get("left") or {}, nest)
             if right is not None:
-                _fill_col_placeholder(right, s.get("right") or {})
+                _fill_col_placeholder(right, s.get("right") or {}, nest)
             elif left is not None:  # no second body: merge into one
                 _append_col_placeholder(left, s.get("right") or {})
         elif t == "big_number":
@@ -2126,7 +2246,6 @@ def render_template(prs, spec, map_cfg):
             if s.get("caption"):
                 parts.append(s["caption"])
             _set_ph_bullets(body, parts)
-            _set_ph_text(pick("source", None), s.get("source"))
         elif t == "quote":
             body = _tpl_need(pick("body", roles["body"][0] if roles["body"] else None),
                              i, layout.name, "body", s.get("quote"))
@@ -2139,7 +2258,10 @@ def render_template(prs, spec, map_cfg):
             img = _asset(s.get("image"))
             if pic is not None and img and os.path.exists(img):
                 try:
-                    pic.insert_picture(img)
+                    if str(s.get("fit", "cover")).lower() == "contain":
+                        _fit_picture(pic, img)
+                    else:
+                        pic.insert_picture(img)
                 except Exception:
                     slide.shapes.add_picture(img, pic.left, pic.top, height=pic.height)
             elif img and os.path.exists(img):
@@ -2153,31 +2275,71 @@ def render_template(prs, spec, map_cfg):
                 _set_ph_text(pick("subtitle", roles["subtitle"]
                                   or (roles["body"][0] if roles["body"] else None)),
                              s["sub"])
+        elif t == "split" and roles["picture"] is not None and roles["body"]:
+            # The template has a figure-and-text layout: the figure goes into its
+            # PICTURE placeholder (whole, never cropped) and the reading into its
+            # body placeholder as plain levels — heading at level 0, bullets one
+            # level down — so the LAYOUT owns the proportions and the type.
+            # Level 0 is the layout's HEADING style, so the bullets sit at level 1
+            # whether or not this slide has a heading.
+            items = [{"text": s["heading"], "level": 0}] if s.get("heading") else []
+            items += [{"text": b["text"], "level": b["level"] + 1}
+                      for b in _normalize_bullets(s.get("bullets"))]
+            _set_ph_bullets(roles["body"][0], items)
+            img = _asset(s.get("image"))
+            if img and os.path.exists(img):
+                try:
+                    _fit_picture(roles["picture"], img)
+                except Exception:
+                    slide.shapes.add_picture(img, roles["picture"].left, roles["picture"].top,
+                                             height=roles["picture"].height)
+            else:
+                _warn("slide %d: image not found (%r) — the figure half is empty"
+                      % (i, s.get("image")))
         elif t in ("cards", "steps", "matrix", "split", "lead"):
             # The template decides WHERE (its body placeholder's region); the
             # archetype decides WHAT gets drawn there.
             {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
              "matrix": _render_matrix, "split": _render_split}[t](
                 slide, part_theme, part_g, s, i)
-            _set_ph_text(pick("source", None), s.get("source"))
         elif t == "blank":
             pass
         else:  # bullets
             _set_ph_bullets(_tpl_need(pick("body", roles["body"][0] if roles["body"] else None),
                                       i, layout.name, "body", s.get("bullets")),
                             s.get("bullets"))
-            _set_ph_text(pick("source", None), s.get("source"))
+
+        # The source line: every slide type may carry one. It goes into the
+        # layout's source placeholder (named so on the layout, or mapped); a
+        # source the layout has no place for is reported, never dropped quietly.
+        src = annot_ph("source")
+        if s.get("source"):
+            if src is not None:
+                _set_ph_text(src, s.get("source"))
+            else:
+                _warn("slide %d: layout %r has no source placeholder — the source line was"
+                      " NOT written. Name a placeholder 'Source' on the layout or map the"
+                      " `source` role in --map." % (i, layout.name))
+        elif src is not None:
+            _drop_placeholder(src)
 
     return chosen
 
 
-def _fill_col_placeholder(ph, col):
+def _fill_col_placeholder(ph, col, nest=False):
+    """Heading + bullets into one placeholder. `nest`: put the bullets one level
+    below the heading, so the template can style a heading (level 0) and its
+    bullets (level 1) differently. Off by default — existing templates were
+    filled with both at level 0."""
     if ph is None:
         return
     items = []
+    bullets = _normalize_bullets(col.get("bullets"))
     if col.get("heading"):
         items.append({"text": col["heading"], "level": 0})
-    items += _normalize_bullets(col.get("bullets"))
+        if nest:
+            bullets = [{"text": b["text"], "level": b["level"] + 1} for b in bullets]
+    items += bullets
     _set_ph_bullets(ph, items)
 
 
@@ -2191,6 +2353,19 @@ def _append_col_placeholder(ph, col):
         p = tf.add_paragraph()
         p.text = it["text"]
         p.level = min(it["level"], 8)
+
+
+def _invert_layout(prs, slide_type):
+    """The template's dark variant for this turn page, if it ships one. The dark
+    page is then a LAYOUT (background, colors and all), not a per-slide repaint."""
+    words = LAYOUT_WORDS.get(slide_type)
+    if not words:
+        return None
+    for lo in prs.slide_layouts:
+        nm = (lo.name or "").lower()
+        if any(w in nm for w in LAYOUT_WORDS["invert"]) and any(w in nm for w in words):
+            return lo
+    return None
 
 
 def _resolve_layout(prs, ref):
