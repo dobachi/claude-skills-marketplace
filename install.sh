@@ -46,10 +46,16 @@
 #   `--force` always switches to this run's SRC_DIR.
 #   Every run deletes a leftover <name>.bak, whichever branch it took.
 #
+# REMOVED SKILLS
+#   A skill deleted from the source leaves its symlink behind in every agent dir,
+#   pointing at a directory that no longer exists. Every linking run prunes those:
+#   a symlink is removed only if it is dangling AND its target lies inside a source
+#   tree this script manages. Real files, and links into anything else, are left alone.
+#
 # Flags:
 #   --status        show what every agent currently points at, then exit (no changes)
 #   --force         switch all agents to THIS run's SRC_DIR, overriding a different
-#                   existing source; clean up stale symlinks;
+#                   existing source;
 #                   also re-run `claude plugin update` for every plugin, including ones
 #                   already at the marketplace's version (see SPEED below)
 #
@@ -470,16 +476,33 @@ link_one() {
   fi
 }
 
+# Remove symlinks left behind by skills that no longer exist in the source.
+# Only a DANGLING link whose target sits inside a tree we manage is ours to remove;
+# the same ownership test as unlink_all. Uses the raw link text, not `readlink -f`,
+# because -f returns nothing once several path components are gone.
+prune_dangling() {
+  local base="$1" dst tgt
+  for dst in "$base"/*; do
+    [ -L "$dst" ] && [ ! -e "$dst" ] || continue
+    tgt="$(readlink "$dst" 2>/dev/null || true)"
+    case "$tgt" in
+      "$SRC_DIR"/*|*"/claude-skills-marketplace/"*|"$NEUTRAL_SRC"/*|"${CHECKOUT_DIR:-__none__}"/*)
+        rm -f "$dst"; LN_PRUNED=$((LN_PRUNED+1)) ;;
+    esac
+  done
+}
+
 link_into() {
   local base="$1"
   mkdir -p "$base" || { warn "cannot create $base"; return; }
-  LN_NEW=0; LN_RELINK=0; LN_OK=0; LN_SKIP=0
+  LN_NEW=0; LN_RELINK=0; LN_OK=0; LN_SKIP=0; LN_PRUNED=0
   local n
   while IFS= read -r n; do
     [ -n "$n" ] || continue
     link_one "$(skill_src_for "$SRC_DIR" "$n")" "$base/$n"
   done < <(skill_names_in "$SRC_DIR")
-  log "  $base : ${c_grn}${LN_NEW} new${c_off}, ${LN_RELINK} repointed, ${LN_OK} already-ok, ${LN_SKIP} skipped"
+  prune_dangling "$base"
+  log "  $base : ${c_grn}${LN_NEW} new${c_off}, ${LN_RELINK} repointed, ${LN_OK} already-ok, ${LN_SKIP} skipped, ${LN_PRUNED} pruned"
 }
 
 if [ "$LINK_AGENTS" = 1 ]; then
