@@ -1,6 +1,6 @@
 {
   "name": "ai-tell-reducer",
-  "description": "Reduce the \"AI-ness\" of writing — uniform sentence rhythm, reflexive hedging, vague abstraction, formulaic scaffolding, inflated vocabulary, and surface tics (em-dash / bold / rule-of-three overuse) — while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text.",
-  "version": "1.0.0",
+  "description": "Reduce the \"AI-ness\" of writing across three layers — surface (uniform rhythm, formulaic scaffolding, em-dash / bold / rule-of-three tics), expression (rhetoric with no occasion such as \"not X but Y\", significance attached to plain facts, borrowed metaphors and praise words, inflated vocabulary), and stance (reflexive hedging, no reader in mind, everything weighted equally, text that could be about anything) — judging by effect on the reader rather than by counts, while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text.",
+  "version": "2.0.0",
   "author": {"name": "dobachi"}
 }

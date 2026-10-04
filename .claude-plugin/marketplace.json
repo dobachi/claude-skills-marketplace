@@ -18,7 +18,7 @@
     {
       "name": "ai-tell-reducer",
       "source": "./plugins/ai-tell-reducer",
-      "description": "Reduce the \"AI-ness\" of writing — uniform sentence rhythm, reflexive hedging, vague abstraction, formulaic scaffolding, inflated vocabulary, and surface tics (em-dash / bold / rule-of-three overuse) — while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text."
+      "description": "Reduce the \"AI-ness\" of writing across three layers — surface (uniform rhythm, formulaic scaffolding, em-dash / bold / rule-of-three tics), expression (rhetoric with no occasion such as \"not X but Y\", significance attached to plain facts, borrowed metaphors and praise words, inflated vocabulary), and stance (reflexive hedging, no reader in mind, everything weighted equally, text that could be about anything) — judging by effect on the reader rather than by counts, while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text."
     },
     {
       "name": "archimate-ea",
@@ -103,7 +103,7 @@
     {
       "name": "doc-coauthoring",
       "source": "./plugins/doc-coauthoring",
-      "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN."
+      "description": "Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — grounding facts in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human [人] edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer, and translation to faithful-translation. Bilingual JA/EN."
     },
     {
       "name": "doc-refactor",
@@ -164,11 +164,6 @@
       "name": "grounded-research",
       "source": "./plugins/grounded-research",
       "description": "Runs multi-source research with hallucination control built into the architecture — parallel retrieval subagents that return only quoted spans, an append-only Source Ledger where no claim ships without a source row, blind per-claim verification, and disagreement surfaced rather than averaged."
-    },
-    {
-      "name": "humanize-prose",
-      "source": "./plugins/humanize-prose",
-      "description": "Rewrite AI-generated or AI-assisted text to read as human-authored. Reduces common AI tells (em-dash overuse, 'delve'/'leverage', tricolons, reflex bullet lists, 'いかがでしたでしょうか', generic openers/closers) while preserving meaning, register, and facts. Bilingual (English / Japanese), reader-experience focused — not detector evasion."
     },
     {
       "name": "knowledge-base",

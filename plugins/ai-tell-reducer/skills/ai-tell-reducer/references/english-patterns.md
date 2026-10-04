@@ -4,8 +4,12 @@ Each entry: symptom → why it reads as AI → fix. Before/after examples are il
 
 **Register note (important):** the default register is **formal/technical (memos, papers, reports)**. Some "after" examples below are written slightly loose to make the contrast vivid. For formal work, **fix the same cause but land in formal prose** — no contractions, no first/second person as a device, no fragments-as-punch. Casualizing is register damage in a report, not a de-AI fix. See SKILL.md's *Register calibration*. Casual tools return only when the user asks for a post/blog.
 
+**On counts:** frequencies mentioned below ("dash-dense," "three in a row") are cues for where to look, not thresholds for what to change. They vary by model, genre, and year. Decide with the tests in SKILL.md, which ask what the sentence does for its reader.
+
+**Scope:** this catalog covers surface symptoms and their English-specific forms. Contrast against nobody, attached significance, borrowed metaphors, writing to no reader, and even weighting — the layers a count cannot find — are in `expression-and-stance.md`. Read that first.
+
 ## Contents
-1. Uniform rhythm / low burstiness (most visible)
+1. Uniform rhythm / low burstiness
 2. Ornate vocabulary ("delve" family)
 3. Copula inflation
 4. "It's not X, it's Y" and "From X to Y"
@@ -19,14 +23,15 @@ Each entry: symptom → why it reads as AI → fix. Before/after examples are il
 12. Formulaic structure and dead endings
 13. Localization defaults (spelling, Oxford comma)
 14. Self-certifying meta-claims (asserting your own honesty/value)
+15. Filler signposts
 
 ---
 
-## 1. Uniform rhythm / low burstiness (most visible)
+## 1. Uniform rhythm / low burstiness
 
 **Symptom:** every sentence 15–20 words, subject-verb-object, every paragraph three-to-four lines. Perfect rectangles.
-**Why:** models cluster toward the average; the hypnotic even rhythm pushes readers into skim mode and nothing sticks. This is the single most visible tell.
-**Fix:** vary length and structure deliberately. Break a long sentence into a short one that lands. Let one run longer to build. Vary paragraph openings so three in a row don't start "The… / This… / AI…".
+**Why:** models cluster toward the average; the hypnotic even rhythm pushes readers into skim mode and nothing sticks.
+**Fix:** let length follow content: a claim that needs its conditions runs long, a conclusion can be short. Notice paragraphs that all open the same way ("The… / This… / AI…"). Do not vary for variation's sake — a run of short sentences is as uniform as a run of medium ones.
 
 Before: The system improves data flow. It reduces manual work. It saves teams time. It also cuts costs across departments.
 After: Moving data between departments is the manual bottleneck this system removes. Hand-copying disappears; hours and cost fall with it. (Three sentences of varied length, formal throughout — rhythm without slang.)
@@ -52,8 +57,8 @@ After: This shows the platform works, and marks a real change in approach.
 ## 4. "It's not X, it's Y" and "From X to Y"
 
 **Symptom:** the "It's not X — it's Y" reframe (often with an em dash); "From ancient traditions to modern innovations" sweeps.
-**Why:** "It's not X, it's Y" is the single most-identified AI structural tell. "From X to Y" is usually a way to sound sweeping while saying nothing specific.
-**Fix:** state the point directly. If the contrast is real and earns its place, keep one — not one per section.
+**Why:** "It's not X, it's Y" corrects a misconception nobody had. "From X to Y" is usually a way to sound sweeping while saying nothing specific.
+**Fix:** state the point directly. Keep a contrast when someone actually holds X (the opponent test; see `expression-and-stance.md` E1).
 
 Before: This isn't just a tool — it's a movement. From small startups to global enterprises, everyone benefits.
 After: The tool does one thing well: it lets teams share data without a custom integration each time.
@@ -62,16 +67,16 @@ After: The tool does one thing well: it lets teams share data without a custom i
 
 **Symptom:** adjective-adjective-adjective, or three parallel clauses, in section after section. Stacked tricolons ("Products impress; platforms empower. Products solve; platforms create…").
 **Why:** one tricolon is rhetoric; three back-to-back is pattern failure. The third item is often filler for symmetry.
-**Fix:** if you can delete the third item and lose nothing, it was statistical comfort — cut it. Never use the structure twice in one piece.
+**Fix:** if you can delete the third item and lose nothing, it was statistical comfort — cut it. Three items that are all real stay three.
 
 Before: It's fast, reliable, and scalable. It's simple, powerful, and elegant.
 After: It is fast, and it holds up under load. For this deployment, the second property is the one that matters.
 
 ## 6. Em-dash overuse
 
-**Symptom:** 15–20+ em dashes in a short piece, used for every dramatic pause, aside, and pivot.
+**Symptom:** em dashes used for every dramatic pause, aside, and pivot, until the dash is the default punctuation.
 **Why:** AI over-produced them so heavily (2024–25) that readers now treat a dash-dense text as a tell. Collateral damage — but real.
-**Fix:** keep one or two you actually mean; convert the rest to a period, comma, or parentheses. If two dashes sit in one paragraph, at least one goes.
+**Fix:** keep the ones doing a job no other mark does; convert the rest to a period, comma, or parentheses.
 
 Before: The result — and this is the key part — was faster delivery — something everyone wanted.
 After: The result was faster delivery, which is what everyone wanted.
@@ -105,7 +110,7 @@ After: [needs source: which study, what cost reduction] — or, if unknown: Data
 
 ## 10. Empty stakes inflation
 
-**Symptom:** "in today's fast-paced world," "now more than ever," "the possibilities are endless," inflating a niche topic to world-historical weight.
+**Symptom:** "in today's fast-paced world," "now more than ever," "in an era of…," "imagine a world where…," "have you ever wondered…," "the possibilities are endless," inflating a niche topic to world-historical weight.
 **Why:** filler that raises the emotional register without adding information.
 **Fix:** cut it and open on something concrete. Every argument does not need to be civilizationally important.
 
@@ -116,13 +121,13 @@ After: Most data-governance projects stall on a single question: who is authoriz
 
 **Symptom:** every bullet starts with a **bolded phrase**; bold scattered through running prose; unicode arrows (→), curly quotes, and other characters you don't get by typing normally; leftover markdown.
 **Why:** hallmark of markdown chat output; hand-written prose rarely looks like this.
-**Fix:** return to plain running prose where a list isn't genuinely warranted. Reserve bold for the one or two places it truly earns. Normalize stray unicode to what a keyboard produces.
+**Fix:** return to plain running prose where a list isn't genuinely warranted. Reserve bold for what the reader must not skim past. Normalize stray unicode to what a keyboard produces.
 
 ## 12. Formulaic structure and dead endings
 
 **Symptom:** rigid Intro → Point → Point → Point → Conclusion; sections titled "Challenges and Future Prospects"; endings like "Only time will tell" / "The future looks bright."
 **Why:** the shape itself reads as generated; the empty ending is a non-commitment.
-**Fix:** let structure follow the argument, not a template. End on a concrete action, a sharp observation, or a real question — not a horizon-gazing platitude.
+**Fix:** let structure follow the argument, not a template. End on the last sentence that carries content; if the source has a next step or an open problem, that is the ending. Do not write a new closing line to replace the platitude.
 
 ## 13. Localization defaults (spelling, Oxford comma)
 
@@ -143,3 +148,14 @@ Before: To be transparent, I'll list every limitation I know of.
 After: [just list them] Known limitations: ...
 
 **Test**: delete the sentence. If no information is lost, it was a claim about the writing rather than the writing itself.
+
+## 15. Filler signposts
+
+**Symptom:** "It's important to note that," "It's worth mentioning that," "It should be noted that," "Essentially," "At its core," "When it comes to X," "That being said," "Needless to say," "As we all know."
+**Why:** each announces that a thought is coming without contributing to it. Stacked, they make every sentence start with a wind-up.
+**Fix:** delete and lead with the thing noted. "That being said" becomes "But" or "Still" when a turn is really being made. A caveat that changes how the claim should be read keeps its content and loses only the announcement.
+
+Before: It's important to note that, when it comes to latency, the cache essentially removes the bottleneck.
+After: The cache removes the latency bottleneck.
+
+Hedges that carry a real limit ("may indicate," "appears to," "we conjecture") are precision in technical writing and are not covered by this entry.

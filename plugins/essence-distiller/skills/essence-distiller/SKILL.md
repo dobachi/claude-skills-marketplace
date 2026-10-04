@@ -209,7 +209,7 @@ Purpose: <the one purpose>   Audience: <who>   Enables: <decision/action>
   intact. This skill improves the source artifact itself by subtraction.
 - **document-figures** — extracts/redraws diagrams. This skill decides what a diagram must
   convey and what to strip; document-figures does the drawing.
-- **ai-tell-reducer / humanize-prose** — remove stylistic "AI tells". Distilling is about
+- **ai-tell-reducer** — remove stylistic "AI tells". Distilling is about
   substance and scope, not voice. Filler removal overlaps at the sentence level; anything
   beyond a sentence (sections, requirements, features) is this skill's domain.
 

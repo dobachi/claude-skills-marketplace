@@ -1,6 +1,6 @@
 ---
 name: doc-coauthoring
-description: Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Runs three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — while grounding facts/definitions in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human "[人]" edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer/humanize-prose, and translation to faithful-translation. Bilingual JA/EN. Trigger when the user wants to write or co-author a doc; ドキュメント・文章の共同執筆／たたき台づくり。
+description: Guided, knowledge-grounded co-authoring workflow for substantial documents (proposals, specs, decision docs, technical articles, whitepapers). Runs three optional, composable stages — context gathering, section-by-section drafting, and reader-testing — while grounding facts/definitions in a domain knowledge base with cited sources and consistent terminology. Drafts into a working file, preserves human "[人]" edits, and hands off critical review to doc-review, restructuring to doc-refactor, fact-checking to verify-content/evidence-check, de-AI restyle to ai-tell-reducer, and translation to faithful-translation. Bilingual JA/EN. Trigger when the user wants to write or co-author a doc; ドキュメント・文章の共同執筆／たたき台づくり。
 ---
 
 # Doc Co-Authoring (knowledge-grounded)
@@ -13,8 +13,7 @@ citations, and (3) reader-testing the draft before others read it.
 
 This skill is the **generative co-writing** partner. It deliberately does NOT do these — hand off:
 critical review → `doc-review`; structure-only refactor → `doc-refactor`; fact/citation
-verification → `verify-content` / `evidence-check`; de-AI restyle → `ai-tell-reducer` /
-`humanize-prose`; translation → `faithful-translation`; figure extraction/creation → `document-figures`.
+verification → `verify-content` / `evidence-check`; de-AI restyle → `ai-tell-reducer`; translation → `faithful-translation`; figure extraction/creation → `document-figures`.
 
 ## Working surface & conventions
 
@@ -99,8 +98,7 @@ Exit when a fresh reader answers consistently and surfaces no new gaps.
 
 - Ask the user to do a final read — they own the document and its quality — and to verify facts,
   links, and that it achieves the intended impact.
-- Offer targeted handoffs: `doc-refactor` (tighten structure), `ai-tell-reducer` /
-  `humanize-prose` (reduce AI tells), `faithful-translation` (JA↔EN), `doc-review` (independent
+- Offer targeted handoffs: `doc-refactor` (tighten structure), `ai-tell-reducer` (reduce AI tells), `faithful-translation` (JA↔EN), `doc-review` (independent
   critique). Then build the deliverable (`make build DOC=<name>` → DOCX).
 - Update the draft-state header to 確定 when agreed.
 

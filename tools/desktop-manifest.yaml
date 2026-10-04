@@ -22,7 +22,6 @@
 viable:
   - ai-tell-reducer
   - doc-review
-  - humanize-prose
   - faithful-translation
   - document-summary
   - strategy-memo

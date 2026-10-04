@@ -482,7 +482,7 @@ Deliberately **not** in this skill, to keep the cross-cutting layer thin:
 | Restructuring without changing meaning | `doc-refactor` |
 | Critique of the argument | `doc-review` |
 | Deciding what to cut | `essence-distiller` |
-| AI tells and register repair | `ai-tell-reducer` / `humanize-prose` |
+| AI tells and register repair | `ai-tell-reducer` |
 | Fact and citation verification | `verify-content` / `fact-checker` / `evidence-check` |
 | JA↔EN | `faithful-translation` |
 | Gathering the sources in the first place | `grounded-research` |

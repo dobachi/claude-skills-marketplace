@@ -116,6 +116,6 @@ C3は `doc-coauthoring` の Reader Testing と重なる。両方走っている�
 - **事実そのものの正誤** → `verify-content` / `fact-checker` / `evidence-check`
 - **論証の妥当性・反論の欠如** → `doc-review`（ジャンル別ルーブリックを持っている）
 - **削るべきか** → `essence-distiller`
-- **AIっぽさ** → `ai-tell-reducer` / `humanize-prose`
+- **AIっぽさ** → `ai-tell-reducer`
 
 ここが扱うのは「**スパインで宣言したことを本文が実際にやっているか**」だけである。それ以外は上に渡す。

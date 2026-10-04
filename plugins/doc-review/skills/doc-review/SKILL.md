@@ -11,7 +11,7 @@ description: >-
   "レビューして", "指摘して", "穴を探して", "この論理は通っているか". Read-only and
   diagnostic by contract: it never rewrites (hand off to doc-refactor), never
   verifies facts against sources (hand off to verify-content / evidence-check),
-  never restyles or de-AIs prose (ai-tell-reducer / humanize-prose), never
+  never restyles or de-AIs prose (ai-tell-reducer), never
   summarizes (document-summary). Bilingual — Japanese and English.
 ---
 
@@ -33,7 +33,7 @@ from its neighbours:
 | **doc-review** (this) | **report findings, change nothing** | — |
 | doc-refactor | rewrites structure, preserves meaning | you diagnose; if the author accepts structural fixes, hand off to doc-refactor to apply |
 | verify-content / evidence-check | verify facts & citations vs sources | you *flag* a claim as unsupported; you do not go verify it |
-| ai-tell-reducer / humanize-prose | rewrite AI-sounding prose | you *note* a voice/tell problem; you do not restyle |
+| ai-tell-reducer | rewrite AI-sounding prose | you *note* a voice/tell problem; you do not restyle |
 | document-summary | produce a summary | you review; you do not summarize |
 
 When a finding's proper fix belongs to another skill, **name that handoff in the

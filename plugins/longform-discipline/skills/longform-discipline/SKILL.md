@@ -17,7 +17,7 @@ and a source for each. Read that file when someone asks *why* a rule exists, or 
 
 This skill is a **cross-cutting layer**, not a competing workflow. It composes with whatever else
 is running: `doc-coauthoring` (the drafting conversation), `doc-refactor` (restructuring),
-`doc-review` (critique), `essence-distiller` (cuts), `ai-tell-reducer` / `humanize-prose` (AI tells),
+`doc-review` (critique), `essence-distiller` (cuts), `ai-tell-reducer` (AI tells),
 `verify-content` / `fact-checker` (facts), `faithful-translation` (JA↔EN). It owns none of those
 jobs. It owns **coherence across length**.
 
