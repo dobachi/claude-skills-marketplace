@@ -18,7 +18,7 @@
     {
       "name": "ai-tell-reducer",
       "source": "./plugins/ai-tell-reducer",
-      "description": "Reduce the \"AI-ness\" of writing across three layers — surface (uniform rhythm, formulaic scaffolding, em-dash / bold / rule-of-three tics), expression (rhetoric with no occasion such as \"not X but Y\", significance attached to plain facts, borrowed metaphors and praise words, inflated vocabulary), and stance (reflexive hedging, no reader in mind, everything weighted equally, text that could be about anything) — judging by effect on the reader rather than by counts, while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text."
+      "description": "Reduce the \"AI-ness\" of writing across three layers — surface (uniform rhythm, formulaic scaffolding, em-dash / bold / rule-of-three tics), expression (rhetoric with no occasion such as \"not X but Y\", significance attached to plain facts, borrowed metaphors and praise words, inflated vocabulary), and stance (reflexive hedging, no reader in mind, everything weighted equally, text that could be about anything) — judging by effect on the reader rather than by counts, while preserving meaning, facts, register, and the author's voice, and without fabricating anything. Works on Japanese and English text. For Japanese, also removes English-shaped phrasing (翻訳調): inanimate subjects, surplus pronouns, calqued idioms and set phrases, literal English syntax, undigested katakana, and English punctuation."
     },
     {
       "name": "archimate-ea",

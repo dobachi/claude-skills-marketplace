@@ -1,18 +1,19 @@
 ---
 name: ai-tell-reducer
 description: >-
-  Reduce the "AI-ness" of a piece of writing while preserving meaning, facts, register,
-  and the author's voice, and WITHOUT fabricating anything. Diagnoses three layers:
-  surface (uniform rhythm, scaffolding, em-dash / bold / rule-of-three tics), expression
-  (rhetoric with no occasion such as "not X but Y", significance attached to plain facts,
-  borrowed metaphors and praise words, inflated vocabulary), and stance (reflexive
-  hedging, no reader in mind, everything weighted equally, text that could be about
-  anything). Judges by effect on the reader, not by counts. Works on Japanese and English.
-  Use whenever the user wants a draft to sound less like AI, more natural, or more human;
-  when they mention "AIっぽさ" "AIっぽい文章" "AI感を消す/軽減" "人間らしく" "自然にリライト"
-  "de-slop" "humanize" "sounds like ChatGPT/Claude" or "make this less robotic"; or when
-  they hand over an AI-drafted text to polish. Also use proactively when reviewing or
-  rewriting prose that clearly shows these tells, even if the user never names them.
+  Reduce the "AI-ness" of writing while preserving meaning, facts, register, and the
+  author's voice, without fabricating anything. Diagnoses three layers: surface (uniform
+  rhythm, scaffolding, em-dash / bold / rule-of-three tics), expression (rhetoric with no
+  occasion such as "not X but Y", significance attached to plain facts, borrowed
+  metaphors, inflated vocabulary), and stance (reflexive hedging, no reader in mind,
+  everything weighted equally). Judges by effect on the reader, not by counts. Works on
+  Japanese and English; for Japanese it also removes English-shaped phrasing (翻訳調):
+  inanimate subjects, surplus pronouns, calqued idioms, literal English syntax, katakana.
+  Use when the user wants a draft to sound less like AI or more natural; when they say
+  "AIっぽさ" "AI感を消す" "人間らしく" "自然にリライト" "翻訳調" "英語っぽい日本語"
+  "日本語として不自然" "de-slop" "humanize" or "sounds like ChatGPT"; or when they hand
+  over an AI-drafted text to polish. Also use proactively on prose that clearly shows
+  these tells.
 ---
 
 # AI Tell Reducer
@@ -63,12 +64,15 @@ When the user *does* ask for LinkedIn/blog register, the casual tools come back 
 
 **Japanese:** keep the document's own 常体（だ・である）/ 敬体（です・ます）. Papers and many reports use 常体; internal memos vary. Never switch between them just to manufacture rhythm.
 
+**Japanese that thinks in English.** Japanese model output often keeps English structure under Japanese words: an inanimate subject acting on people (「このデータは私たちに〜を教えてくれる」), pronouns English cannot drop (「それは」「私たちの」「あなたのチーム」), light-verb calques (「影響を持つ」「アクションを取る」), translated idioms (「一日の終わりに」「同じページにいる」), chat set phrases (「素晴らしい質問ですね」「お役に立てれば幸いです」), and English punctuation in running text (「——」, a colon before the punchline). Fix these in every register: the test is whether a writer thinking in Japanese from the start would have written it this way. Keep established loanwords, field terminology, and phrasing the author evidently chose. Faithfulness of an actual translation belongs to `faithful-translation`, not here. Catalog and tests: `references/japanese-translationese.md`.
+
 ## Workflow
 
 1. **Read the whole thing first.** Identify the language (may be mixed JP/EN) and the author's evident voice. Fix the register per *Register calibration* above: assume formal/technical (memo, paper, report) unless the user signalled a post or blog. What the piece is *for* decides which fixes are in bounds.
 2. **Diagnose in three layers, stance first.** Walk the causes below from the top layer down and mark which are actually present. Most drafts have two or three dominant ones. The order matters: if the stance layer is where the draft fails, polishing its surface produces a smoother version of the same empty text — say so in the report rather than hiding it under a clean rewrite. Then read the matching references:
    - Expression and stance, both languages → `references/expression-and-stance.md`
    - Japanese surface symptoms → `references/japanese-patterns.md`
+   - Japanese that reads as translated from English (翻訳調) → `references/japanese-translationese.md`. Read it for every Japanese text, not only when the user mentions it: English-shaped phrasing is one of the most common reasons Japanese model output reads as machine-made.
    - English surface symptoms → `references/english-patterns.md`
 3. **Ask the author, when the fix needs them (optional).** Several stance causes cannot be repaired by rewording, because what is missing is the author's own choice: who the reader is, which point matters most, what was considered and dropped. If the user is present and those causes dominate, ask up to three short questions before rewriting (wording in `references/expression-and-stance.md`). Their answers are source material, so using them is not fabrication. If the user is not available, or the skill was invoked by another skill, do not stop — rewrite what form can fix and flag the rest.
 4. **Rewrite, causes first.** Fix stance and expression, then rhythm and structure, then mop up the surface tics. Change the *minimum* that fixes the problem. Minimum applies to sentences that survive the tests; a sentence that fails them goes, even when that shortens the text a great deal. If a sentence already reads like a person wrote it, leave it alone — and leave the author's own odd-but-theirs phrasing alone too.
@@ -148,7 +152,7 @@ AI writing clusters toward the average: every sentence medium-length, every para
 **12. Formulaic scaffolding.**
 The intro announces itself ("本記事では…," "In this article…"), every section ends with a mini-summary, the body marches intro-point-point-point-conclusion, and the pedagogical voice hand-holds ("Let's explore," "まず〜について見ていきましょう"). *Fix:* delete the announcements and the redundant summaries. Start in the middle of the thought. Trust the reader.
 
-The language catalogs turn the surface causes, and the language-specific forms of the others, into checkable before/after fixes (Japanese sentence-ending monotony, 読点 overuse, 英語直訳 metaphors; English vocabulary, em-dash and bold-list overuse).
+The language catalogs turn the surface causes, and the language-specific forms of the others, into checkable before/after fixes (Japanese sentence-ending monotony, 読点 overuse, 英語直訳 metaphors; English vocabulary, em-dash and bold-list overuse). Japanese written in English patterns — syntax, idioms, set phrases, katakana, punctuation — has its own catalog, because it cuts across causes 5, 7, 9 and 11 and needs a different test (would a writer thinking in Japanese have written this?).
 
 ## Over-correction
 
@@ -161,6 +165,7 @@ A rewrite that removes one template usually installs another. Before reporting, 
 - **Casualized register.** A report that now reads like a blog post.
 - **Stripped structure.** Signposting a long document genuinely needed has been deleted along with the empty kind.
 - **Sanded-off author.** The author's own idiosyncratic phrasing was normalized. Unevenness that belongs to the author is not a tell.
+- **Over-Japanized.** A calqued English idiom replaced with a Japanese proverb, established loanwords (レイテンシ, ワークロード) forced into native words, or subjects dropped where who-does-what is the point.
 
 ## Output
 
