@@ -1,6 +1,6 @@
 {
   "name": "user-walkthrough",
   "description": "Walk through an app or service as its user — actually launch and operate it (browser, CLI, API), either as a persona doing concrete tasks or by following its README/manual procedure verbatim — to find usability friction, contradictions between screens or between docs and behaviour, unhelpful error messages, and bugs. The walk is delegated to a separate agent held to a user's reach by mechanism, not by request: a user-verbs-only browser (walk_driver.py — no JavaScript, selectors, hidden elements or undocumented URLs; console output kept from the walker), a bubblewrap sandbox in which the source code does not exist (walk_sandbox.sh), a tool allowlist, and a post-walk audit of the transcript for anything a user could not touch or know (audit_walk.py). The conductor then attaches instrument evidence and re-verifies every finding from a fresh state. Returns a severity-ranked report where every finding carries user-performable reproduction steps, expected vs actual, observed evidence, and reproduction count, without changing the code (check_report.py). Hands fixing to the developer or a dev skill, source review to code-reviewer, design direction to frontend-design.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {"name": "dobachi"}
 }

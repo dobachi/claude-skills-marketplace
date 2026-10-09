@@ -87,7 +87,11 @@ printf '{"forbidden_paths": ["%s"]}\n' "$TMP/repo" > "$TMP/policy.json"
 echo '{}' > "$TMP/nopolicy.json"
 SB="$SCRIPTS/walk_sandbox.sh"
 run 2 "walk_sandbox no args" "" -- bash "$SB"
-run 2 "walk_sandbox no forbidden_paths" "no forbidden_paths" -- bash "$SB" check "$TMP/work" "$TMP/nopolicy.json"
+# The policy is read only after the bwrap check, so without bwrap this exits 2
+# for the other reason and the message differs.
+if command -v bwrap >/dev/null 2>&1; then
+  run 2 "walk_sandbox no forbidden_paths" "no forbidden_paths" -- bash "$SB" check "$TMP/work" "$TMP/nopolicy.json"
+fi
 if command -v bwrap >/dev/null 2>&1 && bwrap --ro-bind / / true 2>/dev/null; then
   run 0 "walk_sandbox check ok" "no forbidden path is visible" -- bash "$SB" check "$TMP/work" "$TMP/policy.json"
   run 1 "walk_sandbox WALK_RO exposes repo" "REFUSED" -- env WALK_RO="$TMP" bash "$SB" check "$TMP/work" "$TMP/policy.json"
