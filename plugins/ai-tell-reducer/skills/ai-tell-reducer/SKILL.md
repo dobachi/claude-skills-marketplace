@@ -3,17 +3,17 @@ name: ai-tell-reducer
 description: >-
   Reduce the "AI-ness" of writing while preserving meaning, facts, register, and the
   author's voice, without fabricating anything. Diagnoses three layers: surface (uniform
-  rhythm, scaffolding, em-dash / bold / rule-of-three tics), expression (rhetoric with no
-  occasion such as "not X but Y", significance attached to plain facts, borrowed
-  metaphors, inflated vocabulary), and stance (reflexive hedging, no reader in mind,
-  everything weighted equally). Judges by effect on the reader, not by counts. Works on
-  Japanese and English; for Japanese it also removes English-shaped phrasing (翻訳調):
-  inanimate subjects, surplus pronouns, calqued idioms, literal English syntax, katakana.
-  Use when the user wants a draft to sound less like AI or more natural; when they say
-  "AIっぽさ" "AI感を消す" "人間らしく" "自然にリライト" "翻訳調" "英語っぽい日本語"
+  rhythm, scaffolding, em-dash / bold tics), expression (rhetoric with no
+  occasion, significance attached to plain facts, borrowed metaphors, inflated
+  vocabulary), and stance (reflexive hedging, no reader in mind, everything weighted
+  equally). Judges by effect on the reader, not by counts. Works on Japanese and English;
+  for Japanese it also fixes English-shaped phrasing (翻訳調) and off-register word choice
+  (everyday verbs stretched into figures, sentence-shaped headings). Bundles an updatable
+  dictionary scan that inventories candidate words in long documents. Use when the user
+  wants a draft to sound less like AI; when they say "AIっぽさ"
+  "AI感を消す" "人間らしく" "自然にリライト" "翻訳調" "英語っぽい日本語"
   "日本語として不自然" "de-slop" "humanize" or "sounds like ChatGPT"; or when they hand
-  over an AI-drafted text to polish. Also use proactively on prose that clearly shows
-  these tells.
+  over an AI-drafted text to polish. Also use proactively on prose showing these tells.
 ---
 
 # AI Tell Reducer
@@ -73,8 +73,10 @@ When the user *does* ask for LinkedIn/blog register, the casual tools come back 
    - Expression and stance, both languages → `references/expression-and-stance.md`
    - Japanese surface symptoms → `references/japanese-patterns.md`
    - Japanese that reads as translated from English (翻訳調) → `references/japanese-translationese.md`. Read it for every Japanese text, not only when the user mentions it: English-shaped phrasing is one of the most common reasons Japanese model output reads as machine-made.
+   - Japanese word choice that is grammatical but off — everyday verbs stretched into figures (「〜に効く」「畳む」「載せる」), words borrowed from other fields (「座礁」「着火」「本丸」), headings written as sentences → `references/japanese-word-choice.md`. It also holds the procedure for long documents: an inventory, a per-word decision (replace / define and keep / keep), and a replacement table.
    - English surface symptoms → `references/english-patterns.md`
-3. **Ask the author, when the fix needs them (optional).** Several stance causes cannot be repaired by rewording, because what is missing is the author's own choice: who the reader is, which point matters most, what was considered and dropped. If the user is present and those causes dominate, ask up to three short questions before rewriting (wording in `references/expression-and-stance.md`). Their answers are source material, so using them is not fabrication. If the user is not available, or the skill was invoked by another skill, do not stop — rewrite what form can fix and flag the rest.
+   For a file of more than a few hundred lines, or when the user asks for an inventory (洗い出し), also run the dictionary scan described under *Dictionary scan* below. It shows where to look. It does not replace the reading.
+3. **Ask the author, when the fix needs them (optional).** Several stance causes cannot be repaired by rewording, because what is missing is the author's own choice: who the reader is, which point matters most, what was considered and dropped. If the user is present and those causes dominate, ask up to three short questions before rewriting (wording in `references/expression-and-stance.md`). Their answers are source material, so using them is not fabrication. Which of a document's own recurring words are terms to keep is the same kind of choice: show the candidates with their counts and ask (`references/japanese-word-choice.md` §4). If the user is not available, or the skill was invoked by another skill, do not stop — rewrite what form can fix and flag the rest.
 4. **Rewrite, causes first.** Fix stance and expression, then rhythm and structure, then mop up the surface tics. Change the *minimum* that fixes the problem. Minimum applies to sentences that survive the tests; a sentence that fails them goes, even when that shortens the text a great deal. If a sentence already reads like a person wrote it, leave it alone — and leave the author's own odd-but-theirs phrasing alone too.
 5. **Verify** with four passes:
    - *Read-aloud test:* if a line isn't something the author would actually say out loud in this context, it's not fixed yet.
@@ -154,6 +156,24 @@ The intro announces itself ("本記事では…," "In this article…"), every s
 
 The language catalogs turn the surface causes, and the language-specific forms of the others, into checkable before/after fixes (Japanese sentence-ending monotony, 読点 overuse, 英語直訳 metaphors; English vocabulary, em-dash and bold-list overuse). Japanese written in English patterns — syntax, idioms, set phrases, katakana, punctuation — has its own catalog, because it cuts across causes 5, 7, 9 and 11 and needs a different test (would a writer thinking in Japanese have written this?).
 
+## Dictionary scan
+
+`scripts/dict_scan.py` lists the places where a known tell may be present, using the bundled dictionary `dict/ja.ini`. It is principle 3 made mechanical: a way to notice, never a way to decide.
+
+```
+python3 scripts/dict_scan.py FILE... --summary       which entries occur, and how often
+python3 scripts/dict_scan.py FILE...                 each candidate with its line and a direction
+python3 scripts/dict_scan.py FILE... --headings      every heading, sentence-shaped ones marked
+python3 scripts/dict_scan.py FILE... --format tsv    a ledger with an empty decision column
+```
+
+- **A hit is a candidate.** Apply the category's test, printed with the results, before changing anything. A word the author built into the document on purpose stays.
+- **No hits is not a clean bill.** The stance layer and most of the expression layer cannot be found by a word list.
+- **A hit says nothing about who wrote the text.** Most published lists of "AI words" fail when measured, so each entry carries an evidence level (measured, guideline, curated, observed, folk), shown with every hit. Report a hit as a phrase that fails a test, and never as proof of machine authorship.
+- **Never edit toward zero hits, and never report the count as a score.**
+- **The author's decisions are recorded, so they hold next time.** Phrases the author keeps go in `.ai-tell-allow.txt`, and words this project replaces go in `.ai-tell-dict.ini`. Both are read from the working directory. Create or change them only with the user's agreement, since they are files in the user's project.
+- **The dictionary is maintained.** When reading finds a tell the scan missed, add an entry. `references/dictionary.md` has the format, the rule for what belongs in the bundled dictionary and what belongs in a project's, and the checks to run after a change.
+
 ## Over-correction
 
 A rewrite that removes one template usually installs another. Before reporting, check that the result has not become any of these:
@@ -165,6 +185,7 @@ A rewrite that removes one template usually installs another. Before reporting, 
 - **Casualized register.** A report that now reads like a blog post.
 - **Stripped structure.** Signposting a long document genuinely needed has been deleted along with the empty kind.
 - **Sanded-off author.** The author's own idiosyncratic phrasing was normalized. Unevenness that belongs to the author is not a tell.
+- **Dictionary-driven.** Every scan hit was changed, or one replacement was applied to a word everywhere. The same word means different things in different sentences, and uniform replacement is a new template.
 - **Over-Japanized.** A calqued English idiom replaced with a Japanese proverb, established loanwords (レイテンシ, ワークロード) forced into native words, or subjects dropped where who-does-what is the point.
 
 ## Output
