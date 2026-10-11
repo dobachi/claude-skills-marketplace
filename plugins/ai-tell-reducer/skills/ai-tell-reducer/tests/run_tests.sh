@@ -53,7 +53,6 @@ CASES=(
   "has:self-shojiki|$f/dirty.md"
   "has:infl-juyo|$f/dirty.md"
   "has:conn-koreniyori|$f/dirty.md"
-  "no:wago-nigiru|$f/dirty.md"
   "has:meas-tekisetsu|$f/dirty.md"
   "has:meas-fukaketsu|$f/dirty.md"
   "has:hype-kakumei|$f/dirty.md"
@@ -63,6 +62,17 @@ CASES=(
   "has:red-kakugoto|$f/dirty.md"
   "has:red-jisshi|$f/dirty.md"
   "has:kata-consensus|$f/dirty.md"
+  # 活用形・助詞違いの取りこぼし（2.2.1）
+  "has:wago-mawaru|$f/dirty.md"
+  "has:wago-oku|$f/dirty.md"
+  "has:「握り」|$f/dirty.md"
+  "has:「として降ろし」|$f/dirty.md"
+  "has:「へ寄せ」|$f/dirty.md"
+  "has:「軸には載ら」|$f/dirty.md"
+  "has:meta-atesaki|$f/dirty.md"
+  "has:hype-haneagaru|$f/dirty.md"
+  "has:punch-deatte|$f/dirty.md"
+  "has:vague-kokodearu|$f/dirty.md"
 
   # ---- 根拠の強さ: 表示され、絞り込める ----
   "has:(measured)|$f/dirty.md"
