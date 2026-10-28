@@ -894,7 +894,7 @@ def _eyebrow(slide, theme, g, text):
 
 
 CONTENT_FAMILY = ("bullets", "two_col", "big_number", "image", "table", "chart",
-                  "cards", "steps", "matrix", "split", "lead")
+                  "cards", "steps", "matrix", "split", "lead", "panels")
 
 
 def _apply_eyebrows(prs, theme, g, slides):
@@ -984,6 +984,10 @@ def _part(slide, kind, x, y, w, h, theme, fill=None, line=None):
     shape_kind = MSO_SHAPE.ROUNDED_RECTANGLE if radius > 0 else MSO_SHAPE.RECTANGLE
     sp = slide.shapes.add_shape(shape_kind, Inches(x), Inches(y), Inches(w), Inches(h))
     sp.name = "part/%s" % kind
+    # The theme style's effect reference adds a soft shadow in some renderers;
+    # a part never carries one.
+    for ref in sp._element.findall(".//" + qn("a:effectRef")):
+        ref.set("idx", "0")
     if radius > 0:
         try:    # the adjustment is the radius as a fraction of the shorter side
             sp.adjustments[0] = max(0.0, min(0.5, radius / max(0.01, min(w, h))))
@@ -1223,6 +1227,303 @@ def _render_matrix(slide, theme, g, s, i):
             tf = add_textbox(slide, tx, y0 + h0 + _u(theme, 0.5), w0 / 2, _u(theme, 3),
                              name="part/axis")
             set_simple(tf, text, theme, font="body", size=sz, color="muted", align=al)
+
+
+# ---------------------------------------------------------------------------
+# panels — two side-by-side panels, each a vertical stack of text blocks and
+# native figures, with an optional takeaway band across the bottom. Every
+# sentence is real slide text (the first block of a column goes into that
+# column's body placeholder; later blocks are `part/text`), and every figure is
+# drawn from native shapes (`part/<kind>`), so the whole slide stays editable.
+# ---------------------------------------------------------------------------
+PANEL_STYLES = {   # style -> (size key, default pt, bold, color)
+    "label": ("panel_label", 11, True, "accent"),
+    "heading": ("panel_heading", 16, True, "ink"),
+    "lead": ("panel_lead", 13, True, "ink"),
+    "body": ("panel_body", 12, False, "ink"),
+    "note": ("panel_note", 10.5, False, "muted"),
+}
+
+
+def _panel_size(theme, key, default):
+    return theme["size"].get(key, default)
+
+
+def _rich_runs(text):
+    """Split `a **b** c` into [(a, False), (b, True), (c, False)]."""
+    out, emph = [], False
+    for k, seg in enumerate(str(text).split("**")):
+        if seg:
+            out.append((seg, emph))
+        emph = not emph
+    return out
+
+
+def _panel_items(block):
+    items = []
+    for it in block.get("text") or []:
+        if isinstance(it, str):
+            items.append(("body", it))
+        else:
+            items.append((it.get("style", "body"), it.get("text", "")))
+    return items
+
+
+def _panel_text_height(items, theme, w):
+    h = 0.0
+    emph = _panel_size(theme, "panel_emph", 30)
+    for style, text in items:
+        key, dflt, _, _ = PANEL_STYLES.get(style, PANEL_STYLES["body"])
+        size = _panel_size(theme, key, dflt)
+        plain = "".join(seg for seg, _ in _rich_runs(text))
+        line_pt = max(size, emph if "**" in text else size)
+        gap = 8 if style in ("label", "heading") else 4
+        h += _est_lines(plain, size, w) * line_pt * 1.4 / 72 + gap / 72
+    return h
+
+
+def _panel_fill(tf, theme, items):
+    c = theme["color"]
+    emph = _panel_size(theme, "panel_emph", 30)
+    first = True
+    for style, text in items:
+        key, dflt, bold, color = PANEL_STYLES.get(style, PANEL_STYLES["body"])
+        size = _panel_size(theme, key, dflt)
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
+        _no_bullet(p)
+        pPr = p._p.get_or_add_pPr()      # no inherited hanging indent from the layout
+        pPr.set("marL", "0")
+        pPr.set("indent", "0")
+        p.alignment = PP_ALIGN.LEFT
+        p.space_after = Pt(8 if style in ("label", "heading") else 4)
+        p.line_spacing = 1.15
+        for seg, is_emph in _rich_runs(text):
+            run = p.add_run()
+            run.text = seg
+            if is_emph:
+                _set_run_font(run, name=theme["font"]["number"] if "number" in theme["font"]
+                              else theme["font"]["heading"], size=emph, bold=True,
+                              color=c["accent"])
+            else:
+                _set_run_font(run, name=theme["font"]["heading" if bold else "body"],
+                              size=size, bold=bold, color=c[color])
+
+
+def _arrowhead(shape):
+    ln = shape.line._get_or_add_ln()
+    tail = ln.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "med", "len": "med"})
+    ln.append(tail)
+
+
+def _seg(slide, x1, y1, x2, y2, color, width_pt, dash=False, head=False):
+    from pptx.enum.shapes import MSO_CONNECTOR
+    from pptx.enum.dml import MSO_LINE_DASH_STYLE
+    ln = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(x1), Inches(y1),
+                                    Inches(x2), Inches(y2))
+    ln.name = "part/connector"
+    # Drop the connector's theme style reference: it carries the theme's effect
+    # (a soft shadow), which makes a hairline render as a smudged band.
+    for st in ln._element.findall(qn("p:style")):
+        ln._element.remove(st)
+    ln.line.color.rgb = RGBColor.from_string(color)
+    ln.line.width = Pt(width_pt)
+    if dash:
+        ln.line.dash_style = MSO_LINE_DASH_STYLE.DASH
+    if head:
+        _arrowhead(ln)
+    return ln
+
+
+def _shape_label(sp, theme, text, size, bold=True, color="ink", align=PP_ALIGN.LEFT,
+                 anchor=MSO_ANCHOR.TOP):
+    tf = sp.text_frame
+    tf.clear()
+    tf.vertical_anchor = anchor
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_right = Inches(0.06)
+    tf.margin_top = tf.margin_bottom = Inches(0.04)
+    p = tf.paragraphs[0]
+    p.alignment = align
+    _no_bullet(p)
+    run = p.add_run()
+    run.text = str(text)
+    rgb = theme["color"].get(color, color)    # a theme role, or a bare hex
+    _set_run_font(run, name=theme["font"]["heading" if bold else "body"], size=size,
+                  bold=bold, color=rgb)
+
+
+def _panel_figure(slide, theme, fig, x, y, w):
+    """Draw one native figure at (x, y) with width w; return its height (in)."""
+    c = theme["color"]
+    kind = fig.get("kind")
+    if kind == "stacked_bar":
+        h = fig.get("height", 0.30)
+        cx = x
+        for seg in fig.get("segments", []):
+            sw = w * float(seg.get("value", 0))
+            tone = seg.get("tone", "light")
+            fill = {"accent": c["accent"], "dark": "4B5563", "light": c["surface"]}[tone]
+            sp = _part(slide, "bar", cx, y, sw, h, theme, fill=fill)
+            sp.text_frame.margin_top = sp.text_frame.margin_bottom = 0
+            _shape_label(sp, theme, seg.get("label", ""), _panel_size(theme, "panel_fig", 10.5),
+                         True, "FFFFFF" if tone != "light" else "muted",
+                         PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+            cx += sw
+        return h
+    if kind == "staircase":
+        items = fig.get("items", [])
+        n = max(1, len(items))
+        gap = 0.08
+        sw = (w - gap * (n - 1)) / n
+        top_h = fig.get("height", 1.25)
+        low_h = top_h * fig.get("low", 0.38)
+        for k, it in enumerate(items):
+            label, sub = (it, None) if isinstance(it, str) else (it.get("label", ""), it.get("text"))
+            hk = low_h + (top_h - low_h) * k / max(1, n - 1)
+            last = k == n - 1
+            sp = _part(slide, "step", x + k * (sw + gap), y + top_h - hk, sw, hk, theme,
+                       fill=c["accent"] if last else c["surface_hi"])
+            _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 12.5), True,
+                         "FFFFFF" if last else "accent")
+            if sub:
+                p2 = sp.text_frame.add_paragraph()
+                _no_bullet(p2)
+                p2.alignment = PP_ALIGN.LEFT
+                r2 = p2.add_run()
+                r2.text = sub
+                _set_run_font(r2, name=theme["font"]["body"],
+                              size=_panel_size(theme, "panel_fig_sub", 10.5),
+                              color="FFFFFF" if last else c["ink"])
+        return top_h
+    if kind == "flow":
+        items = fig.get("items", [])
+        n = max(1, len(items))
+        gap = 0.42
+        bw = (w - gap * (n - 1)) / n
+        bh = fig.get("height", 0.46)
+        hot = fig.get("highlight", n - 1)
+        for k, label in enumerate(items):
+            bx = x + k * (bw + gap)
+            sp = _part(slide, "node", bx, y, bw, bh, theme, fill="FFFFFF",
+                       line=c["accent"] if k == hot else c["border"])
+            if k == hot:
+                sp.line.width = Pt(theme["shape"]["line"] * 2)
+            _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 12.5), True,
+                         "accent" if k == hot else "ink", PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+            if k < n - 1:
+                _seg(slide, bx + bw + 0.05, y + bh / 2, bx + bw + gap - 0.05, y + bh / 2,
+                     c["muted"], 1.25, head=True)
+        total = bh
+        back = fig.get("feedback")
+        if back:
+            drop = 0.22
+            x_from = x + (n - 1) * (bw + gap) + bw / 2
+            x_to = x + bw / 2
+            yb = y + bh + drop
+            _seg(slide, x_from, y + bh, x_from, yb, c["accent"], 1.25, dash=True)
+            _seg(slide, x_from, yb, x_to, yb, c["accent"], 1.25, dash=True)
+            _seg(slide, x_to, yb, x_to, y + bh + 0.02, c["accent"], 1.25, dash=True, head=True)
+            tf = add_textbox(slide, x_to + 0.1, yb + 0.04, x_from - x_to - 0.2, 0.25,
+                             name="part/text")
+            set_simple(tf, back, theme, font="heading", size=_panel_size(theme, "panel_note", 10.5),
+                       bold=True, color="accent", align=PP_ALIGN.CENTER)
+            total = bh + drop + 0.3
+        return total
+    if kind == "chips":
+        size = _panel_size(theme, "panel_fig_label", 12.5)
+        ch = fig.get("height", 0.36)
+        cx = x
+        for label in fig.get("items", []):
+            cw = 0.3 + _disp_width(label) * size / 72.0
+            sp = _part(slide, "chip", cx, y, cw, ch, theme, fill="FFFFFF", line=c["accent"])
+            _shape_label(sp, theme, label, size, True, "accent", PP_ALIGN.CENTER,
+                         MSO_ANCHOR.MIDDLE)
+            cx += cw + 0.1
+        return ch
+    _warn("panels: unknown figure kind %r" % kind)
+    return 0.0
+
+
+def _render_panels(slide, theme, g, s, i):
+    _, bodies = _phs_by_role(slide)
+    c = theme["color"]
+    x0, y0, w0, h0 = g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"]
+    tk = s.get("takeaway")
+    tk_h = 0.95 if tk else 0.0
+    gutter = 0.45
+    col_w = (w0 - gutter) / 2
+    bottom_limit = y0 + h0 - tk_h
+    for idx, key in enumerate(("left", "right")):
+        col = s.get(key) or {}
+        cx = x0 + idx * (col_w + gutter)
+        cy = y0
+        placed_ph = False
+        for block in col.get("blocks", []):
+            if "figure" in block:
+                cy += 0.06
+                cy += (_panel_figure(slide, theme, block["figure"], cx, cy, col_w)
+                       + block.get("gap", 0.14))
+                continue
+            items = _panel_items(block)
+            if block.get("box"):
+                pad = 0.1
+                bh = _panel_text_height(items, theme, col_w - 2 * pad)
+                _part(slide, "box", cx, cy, col_w, bh + 2 * pad, theme, fill=c["surface"])
+                tf = add_textbox(slide, cx + pad, cy + pad, col_w - 2 * pad, bh, name="part/text")
+                _panel_fill(tf, theme, items)
+                cy += bh + 2 * pad + block.get("gap", 0.12)
+                continue
+            bh = _panel_text_height(items, theme, col_w)
+            if not placed_ph and idx < len(bodies):
+                ph = bodies[idx]
+                _place(ph, cx, cy, col_w, bh)
+                ph.name = "part/panel-text"
+                tf = _prep_ph_tf(ph)
+                tf.word_wrap = True
+                tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+                _panel_fill(tf, theme, items)
+                placed_ph = True
+            else:
+                tf = add_textbox(slide, cx, cy, col_w, bh, name="part/text")
+                _panel_fill(tf, theme, items)
+            cy += bh + block.get("gap", 0.12)
+        if cy > bottom_limit + 0.05:
+            _warn("slide %d: panel %s needs ~%.2f in more than fits — shorten it"
+                  % (i, key, cy - bottom_limit))
+    # a hairline between the columns
+    _seg(slide, x0 + col_w + gutter / 2, y0, x0 + col_w + gutter / 2, bottom_limit - 0.15,
+         c["border"], 0.75)
+    if tk:
+        yb = bottom_limit
+        _seg(slide, x0, yb, x0 + w0, yb, c["border"], 0.75)
+        tf = add_textbox(slide, x0, yb + 0.1, w0, tk_h - 0.1, name="part/takeaway")
+        p = tf.paragraphs[0]
+        _no_bullet(p)
+        run = p.add_run()
+        run.text = tk.get("label", "")
+        _set_run_font(run, name=theme["font"]["heading"],
+                      size=_panel_size(theme, "panel_label", 11), bold=True, color=c["accent"])
+        p2 = tf.add_paragraph()
+        _no_bullet(p2)
+        p2.alignment = PP_ALIGN.CENTER
+        r2 = p2.add_run()
+        r2.text = tk.get("text", "")
+        _set_run_font(r2, name=theme["font"]["heading"],
+                      size=_panel_size(theme, "panel_takeaway", 20), bold=True, color=c["ink"])
+        if tk.get("note"):
+            p3 = tf.add_paragraph()
+            _no_bullet(p3)
+            p3.alignment = PP_ALIGN.CENTER
+            p3.space_before = Pt(4)
+            r3 = p3.add_run()
+            r3.text = tk["note"]
+            _set_run_font(r3, name=theme["font"]["body"],
+                          size=_panel_size(theme, "panel_takeaway_note",
+                                           _panel_size(theme, "panel_note", 10.5)),
+                          color=c[tk.get("note_color", "muted")])
+    for ph in bodies[2:]:
+        _drop_placeholder(ph)
 
 
 def _render_split(slide, theme, g, s, i):
@@ -1681,6 +1982,15 @@ def render_default(prs, theme, g, slides, meta=None):
                     p.alignment = PP_ALIGN.LEFT
             continue
 
+        if t == "panels":
+            slide = prs.slides.add_slide(prs.slide_layouts[TWO_CONTENT_LAYOUT])
+            _set_bg(slide, theme)
+            _title(slide, theme, g, s.get("title", ""), i)
+            _render_panels(slide, theme, g, s, i)
+            _source(slide, theme, g, s.get("source"))
+            _page_number(slide, theme, g, i)
+            continue
+
         if t == "two_col":
             slide = prs.slides.add_slide(prs.slide_layouts[TWO_CONTENT_LAYOUT])
             _set_bg(slide, theme)
@@ -1790,6 +2100,13 @@ def _render_image(slide, theme, g, s, i):
         rw, rh = Emu(pic_ph.width).inches, Emu(pic_ph.height).inches
     else:
         rx, ry, rw, rh = g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"] * 0.7
+
+    # No caption and no note: the caption region would stay empty, so give it to
+    # the figure and drop the empty caption placeholder.
+    if cap_ph is not None and not (label or note):
+        rh = Emu(cap_ph.top + cap_ph.height).inches - ry
+        _drop_placeholder(cap_ph)
+        cap_ph = None
 
     if img and os.path.exists(img):
         _drop_placeholder(pic_ph)   # only once the real picture takes its region

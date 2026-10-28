@@ -47,7 +47,7 @@ ASSERT_RE = re.compile(
     r"should|will|is|are|was|were|up|down", re.I)
 
 CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart",
-                 "cards", "steps", "matrix", "split", "lead"}
+                 "cards", "steps", "matrix", "split", "lead", "panels"}
 KNOWN_TYPES = CONTENT_TYPES | {"title", "section", "quote", "blank", "statement"}
 # Each composed archetype exists for ONE shape of content, and the count is part
 # of that shape: cards are equivalent units, steps are a real sequence, a matrix
@@ -284,6 +284,17 @@ def validate(spec, theme, g):
             if len(B._normalize_bullets(s.get("bullets"))) > 4:
                 add(WARN, i, "more than 4 bullets in the narrow column — the figure is "
                              "the message here; move the detail to notes or another slide")
+        if t == "panels":
+            cols = [s.get(k) for k in ("left", "right") if s.get(k)]
+            if not cols:
+                add(ERROR, i, "panels slide has no `left:` / `right:` column")
+            for col in cols:
+                for blk in col.get("blocks") or []:
+                    fig = blk.get("figure")
+                    if fig is not None and fig.get("kind") not in (
+                            "stacked_bar", "staircase", "flow", "chips"):
+                        add(ERROR, i, "panels figure kind %r is not one of stacked_bar / "
+                                      "staircase / flow / chips" % fig.get("kind"))
         if t == "section" and s.get("number") is not None \
                 and B._disp_width(str(s["number"])) > 4:
             add(WARN, i, "section number %r is set as the page's figure (large) — keep it "

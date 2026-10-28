@@ -245,6 +245,50 @@ the message, so a chart title would repeat it. Template-fill mode leaves colors 
 template's theme. `series` may also be given as a mapping `{name: [values]}`. Pie/doughnut take
 exactly one series and stay readable to about 6 slices; past that use `bar`.
 
+### panels
+
+Two side-by-side panels, each a vertical stack of text blocks and native
+figures, plus an optional takeaway band across the bottom. Use it for a dense
+one-page overview (two contrasting situations and what follows from them) when
+the figures must stay editable in PowerPoint.
+
+```yaml
+- type: panels
+  title: "Action title"
+  left:
+    blocks:
+      - text:
+          - {style: label, text: "世界の動き"}        # label / heading / lead / body / note
+          - {style: lead,  text: "29%から **15%** に低下"}   # **…** = inline emphasis (large, accent)
+      - figure: {kind: stacked_bar, segments: [{label: "A", value: 0.15, tone: accent},
+                                               {label: "B", value: 0.70, tone: dark},
+                                               {label: "他", value: 0.15, tone: light}]}
+      - figure: {kind: staircase, items: ["①…", "②…", "③…", "④…"], height: 1.15}
+  right:
+    blocks:
+      - text: ["…"]
+      - figure: {kind: flow, items: ["A", "B", "C"], feedback: "C の停止が A に及ぶ"}
+  takeaway: {label: "今後に向けて", text: "One sentence", note: "One supporting line"}
+  source: "出典: …"
+```
+
+Every sentence is slide text: the first text block of each column goes into
+that column's body placeholder (re-placed, named `part/panel-text`), later
+blocks are `part/text`. Figures are drawn from native shapes (`part/bar`,
+`part/step`, `part/node`, `part/connector`), never pictures, so labels and
+shapes can be edited in place. Sizes come from `meta.size` keys `panel_label`,
+`panel_heading`, `panel_lead`, `panel_body`, `panel_note`, `panel_emph`,
+`panel_takeaway`, `panel_fig`, `panel_fig_label`. Write emphasis the Japanese
+way — the number inside the sentence (`29%から **15%** に低下`), not a big
+number with a small caption above it. Default mode only.
+
+Figure kinds are `stacked_bar` (shares in one bar), `staircase` (ordered
+levels; items may be `{label, text}`), `flow` (boxes joined by arrows, with an
+optional dashed `feedback` arrow back to the first) and `chips` (a row of
+equal tags). A text block may set `box: true` to sit on a light panel, and any
+block may set `gap:` (in) before the next one. `validate_deck.py` refuses any
+other figure kind rather than letting the build drop it.
+
 ## Composed archetypes
 
 Five types below are **compositions**, not text containers: the renderer draws

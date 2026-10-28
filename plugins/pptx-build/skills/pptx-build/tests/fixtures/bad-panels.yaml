@@ -1,0 +1,11 @@
+# Defect: a figure kind panels cannot draw. validate_deck.py must refuse it,
+# not leave build_deck.py to drop the figure with a warning.
+slides:
+- type: panels
+  title: A panel whose figure is a pie the renderer cannot draw
+  left:
+    blocks:
+    - figure: {kind: pie, segments: [{label: A, value: 1.0}]}
+  right:
+    blocks:
+    - text: [Right column]

@@ -71,6 +71,15 @@ CASES=(
   "1|python3 template_annot_check.py --no-source"
   "has:期待どおり 1 を返す|python3 template_annot_check.py --no-source"
 
+  # ---- panels: 2列の文章と編集できる図を1枚に組む ----
+  # 4種の図（stacked_bar / staircase / flow / chips）と下段のまとめを含む版を
+  # その場でビルドし、監査を通す (0)。描けない図の種類は検証で止める (1)。
+  "0|python3 $A/validate_deck.py $f/panels-deck.yaml"
+  "0|python3 $A/build_deck.py $f/panels-deck.yaml -o $TMP/panels.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/panels.pptx --quiet"
+  "1|python3 $A/validate_deck.py $f/bad-panels.yaml"
+  "has:panels figure kind 'pie'|python3 $A/validate_deck.py $f/bad-panels.yaml"
+
   # ---- 欠陥注入: 型の個数・軸・図の規約が効いているか ----
   "1|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
   "has:matrix takes exactly 4 quadrants|python3 $A/validate_deck.py $f/bad-archetypes.yaml"

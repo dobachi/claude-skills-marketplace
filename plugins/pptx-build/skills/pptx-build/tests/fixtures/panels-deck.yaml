@@ -1,0 +1,44 @@
+# panels: two columns of text blocks and native figures, plus a takeaway.
+# Shaped unlike the slide it was built for: English text, every figure kind.
+meta:
+  aspect: '16:9'
+slides:
+- type: panels
+  title: Warehouse A is losing share while Warehouse B is losing time
+  left:
+    blocks:
+    - text:
+      - {style: label, text: Warehouse A}
+      - {style: heading, text: Share fell to **18%**}
+    - figure:
+        kind: stacked_bar
+        segments:
+        - {label: A 18%, value: 0.18, tone: accent}
+        - {label: Rivals 62%, value: 0.62, tone: dark}
+        - {label: Other, value: 0.20, tone: light}
+    - figure:
+        kind: staircase
+        items:
+        - {label: Tier 1, text: Same-day}
+        - {label: Tier 2, text: Next-day}
+        - {label: Tier 3, text: Tracked}
+  right:
+    blocks:
+    - text:
+      - {style: label, text: Warehouse B}
+      - {style: lead, text: Delays travel back through the carrier}
+    - figure:
+        kind: flow
+        items: [Store, Carrier, Warehouse B]
+        feedback: An outage at B reaches the store
+    - figure:
+        kind: chips
+        items: [Audit, Backup route, Shared status]
+    - box: true
+      text:
+      - {style: body, text: Three incidents this quarter}
+  takeaway:
+    label: Next
+    text: Keep both lanes visible to each other
+    note: One status feed for stores, carriers and warehouses
+  source: 'Source: illustrative fixture'

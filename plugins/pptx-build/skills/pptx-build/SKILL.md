@@ -159,6 +159,11 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`,
 `image`, `table`, `chart`, `blank`.
 
+`panels` is the dense one-page overview: two columns of text blocks and
+native, editable figures (bar / staircase / flow / chips) with a takeaway band
+underneath. Every sentence stays slide text, never baked into a picture. See
+`references/spec-format.md`.
+
 **The four large-type pages are four compositions, not one layout with four
 names.** `title` = rule / title / subtitle; `section` = large muted number / rule /
 title (the number is the figure); `statement` = sentence / rule / gloss on its own
