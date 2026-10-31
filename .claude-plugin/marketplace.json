@@ -314,6 +314,11 @@
       "name": "preview-access",
       "source": "./plugins/preview-access",
       "description": "Puts the current work in front of a user who may not be at this machine — works out from the project and the conversation what to look at (preview server, built site, dev server, file, release, PR), finds or starts it the way the project does, proves it is reachable from another device, and hands over direct, named links to what changed. Not tied to any one tool. Reuses the running preview, never hands over an unfetched or localhost-only link, and answers 'give me the URL again' without rebuilding."
+    },
+    {
+      "name": "session-summary",
+      "source": "./plugins/session-summary",
+      "description": "Writes a structured summary of the current AI working session — a one-line overview, what the user must decide or do, where the work happened (paths, repository, remote, branch, HEAD, uncommitted state), the roadmap with the current position, what was created or changed, decisions with their reasons and rejected options, what is done but unverified, and the next step together with what is blocking it and who must act. Workspace facts come from a bundled script run against the repository, not from memory of the conversation. Saves to a file only when asked. Use when the user wants a recap richer than one line — \"セッションをまとめて\", \"今の状況を整理して\", \"進捗サマリ\", \"どこまで進んだ？\", \"引き継ぎ用にまとめて\", \"summarize this session\", \"where are we\", \"status summary\", \"handoff note\". Not for the built-in one-line `/recap`, meeting or trip reports (debrief-report), summarizing a document (document-summary), parking tasks for later (backlog), or posting progress to GitHub Issues (commit-and-report)."
     }
   ]
 }

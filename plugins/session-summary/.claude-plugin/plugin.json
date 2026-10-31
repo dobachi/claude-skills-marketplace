@@ -1,0 +1,6 @@
+{
+  "name": "session-summary",
+  "description": "Writes a structured summary of the current AI working session — a one-line overview, what the user must decide or do, where the work happened (paths, repository, remote, branch, HEAD, uncommitted state), the roadmap with the current position, what was created or changed, decisions with their reasons and rejected options, what is done but unverified, and the next step together with what is blocking it and who must act. Workspace facts come from a bundled script run against the repository, not from memory of the conversation. Saves to a file only when asked. Use when the user wants a recap richer than one line — \"セッションをまとめて\", \"今の状況を整理して\", \"進捗サマリ\", \"どこまで進んだ？\", \"引き継ぎ用にまとめて\", \"summarize this session\", \"where are we\", \"status summary\", \"handoff note\". Not for the built-in one-line `/recap`, meeting or trip reports (debrief-report), summarizing a document (document-summary), parking tasks for later (backlog), or posting progress to GitHub Issues (commit-and-report).",
+  "version": "0.1.0",
+  "author": {"name": "dobachi"}
+}
