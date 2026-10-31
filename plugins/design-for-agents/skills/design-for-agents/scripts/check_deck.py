@@ -5,9 +5,12 @@
 1対1に対応する。閾値は tokens/pptx.tokens.json から読む（値をここに書かない）。
 
 検証の状態:
-  正常系（pptx-build のサンプル3本）で偽陽性ゼロ、欠陥を注入した異常系で全て
+  正常系（pptx-build のサンプル 8 本と、1 枚物 5 本を束ねた 1 デッキ）で偽陽性ゼロ、欠陥を注入した異常系で全て
   発火することを確認した条件だけ、rules/ 側を `check: automated` にしてある。
   構図の3件（同一骨格の連続・地の暗いページ・角丸と線幅）は 2026-08-30 に追加した。
+  2026-10-31: 生成器の構図部品（`part/<kind>`）を知るようにした — 図の内側は本文規則の
+  対象外、1 枚物は読む資料として本文の床を 12pt に、列端は 2〜4 等分、面の上の文字は
+  面の色に対して測る、角丸は調整値ではなく半径で比べる。
   以下2件は実装済みだが**発火を確認していない**ので、rules/ 側は manual のまま。
     - pptx-diagram-smartart-none#no-smartart（python-pptx で SmartArt を作れない）
     - pptx-master-no-stock-theme#theme-is-not-stock（実物の Office テーマが要る）
@@ -112,6 +115,41 @@ def alt_text_of(shape) -> str:
 # pptx-build が頁物（走る章名ラベル、ページ番号）に付ける名前。位置に関わらず
 # 本文ではない（出典行・ページ番号と同じ扱い）。
 ANNOT_PREFIX = "annot/"
+# pptx-build names every composed part `part/<kind>`. Parts that are the INSIDE of a
+# native figure (boxes, markers, connectors, their labels) follow the figure's own
+# grid and type, not the page's body rules (core-diagram-*). Text blocks of a
+# composition (`part/text`, `part/panel-text`, `part/lead`, `part/takeaway`) ARE
+# body text and stay under the body rules.
+PART_PREFIX = "part/"
+FIGURE_PARTS = ("part/node", "part/group", "part/marker", "part/connector", "part/chip",
+                "part/bar", "part/step", "part/tile", "part/fig-text", "part/recommend",
+                "part/figure-caption")   # a figure's caption + note (15 / 14 pt) is not body
+# A slide that carries one of these is a one-pager composition (panels / dashboard):
+# a page that is read, so core-type-body-floor applies its one-pager floor.
+ONEPAGER_MARKS = ("part/takeaway", "part/panel-text", "part/tile")
+
+
+def _name(shape) -> str:
+    return str(getattr(shape, "name", "") or "")
+
+
+def is_figure_part(shape) -> bool:
+    return _name(shape).startswith(FIGURE_PARTS)
+
+
+def is_onepager(slide) -> bool:
+    return any(_name(sh).startswith(ONEPAGER_MARKS) for sh in shapes_of(slide))
+
+
+def _shape_fill_rgb(shape):
+    """The shape's own solid fill as hex, or None (inherits / none / gradient)."""
+    try:
+        fill = shape.fill
+        if fill.type == 1:            # MSO_FILL.SOLID
+            return str(fill.fore_color.rgb).upper()
+    except Exception:
+        pass
+    return None
 
 
 def in_footer(shape, tok) -> bool:
@@ -143,6 +181,8 @@ def is_body_text(shape, tok) -> bool:
     if getattr(shape, "is_placeholder", False) and shape.placeholder_format.idx == 0:
         return False
     if is_source_line(shape.text_frame.text):
+        return False
+    if is_figure_part(shape):
         return False
     return not in_footer(shape, tok)
 
@@ -183,7 +223,12 @@ def check_type_scale(prs, tok, f):
 def check_body_floor(prs, tok, f):
     floor = tok["fontSize"]["body"]["$value"]
     sub = tok["fontSize"]["bodySub"]["$value"]
+    one = tok["fontSize"].get("onePagerNote", {}).get("$value", 12)
     for i, slide in enumerate(prs.slides, 1):
+        if is_onepager(slide):
+            floor_i, sub_i = one, one     # a page that is read, not projected
+        else:
+            floor_i, sub_i = floor, sub
         for sh in shapes_of(slide):
             if not is_body_text(sh, tok):       # タイトル・フッタ・表は本文ではない
                 continue
@@ -191,7 +236,7 @@ def check_body_floor(prs, tok, f):
                 if run.font.size is None:
                     continue
                 pt = run.font.size.pt
-                limit = sub if para.level >= 1 else floor
+                limit = sub_i if para.level >= 1 else floor_i
                 if pt < limit:
                     f.add("core-type-body-floor#body-not-below-floor", i,
                           f"本文 {pt}pt < 下限 {limit}pt「{run.text[:18]}」")
@@ -416,12 +461,14 @@ def check_grid(prs, tok, f):
     margin = g["sideMargin"]["$value"]
     content = g["contentWidth"]["$value"]
     gutter = g["gutter"]["$value"]
-    col2 = margin + (content - gutter) / 2 + gutter
-    allowed = [0.0, margin, round(col2, 2)]
+    allowed = [0.0, margin]
+    for n in (2, 3, 4):                           # equal columns on the one gutter
+        colw = (content - gutter * (n - 1)) / n
+        allowed += [round(margin + k * (colw + gutter), 2) for k in range(1, n)]
     tol = 0.02
     for i, slide in enumerate(prs.slides, 1):
         for sh in shapes_of(slide):
-            if sh.left is None:
+            if sh.left is None or is_figure_part(sh):
                 continue
             left = round(sh.left / 914400, 2)
             if any(abs(left - a) <= tol for a in allowed):
@@ -438,6 +485,7 @@ def check_grid(prs, tok, f):
 def check_four_slots(prs, tok, f):
     """色数を数える。色値は見ない — ブランドがあれば accent は差し替わるため。"""
     limit = 3                                     # ink / muted / accent。紙は背景
+    paper = tok["color"]["paper"]["$value"].lstrip("#").upper()   # 面の上の白文字も紙
     used: dict[str, int] = {}
     for i, slide in enumerate(prs.slides, 1):
         for sh in shapes_of(slide):
@@ -445,7 +493,7 @@ def check_four_slots(prs, tok, f):
                 continue                          # 表とグラフの内部は対象外
             for _, run in iter_text(sh):
                 rgb = _rgb(run.font.color)
-                if rgb:
+                if rgb and rgb != paper:
                     used.setdefault(rgb, i)
     if len(used) > limit:
         f.add("core-color-four-slots#only-four-slots", 0,
@@ -463,6 +511,7 @@ def check_one_emphasis(prs, tok, f):
     """
     ink = tok["color"]["ink"]["$value"].lstrip("#").upper()
     muted = tok["color"]["muted"]["$value"].lstrip("#").upper()
+    paper = tok["color"]["paper"]["$value"].lstrip("#").upper()
     for i, slide in enumerate(prs.slides, 1):
         sigs = set()
         for sh in shapes_of(slide):
@@ -470,7 +519,7 @@ def check_one_emphasis(prs, tok, f):
                 continue
             for _, run in iter_text(sh):
                 rgb = _rgb(run.font.color)
-                if not rgb or rgb in (ink, muted) or not run.text.strip():
+                if not rgb or rgb in (ink, muted, paper) or not run.text.strip():
                     continue
                 pt = run.font.size.pt if run.font.size else None
                 sigs.add((rgb, pt, bool(run.font.bold)))
@@ -487,16 +536,17 @@ def check_contrast(prs, tok, f):
         for sh in shapes_of(slide):
             if getattr(sh, "has_chart", False):
                 continue
+            own = _shape_fill_rgb(sh)         # text on a filled part reads against the fill
             for _, run in iter_text(sh):
                 fg = _rgb(run.font.color)
                 if not fg or not run.text.strip():
                     continue
                 pt = run.font.size.pt if run.font.size else large
                 need = 3.0 if (pt >= large or (pt >= 14 and run.font.bold)) else 4.5
-                r = contrast_ratio(fg, bg)
+                r = contrast_ratio(fg, own or bg)
                 if r < need:
                     f.add("core-a11y-contrast-body#body-contrast-4-5", i,
-                          f"コントラスト比 {r:.2f} < {need}（#{fg} on #{bg}, {pt}pt）")
+                          f"コントラスト比 {r:.2f} < {need}（#{fg} on #{own or bg}, {pt}pt）")
 
 
 def check_tables(prs, tok, f):
@@ -601,6 +651,8 @@ def check_placeholders(prs, tok, f):
                    and sh.text_frame.text.strip():
                     has_title = True
                 continue
+            if _name(sh).startswith(PART_PREFIX):
+                continue                          # a composed part, named as such
             if getattr(sh, "has_text_frame", False) and sh.text_frame.text.strip() \
                and not in_footer(sh, tok) and not is_source_line(sh.text_frame.text):
                 stray += 1
@@ -693,12 +745,16 @@ def check_dark_pages(prs, tok, f):
 
 
 def _corner_radius(shape):
-    """角丸の調整値。角丸を持たない図形は None。"""
+    """角丸の半径（inch）。角丸を持たない図形は None。
+
+    OOXML の調整値は短辺に対する比率なので、同じ半径でも図形の大きさが違えば
+    値が違う。規則が揃えるのは半径そのものなので、短辺を掛けて inch に戻す。"""
     try:
         adj = shape.adjustments
         if len(adj) == 0:
             return None
-        return round(float(adj[0]), 4)
+        short = min(float(shape.width or 0), float(shape.height or 0)) / 914400.0
+        return round(float(adj[0]) * short, 2)
     except Exception:
         return None
 

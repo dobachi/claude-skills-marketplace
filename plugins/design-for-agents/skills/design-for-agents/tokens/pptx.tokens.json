@@ -150,6 +150,18 @@
     "chartLabel": {
       "$value": 12,
       "$description": "グラフのラベル。本文ではないので本文下限の対象外"
+    },
+    "tileNumber": {
+      "$value": 32,
+      "$description": "ダッシュボードの数字タイルの値（1 枚物）"
+    },
+    "onePagerBody": {
+      "$value": 14,
+      "$description": "1 枚物（panels / dashboard）の本文。読む資料なので投影用より小さい"
+    },
+    "onePagerNote": {
+      "$value": 12,
+      "$description": "1 枚物の注記と図のラベル。これより小さくしない"
     }
   },
   "grid": {

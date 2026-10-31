@@ -8,7 +8,7 @@ statement: "内容はレイアウトのプレースホルダに書く。スラ�
 values:
   - "使うレイアウト: スライドマスターに定義したもののみ"
   - "白紙レイアウト＋テキストボックスの組み合わせを使わない"
-not_applicable_when: "なし"
+not_applicable_when: "生成器が `part/<kind>` と名付けた構図の部品。プレースホルダの領域から描かれ、部品であることを名前が記録している（pptx-build の語彙）"
 source:
   kind: house
   key: house

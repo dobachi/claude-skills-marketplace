@@ -21,14 +21,41 @@ for y in "$BUILD"/samples/*.yaml; do
   n="$(basename "$y" .yaml)"
   python3 "$BUILD/build_deck.py" "$y" --out "$TMP/$n.pptx" >/dev/null 2>&1 \
     || { say NG "$n のビルドに失敗"; fail=1; continue; }
-  if python3 "$SKILL/scripts/check_deck.py" "$TMP/$n.pptx" >/dev/null 2>&1; then
+  python3 "$SKILL/scripts/check_deck.py" "$TMP/$n.pptx" >"$TMP/$n.out" 2>&1; rc=$?
+  if [ "$rc" -eq 0 ]; then
     say OK "$n"
+  elif [ "$rc" -eq 2 ]; then
+    # 測れない（1 枚物など、床の枚数に満たない）。違反ではない。
+    say 対象外 "$n — $(head -1 "$TMP/$n.out")"
   else
     say NG "$n が違反を出した（偽陽性）"
-    python3 "$SKILL/scripts/check_deck.py" "$TMP/$n.pptx" 2>&1 | grep "^  違反" | sed 's/^/        /'
+    grep "^  違反" "$TMP/$n.out" | sed 's/^/        /'
     fail=1
   fi
 done
+# 1 枚物のサンプルは単体では床に満たないので、まとめて 1 つのデッキにして検査する。
+python3 - "$BUILD/samples" "$TMP/onepagers.yaml" <<'PY2'
+import sys, glob, pathlib, yaml
+src, out = sys.argv[1], sys.argv[2]
+slides = []
+for y in sorted(glob.glob(src + "/onepager-*.yaml")):
+    slides += (yaml.safe_load(pathlib.Path(y).read_text()).get("slides") or [])
+pathlib.Path(out).write_text(yaml.safe_dump({"meta": {"title": "one-pagers"}, "slides": slides},
+                                            allow_unicode=True, sort_keys=False))
+print(len(slides))
+PY2
+if python3 "$BUILD/build_deck.py" "$TMP/onepagers.yaml" --out "$TMP/onepagers.pptx" >/dev/null 2>&1; then
+  python3 "$SKILL/scripts/check_deck.py" "$TMP/onepagers.pptx" >"$TMP/onepagers.out" 2>&1; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    say OK "onepager-* をまとめた 1 デッキ"
+  else
+    say NG "onepager-* をまとめた 1 デッキが違反を出した (exit $rc)"
+    grep -E "^  違反|下限" "$TMP/onepagers.out" | head -20 | sed 's/^/        /'
+    fail=1
+  fi
+else
+  say NG "onepager-* をまとめた 1 デッキのビルドに失敗"; fail=1
+fi
 
 echo "陰性対照 — 欠陥を注入したデッキで、狙った条件が発火すること"
 SRC="$(ls "$TMP"/*.pptx | head -1)"

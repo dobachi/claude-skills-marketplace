@@ -9,7 +9,7 @@ values:
   - "本文: 4.5:1"
   - "大きい文字（18pt 以上、または 14pt 以上の太字）: 3:1"
   - "文字以外の要素（グラフの線、境界）: 3:1"
-not_applicable_when: "装飾目的のみで、消しても情報が失われない要素。ただし本リポジトリはそもそも装飾を置かない（core-ornament-none）"
+not_applicable_when: "背景は、文字が面の上に載っていればその面の色、そうでなければ紙の色で測る。装飾目的のみで、消しても情報が失われない要素。ただし本リポジトリはそもそも装飾を置かない（core-ornament-none）"
 source:
   kind: normative
   key: wcag22

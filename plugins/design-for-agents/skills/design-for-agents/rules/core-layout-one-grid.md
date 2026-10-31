@@ -7,7 +7,8 @@ topic: layout
 statement: "全ての要素を、側マージン・列端・右マージンのいずれかに揃える。目測で置かない"
 values:
   - "グリッドの定義: tokens/pptx.tokens.json の grid"
-not_applicable_when: "全面配置の画像。ただし画像の上に載る文字はグリッドに従う"
+  - "列端は、内容幅を同じ gutter で 2・3・4 等分した境界"
+not_applicable_when: "全面配置の画像。ただし画像の上に載る文字はグリッドに従う。図の内側（箱・印・矢印・そのラベル）は図自身の格子に乗る（core-diagram-*）"
 source:
   kind: consensus
   key: williams-crap

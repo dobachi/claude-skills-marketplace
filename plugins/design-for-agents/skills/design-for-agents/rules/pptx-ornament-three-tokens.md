@@ -20,7 +20,7 @@ done_when:
   - id: one-corner-radius
     applies_to: element
     predicate: equal
-    statement: "角丸を持つ図形の角丸半径が全て同じ値である"
+    statement: "角丸を持つ図形の角丸半径（inch。調整値ではなく、短辺を掛けた半径）が全て同じ値である"
     check: automated
     detector: "scripts/check_deck.py <deck.pptx>"
     floor: "角丸を持つ図形が2つ以上ある"

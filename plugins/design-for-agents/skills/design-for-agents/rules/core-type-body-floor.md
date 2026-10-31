@@ -8,8 +8,9 @@ statement: "本文サイズは下限を下回らない。収まらないとき�
 values:
   - "本文の下限: 18pt"
   - "第2階層の下限: 16pt"
-  - "自動縮小を許すのはタイトルのみ（30pt から 24pt まで）"
-not_applicable_when: "出典行・ページ番号（11pt）、表の中（15pt）、キャプション（15pt / 注記 14pt）。これらは本文ではない"
+  - "自動縮小を許すのはタイトルのみ（34pt から 28pt まで）"
+  - "1 枚物（panels / dashboard / decision: 読む資料であって投影しない）の下限: 本文 14pt、注記と図のラベル 12pt"
+not_applicable_when: "出典行・ページ番号（11pt）、表の中（15pt）、キャプション（15pt / 注記 14pt）、図の内側の文字（`part/node` など、図の規則が受け持つ）。これらは本文ではない"
 source:
   kind: house
   key: house
