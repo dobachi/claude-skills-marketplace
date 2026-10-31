@@ -4,14 +4,15 @@ description: >-
   Generate clean, white-based .pptx decks that don't look AI-made, and rebuild decks that
   already exist — built on python-pptx. Three modes, one spec: (1) default — a grid-anchored
   layout with no drifting bands, plus composed archetypes (cards / steps / matrix / split /
-  statement) picked from the content's shape and drawn on one spacing scale with one corner
-  radius and one line weight; (2) template-fill — open a real corporate .pptx/.potx and write
-  into ITS layouts and placeholders, inheriting its master, theme, fonts and logos;
+  statement) picked from the content's shape; (2) template-fill — write into a real corporate
+  .pptx/.potx's own layouts and placeholders, inheriting its master, theme, fonts and logos;
   (3) refactor — `extract_deck.py` reads an EXISTING deck back into a spec and reports what it
-  cannot carry. Use when an actual PowerPoint file must be produced or fixed, not just designed
-  — "simple white deck", "テンプレに沿ったパワポ", "会社のテンプレートで作って", "この資料を作り直して
-  /整えて". Ships `validate_deck.py` (spec lint, archetype conditions, narrative spine) and
-  `audit_pptx.py` (fails a deck whose content is not in layout placeholders).
+  cannot carry. Figures are native and editable (`figure` slide, `split figure:`, panels
+  figures: diagram / flow / staircase / stacked_bar / chips) — a drawn diagram is boxes and
+  arrows, never a pasted PNG; `image` is for photographs only and the validator refuses drawn
+  pictures. Use when a PowerPoint file must be produced or fixed — "simple white deck",
+  "テンプレに沿ったパワポ", "この資料を作り直して", "図の文字が編集できない". Ships `validate_deck.py`
+  (spec lint) and `audit_pptx.py` (placeholder audit).
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -42,11 +43,38 @@ When the spec seems not to cover what you need:
 |---|---|
 | A table is needed | `type: table` (rows/columns land in the body placeholder's region) |
 | A chart is needed | `type: chart` (column / bar / line / area / pie / doughnut) |
-| A diagram is needed | Draw it with `document-figures`, place it as `type: image` |
+| A diagram is needed | A **native figure**: `type: figure` (full width), `split` with `figure:` (beside its reading), or a figure block in `panels`. Kinds: `diagram` (boxes on a grid + arrows), `flow`, `staircase`, `stacked_bar`, `chips`. Never a rendered PNG/SVG |
+| A photograph, a screenshot, someone else's figure | `type: image` with `image_kind: photo \| screenshot \| external` — the only things that belong in a picture |
 | Something genuinely unsupported | Extend `build_deck.py` and `references/spec-format.md` — the generator is the artifact, not the deck |
 
 `validate_deck.py` errors on an unknown `type:`, and `audit_pptx.py` (below) fails any deck
 whose text ended up in free textboxes. If either fires, fix the generator or the spec.
+
+## Rule one: a drawn diagram is never a picture
+
+A diagram rendered to PNG or SVG and pasted onto a slide is the second failure this skill
+exists to prevent. The audience cannot fix a typo in it, the template's fonts do not reach it,
+it blurs when projected, and the next revision means redrawing it from scratch. **Every word on
+a slide is editable slide text**, including the words inside boxes and on arrows.
+
+So a figure is built from the native vocabulary, and the shape of the content picks the kind:
+
+| The figure shows | Kind | Where it goes |
+|---|---|---|
+| Things related by arrows, in any arrangement (actors, systems, a one-page overview) | `diagram` — nodes on a `cols` × `rows` grid, edges between ids, optional `groups` | `type: figure`, `split figure:`, or `panels` |
+| One left-to-right sequence, optionally with a feedback loop | `flow` | same |
+| Ordered levels, maturity, escalation | `staircase` | same |
+| Shares of one whole | `stacked_bar` (or `type: chart`) | same |
+| A set of equal tags | `chips` | same |
+| A real 3–5 stage process with its own text per stage | `type: steps` | its own slide |
+| 2×2 with named axes | `type: matrix` | its own slide |
+
+`validate_deck.py` refuses `image_kind: drawing`, and warns on any `image:` that is not a
+photograph (`.jpg` / `.heic`) unless the spec declares `image_kind: photo | screenshot |
+external`. `document-figures` is for pulling figures *out of* existing documents and for
+targets that are not PowerPoint; it is not how a deck gets a diagram. If the content needs a
+shape the vocabulary lacks, extend `_diagram` in `build_deck.py` — the generator is the
+artifact.
 
 ## The three guarantees this skill is built around
 
@@ -159,6 +187,11 @@ Read the PNGs back and run the checklist below. LibreOffice may substitute fonts
 Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`,
 `image`, `table`, `chart`, `blank`.
 
+`figure` is a native, editable figure on its own — `diagram` / `flow` / `staircase` /
+`stacked_bar` / `chips` at full content width, with `caption` and `note` in the body
+placeholder — the counterpart of `image` for anything that was drawn rather than
+photographed. `split` takes the same `figure:` in place of `image:`.
+
 `panels` is the dense one-page overview: two columns of text blocks and
 native, editable figures (bar / staircase / flow / chips) with a takeaway band
 underneath. Every sentence stays slide text, never baked into a picture. See
@@ -185,7 +218,7 @@ exists for one shape of content, and picking the type IS the design decision:
 | One unit that outweighs the rest | `lead` | The lead takes 46% of the width — area is the argument |
 | A real sequence, 3-5 stages | `steps` | Order or dependency actually exists — the only type that draws arrows |
 | Two meaningful axes | `matrix` | Both axes are named and all four quadrants say something |
-| A figure and its reading | `split` | 38/62 asymmetry: the figure is the message, the text is the reading |
+| A figure and its reading | `split` | 38/62 asymmetry: the figure is the message, the text is the reading; `figure:` native, `image:` only for a photograph |
 | A turn in the argument | `statement` | One sentence alone under the rule — the deck's punctuation |
 
 Contrast is deck-level as well as slide-level: `section` and `statement` accept
@@ -259,7 +292,7 @@ choice.
 - [ ] One message per slide; no wall of text (split if it won't fit).
 - [ ] **No build `warning:` left unaddressed** — each one means a title or body overflows at readable sizes; split or shorten that slide rather than ignoring it.
 - [ ] **Titles:** none collide with the body; titles share one baseline across slides (flip the PNGs).
-- [ ] **Figures:** every `image` has a `caption` that names it and a `note` that gives the takeaway; the caption is clearly readable, not a tiny footnote.
+- [ ] **Figures:** every `image` is a photograph, screenshot or external figure (declared `image_kind`); every drawn diagram is a native `figure` / `split figure:` / `panels` figure whose words can be selected in PowerPoint. Each has a `caption` that names it and a `note` that gives the takeaway; the caption is clearly readable, not a tiny footnote.
 - [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (rule + emphasis only); **no full-width band**; the rule appears only on turn pages unless `meta.rule: "all"`, and lines up across them (flip the PNGs — the accent should never jump); the four large-type pages (`title` / `section` / `statement` / `quote`) do not look like one another.
 - [ ] **Template mode:** every intended placeholder is actually filled (read the build log + a PNG); no slide fell back to the wrong layout; the deck still looks like the template, not like us.
 - [ ] Data slides carry a `source:` footnote.

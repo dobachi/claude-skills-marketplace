@@ -47,6 +47,7 @@ slides:
   - type: split
     title: "図と読みは同じ重さではない"
     image: "figure.png"
+    image_kind: external
     heading: "読み取れること"
     bullets: ["入口の転換率は業界並み", "落ちるのは体験開始の直後"]
     source: "出典: 社内BI 2026-05"

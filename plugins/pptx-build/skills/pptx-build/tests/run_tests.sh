@@ -80,6 +80,22 @@ CASES=(
   "1|python3 $A/validate_deck.py $f/bad-panels.yaml"
   "has:panels figure kind 'pie'|python3 $A/validate_deck.py $f/bad-panels.yaml"
 
+  # ---- 編集できる図: figure 型 / split の figure: / diagram 種 ----
+  # 描いた図は画像ではなく素の部品で置く。生成・監査を通し (0)、描いた図を
+  # 画像で貼る宣言（image_kind: drawing）、未知の種類、宙に浮いた矢印、
+  # 図も画像もない split を検証で止める (1)。抽出器は素の図を黙って箇条書きに
+  # せず、読み戻せないと報告する (1)。
+  "0|python3 $A/validate_deck.py $f/figure-deck.yaml"
+  "0|python3 $A/build_deck.py $f/figure-deck.yaml -o $TMP/figure.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/figure.pptx --quiet"
+  "1|python3 $A/validate_deck.py $f/bad-figure.yaml"
+  "has:image_kind: drawing|python3 $A/validate_deck.py $f/bad-figure.yaml"
+  "has:edge names unknown node 'zz'|python3 $A/validate_deck.py $f/bad-figure.yaml"
+  "has:looks like a drawing, not a photograph|python3 $A/validate_deck.py $f/bad-figure.yaml"
+  "has:it needs \`figure:\`|python3 $A/validate_deck.py $f/bad-figure.yaml"
+  "1|python3 $A/extract_deck.py $TMP/figure.pptx -o $TMP/figure-back.yaml"
+  "has:native figure parts|python3 $A/extract_deck.py $TMP/figure.pptx -o $TMP/figure-back2.yaml"
+
   # ---- 欠陥注入: 型の個数・軸・図の規約が効いているか ----
   "1|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
   "has:matrix takes exactly 4 quadrants|python3 $A/validate_deck.py $f/bad-archetypes.yaml"

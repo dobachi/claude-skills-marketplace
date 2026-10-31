@@ -1,0 +1,63 @@
+# Native, editable figures: a `figure` slide (diagram with groups and edges), a
+# `split` whose figure half is a native flow, a panels column with a diagram, and
+# an `image` slide that declares itself a photograph. Shaped unlike the deck it
+# was written for: English, a logistics story.
+meta:
+  aspect: '16:9'
+slides:
+- type: figure
+  title: One late carrier stalls every downstream handoff
+  caption: 'Figure 1: the handoff chain'
+  note: Boxes are teams; the dashed arrow is the escalation path that exists only on paper.
+  figure:
+    kind: diagram
+    groups:
+    - {label: Outside the warehouse, col: 0, row: 0, colspan: 2}
+    nodes:
+    - {id: supplier, label: Supplier, col: 0, row: 0}
+    - {id: carrier, label: Carrier, text: 2 of 7 late last week, col: 1, row: 0, tone: accent}
+    - {id: dock, label: Dock, col: 2, row: 0}
+    - {id: picking, label: Picking, col: 2, row: 1}
+    - {id: store, label: Store, col: 0, row: 1, colspan: 2, tone: light}
+    edges:
+    - {from: supplier, to: carrier}
+    - {from: carrier, to: dock, label: 48h SLA}
+    - {from: dock, to: picking}
+    - {from: picking, to: store}
+    - {from: store, to: carrier, dashed: true, tone: accent}
+  source: 'Source: illustrative fixture'
+- type: split
+  title: Returns move against the flow and nobody owns the turn
+  heading: What the figure shows
+  bullets:
+  - Three handoffs, one owner each
+  - The return leg has no owner
+  figure:
+    kind: flow
+    items: [Order, Pick, Ship, Return]
+    highlight: 3
+    feedback: Return re-enters at Pick
+- type: panels
+  title: Two sites, one bottleneck
+  left:
+    blocks:
+    - text:
+      - {style: label, text: Site A}
+    - figure:
+        kind: diagram
+        nodes:
+        - {id: a, label: Inbound, col: 0, row: 0}
+        - {id: b, label: Sort, col: 1, row: 0, tone: dark}
+        - {id: c, label: Outbound, col: 2, row: 0}
+        edges: [{from: a, to: b}, {from: b, to: c}]
+  right:
+    blocks:
+    - text:
+      - {style: label, text: Site B}
+    - figure: {kind: chips, items: [Audit, Reroute]}
+  takeaway: {label: Next, text: Sort is the constraint at both sites}
+- type: image
+  title: The dock at 06:00
+  image: figure.png
+  image_kind: photo
+  caption: 'Figure 2: the dock'

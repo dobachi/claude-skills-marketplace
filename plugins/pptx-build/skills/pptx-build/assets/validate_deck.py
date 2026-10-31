@@ -47,7 +47,69 @@ ASSERT_RE = re.compile(
     r"should|will|is|are|was|were|up|down", re.I)
 
 CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart",
-                 "cards", "steps", "matrix", "split", "lead", "panels"}
+                 "cards", "steps", "matrix", "split", "lead", "panels", "figure"}
+FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram")
+# A picture of text cannot be edited. These extensions are what photographs and
+# screenshots come as; anything else is probably a drawing and gets asked about.
+PHOTO_EXT = {".jpg", ".jpeg", ".heic", ".heif"}
+IMAGE_KINDS = ("photo", "screenshot", "external")
+NATIVE_HINT = ("build it as a native figure instead: `type: figure` with `figure: {kind: "
+               "diagram | flow | staircase | stacked_bar | chips}`, `split` with `figure:`, "
+               "or a panels figure — then every label stays editable text")
+
+
+def _check_figure(fig, i, add, where):
+    """A native figure spec: a known kind; for `diagram`, nodes with labels and
+    edges that name real nodes."""
+    if not isinstance(fig, dict) or not fig.get("kind"):
+        add(ERROR, i, "%s has no `figure.kind` — one of %s" % (where, " / ".join(FIGURE_KINDS)))
+        return
+    if fig["kind"] not in FIGURE_KINDS:
+        add(ERROR, i, "%s figure kind %r is not one of %s"
+            % (where, fig["kind"], " / ".join(FIGURE_KINDS)))
+        return
+    if fig["kind"] == "diagram":
+        nodes = fig.get("nodes") or []
+        if len(nodes) < 2:
+            add(ERROR, i, "%s diagram has %d node(s) — a diagram relates at least two things"
+                % (where, len(nodes)))
+        ids = []
+        for k, n in enumerate(nodes):
+            if not isinstance(n, dict) or not n.get("label"):
+                add(WARN, i, "%s diagram node %d has no `label` — an unlabeled box says nothing"
+                    % (where, k + 1))
+            ids.append(str((n or {}).get("id", k)))
+        dup = {x for x in ids if ids.count(x) > 1}
+        if dup:
+            add(ERROR, i, "%s diagram node ids repeat: %s" % (where, ", ".join(sorted(dup))))
+        for e in fig.get("edges") or []:
+            for end in ("from", "to"):
+                if str((e or {}).get(end)) not in ids:
+                    add(ERROR, i, "%s diagram edge names unknown node %r — ids are %s"
+                        % (where, (e or {}).get(end), ", ".join(ids)))
+    if fig["kind"] in ("flow", "staircase", "chips") and len(fig.get("items") or []) < 2:
+        add(WARN, i, "%s %s has fewer than 2 items" % (where, fig["kind"]))
+    if fig["kind"] == "stacked_bar" and not fig.get("segments"):
+        add(ERROR, i, "%s stacked_bar has no `segments`" % where)
+
+
+def _check_image(s, i, add):
+    """Is this picture a photograph, or a drawing whose text is now pixels?"""
+    kind = s.get("image_kind")
+    path = str(s.get("image") or "")
+    ext = os.path.splitext(path)[1].lower()
+    if kind == "drawing":
+        add(ERROR, i, "`image_kind: drawing` — a diagram pasted as a picture cannot be edited; "
+            + NATIVE_HINT)
+    elif kind in IMAGE_KINDS:
+        return
+    elif kind is not None:
+        add(WARN, i, "`image_kind: %r` is not one of %s / drawing" % (kind, " / ".join(IMAGE_KINDS)))
+    elif ext not in PHOTO_EXT:
+        add(WARN, i, "image %r (%s) looks like a drawing, not a photograph — if you drew it, %s; "
+                     "if it is a photo, screenshot or someone else's figure, say so with "
+                     "`image_kind: photo | screenshot | external`"
+            % (path, ext or "no extension", NATIVE_HINT))
 KNOWN_TYPES = CONTENT_TYPES | {"title", "section", "quote", "blank", "statement"}
 # Each composed archetype exists for ONE shape of content, and the count is part
 # of that shape: cards are equivalent units, steps are a real sequence, a matrix
@@ -160,7 +222,7 @@ def validate(spec, theme, g):
 
         if t not in KNOWN_TYPES:
             add(ERROR, i, "unknown slide type %r — supported: %s (do NOT hand-write "
-                          "python-pptx for it; extend the spec or use `image`)"
+                          "python-pptx for it; a diagram is `figure`, extend the spec otherwise)"
                 % (t, ", ".join(sorted(KNOWN_TYPES))))
 
         if t == "section":
@@ -278,9 +340,25 @@ def validate(spec, theme, g):
                 if len(s.get(axis) or []) != 2:
                     add(WARN, i, "`%s` needs two labels (low, high) — a matrix without "
                                  "named axes is four boxes" % axis)
+        if t == "image":
+            _check_image(s, i, add)
+        if t == "figure":
+            if not s.get("figure"):
+                add(ERROR, i, "figure slide has no `figure:` — give it a kind "
+                              "(%s)" % " / ".join(FIGURE_KINDS))
+            else:
+                _check_figure(s["figure"], i, add, "figure slide")
         if t == "split":
-            if not s.get("image"):
-                add(ERROR, i, "split is a figure beside its reading — it needs `image:`")
+            if not s.get("image") and not s.get("figure"):
+                add(ERROR, i, "split is a figure beside its reading — it needs `figure:` "
+                              "(native, editable) or `image:` (a photograph)")
+            if s.get("image") and s.get("figure"):
+                add(WARN, i, "split has both `image:` and `figure:` — the figure is drawn, "
+                             "the image ignored")
+            if s.get("image") and not s.get("figure"):
+                _check_image(s, i, add)
+            if s.get("figure"):
+                _check_figure(s["figure"], i, add, "split")
             if len(B._normalize_bullets(s.get("bullets"))) > 4:
                 add(WARN, i, "more than 4 bullets in the narrow column — the figure is "
                              "the message here; move the detail to notes or another slide")
@@ -291,10 +369,8 @@ def validate(spec, theme, g):
             for col in cols:
                 for blk in col.get("blocks") or []:
                     fig = blk.get("figure")
-                    if fig is not None and fig.get("kind") not in (
-                            "stacked_bar", "staircase", "flow", "chips"):
-                        add(ERROR, i, "panels figure kind %r is not one of stacked_bar / "
-                                      "staircase / flow / chips" % fig.get("kind"))
+                    if fig is not None:
+                        _check_figure(fig, i, add, "panels")
         if t == "section" and s.get("number") is not None \
                 and B._disp_width(str(s["number"])) > 4:
             add(WARN, i, "section number %r is set as the page's figure (large) — keep it "

@@ -338,6 +338,12 @@ def _title_of(slide, texts):
     return "", None, []
 
 
+# Parts of the native figures (`diagram` / `flow` / `staircase` / `stacked_bar` /
+# `chips`, the `figure` slide, `panels`). The extractor cannot rebuild a figure
+# from its boxes, so it reports them instead of silently flattening them.
+NATIVE_FIGURE_PARTS = ("part/node", "part/group", "part/bar", "part/chip",
+                       "part/figure-caption", "part/panel-text", "part/takeaway")
+
 PART_KINDS = (("part/card", "cards"), ("part/step", "steps"),
               ("part/quadrant", "matrix"), ("part/lead", "lead"),
               ("part/rest", "lead"))
@@ -603,6 +609,13 @@ def extract(path, media_dir, spec_dir, slides_arg=None, keep_notes=True):
         if i not in wanted:
             continue
         recs = _records(slide, page_w, page_h, i, report)
+        native = sorted({str(r.get("name", ""))[5:].split("-")[0] for r in recs
+                         if str(r.get("name", "")).startswith(NATIVE_FIGURE_PARTS)})
+        if native:
+            report.add(LOSS, i, "native figure parts (%s) are not read back into a spec — "
+                                "their labels come out as plain text; rebuild this slide from "
+                                "its original spec (`figure` / `split figure:` / `panels`)"
+                       % ", ".join(native))
         kind, title, body, title_paras = _classify(slide, recs, i, i == 1, report)
         body_paras = [pr for r in body for pr in r["paras"]]
         s = {"type": kind}

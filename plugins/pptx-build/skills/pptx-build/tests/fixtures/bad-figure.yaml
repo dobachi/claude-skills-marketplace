@@ -1,0 +1,23 @@
+# Defect injection for the editable-figure rules: a drawn diagram pasted as a
+# picture, an unknown figure kind, an edge to a node that does not exist, and a
+# split with neither figure nor image.
+slides:
+- type: image
+  title: Architecture
+  image: arch.png
+  image_kind: drawing
+- type: figure
+  title: Unknown kind
+  figure: {kind: pie, items: [a, b]}
+- type: figure
+  title: Dangling edge
+  figure:
+    kind: diagram
+    nodes: [{id: a, label: A}, {id: b, label: B}]
+    edges: [{from: a, to: zz}]
+- type: split
+  title: Nothing beside the reading
+  bullets: [one]
+- type: image
+  title: Undeclared drawing
+  image: flow.png

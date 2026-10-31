@@ -7,6 +7,7 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 - [meta (all optional — omit to keep defaults; default mode only)](#meta-all-optional-omit-to-keep-defaults-default-mode-only) — deck-wide colors, fonts, aspect, type scale
 - [meta.shape](#metashape--the-three-numbers-every-part-agrees-on) — spacing unit, corner radius, line weight
 - [slides](#slides) — every slide type and its fields
+- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips`)
 - [Composed archetypes](#composed-archetypes) — cards / steps / lead / matrix / split / statement
 - [Contrast](#contrast--the-dark-page-and-the-tonal-chart) — the dark page, the tonal chart
 - [Conventions the spec assumes](#conventions-the-spec-assumes) — action titles, one message, sources, one accent
@@ -194,7 +195,8 @@ print marks a block quote. No rule: the bar is the mark. Built on "Title Only".
 ```yaml
 - type: image
   title: "Action title"              # optional; omit for full-area image
-  image: "/path/to/figure.png"       # fit to remaining area, height-capped, centered
+  image: "/path/to/photo.jpg"        # fit to remaining area, height-capped, centered
+  image_kind: photo                  # photo | screenshot | external — what a picture may be
   caption: "図1: what the figure shows"   # optional — a BOLD, readable label (not a footnote)
   note: "One or two sentences explaining what the reader should take away."  # optional
   source: "出典: …"                  # optional footnote (smaller, muted)
@@ -204,6 +206,71 @@ Relative `image:` paths resolve against the **spec file's directory** first (fal
 In default mode the slide is built on the **Picture with Caption** layout: the figure is fitted (uncropped, aspect preserved) into that layout's real **PICTURE-placeholder region**, and the caption goes in its **caption placeholder** below — the image sits in the master's designated region, not free-floated on a blank slide. The caption is a real caption block, not a 10pt footnote: `caption` renders as a **bold ink label** and `note` (alias `description`) as a wrapping muted explanation, both at readable sizes (`caption` / `caption_note` in `meta.size`), so the figure and its explanation never collide. `source` remains a small footnote at the very bottom. If the image path is missing, a placeholder marker is drawn (and a `warning:` printed) so the deck still builds.
 
 Prefer a `caption` that names the figure and a `note` that states the takeaway — a figure without an explanation makes the audience guess.
+
+**A picture is for things that were photographed or captured, not drawn.** A diagram that was rendered to PNG/SVG cannot be edited in PowerPoint; build it as a [native figure](#native-figures) instead. `validate_deck.py` errors on `image_kind: drawing` and warns on any `image:` whose extension is not a photograph's (`.jpg` / `.jpeg` / `.heic`) unless `image_kind` says `photo`, `screenshot` or `external`.
+
+## Native figures
+
+Figures drawn from native shapes — every label is slide text, every box and arrow a shape the
+audience can move or recolor. Three places take one: the `figure` slide (full content width),
+`split` (`figure:` instead of `image:`), and a `panels` block (`- figure: {...}`). All three use
+the same figure object; `build_deck.py` returns the drawn height, `split` and `figure` center it
+in their region and cap `diagram` / `staircase` to the room available (never stretched).
+
+### figure (slide type)
+```yaml
+- type: figure
+  title: "Action title"
+  caption: "図1: 名前"                 # optional — bold label in the body placeholder, under the figure
+  note: "読み取れること"               # optional — muted explanation under the caption
+  figure: {kind: diagram, ...}        # any kind below
+  source: "出典: …"
+```
+
+### Figure kinds
+
+| Kind | Fields | Draws |
+|---|---|---|
+| `diagram` | `nodes`, `edges`, `groups`, `cols`, `rows`, `height`, `gap_x` (0.45), `gap_y` (0.28), `node_height` (0.62) | boxes on a grid joined by connectors — the general-purpose figure |
+| `flow` | `items`, `highlight` (index, default last), `feedback` (text), `height` (0.46) | boxes left to right with arrows; the optional dashed feedback arrow returns to the first |
+| `staircase` | `items` (strings or `{label, text}`), `height` (1.25), `low` (0.38) | rising levels, the last one filled accent |
+| `stacked_bar` | `segments: [{label, value, tone}]`, `height` (0.30) | shares of one bar; `tone` accent / dark / light |
+| `chips` | `items`, `height` (0.36) | a row of outlined tags |
+
+### diagram
+```yaml
+figure:
+  kind: diagram
+  cols: 3                             # optional; default = widest node's col + colspan
+  rows: 2
+  height: 2.4                         # optional; default = rows × node_height + gaps
+  groups:                             # optional light panels behind a block of cells
+    - {label: "当日わかったこと", col: 1, row: 0, colspan: 2, rowspan: 2}
+  nodes:
+    - {id: bg,  label: "背景",   col: 0, row: 0, rowspan: 2}
+    - {id: f1,  label: "① 政策", text: "主題が移った", col: 1, row: 0}
+    - {id: f2,  label: "② 壁",   text: "動機とお金の流れ", col: 2, row: 0}
+    - {id: us,  label: "当社の貢献", col: 1, row: 1, colspan: 2, tone: accent}
+    - {id: nx,  label: "次の一手", col: 3, row: 0, rowspan: 2, tone: light}
+  edges:
+    - {from: bg, to: f1}
+    - {from: f2, to: us, label: "設計で貢献"}
+    - {from: us, to: nx, dashed: true, tone: accent}
+```
+
+- `nodes[].tone`: `outline` (default: white, hairline border), `light` (surface fill), `accent`
+  (accent fill, white text), `dark` (ink fill, white text). `text` adds a second, smaller line
+  and left-aligns the box; a label alone is centered.
+- `edges` leave by the side that faces the target (right/left for mostly-horizontal, bottom/top
+  for mostly-vertical) and carry an arrowhead unless `head: false`. `dashed: true`, `tone:
+  accent`, `label` (placed above the row for horizontal edges, beside the line for vertical).
+- `groups` are drawn first, behind the nodes they cover; a labelled group on row 0 reserves a
+  0.3 in head for its label.
+- `validate_deck.py` requires at least two nodes, unique ids, and edges that name real nodes.
+
+Parts are named `part/node`, `part/group`, `part/connector`, `part/text`, so `audit_pptx.py`
+counts them as composed structure. `extract_deck.py` cannot read a figure back into its spec
+and reports a LOSS naming the parts; keep the spec that drew it.
 
 ### table
 ```yaml
@@ -284,8 +351,9 @@ number with a small caption above it. Default mode only.
 
 Figure kinds are `stacked_bar` (shares in one bar), `staircase` (ordered
 levels; items may be `{label, text}`), `flow` (boxes joined by arrows, with an
-optional dashed `feedback` arrow back to the first) and `chips` (a row of
-equal tags). A text block may set `box: true` to sit on a light panel, and any
+optional dashed `feedback` arrow back to the first), `chips` (a row of
+equal tags) and `diagram` (boxes on a grid joined by arrows — see
+[Native figures](#native-figures)). A text block may set `box: true` to sit on a light panel, and any
 block may set `gap:` (in) before the next one. `validate_deck.py` refuses any
 other figure kind rather than letting the build drop it.
 
@@ -364,7 +432,8 @@ A matrix with an empty quadrant is four boxes wearing a matrix.
 ```yaml
 - type: split
   title: "Action title"
-  image: "figures/funnel.png"
+  figure: {kind: flow, items: ["A", "B", "C"]}   # a native figure (see Native figures) …
+  # image: "media/site.jpg"           # … or a PHOTOGRAPH; a drawn diagram is never an image here
   heading: "読み取れること"            # optional, accent-colored
   bullets: ["…", "…"]                 # <= 4 — the figure is the message
   flip: true                          # optional: figure on the LEFT

@@ -894,7 +894,7 @@ def _eyebrow(slide, theme, g, text):
 
 
 CONTENT_FAMILY = ("bullets", "two_col", "big_number", "image", "table", "chart",
-                  "cards", "steps", "matrix", "split", "lead", "panels")
+                  "cards", "steps", "matrix", "split", "lead", "panels", "figure")
 
 
 def _apply_eyebrows(prs, theme, g, slides):
@@ -1353,10 +1353,209 @@ def _shape_label(sp, theme, text, size, bold=True, color="ink", align=PP_ALIGN.L
                   bold=bold, color=rgb)
 
 
+FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram")
+
+
+def _figure_height(theme, fig, w):
+    """The height _panel_figure will use for `fig` at width w, without drawing it.
+    `split` and `figure` need it to center the figure in its region."""
+    kind = fig.get("kind")
+    if kind == "stacked_bar":
+        return float(fig.get("height", 0.30))
+    if kind == "staircase":
+        return float(fig.get("height", 1.25))
+    if kind == "flow":
+        bh = float(fig.get("height", 0.46))
+        return bh + (0.22 + 0.3 if fig.get("feedback") else 0.0)
+    if kind == "chips":
+        return float(fig.get("height", 0.36))
+    if kind == "diagram":
+        return _diagram_geom(fig, w)["h"]
+    return 0.0
+
+
+def _fit_figure(theme, fig, w, avail_h):
+    """A copy of `fig` whose height is CAPPED at avail_h — never stretched to it.
+    Only the kinds that scale cleanly (diagram / staircase) are capped; the rest
+    keep their height and the caller warns if they do not fit."""
+    if fig.get("kind") not in ("diagram", "staircase"):
+        return fig
+    if _figure_height(theme, fig, w) <= avail_h:
+        return fig
+    out = dict(fig)
+    out["height"] = avail_h
+    return out
+
+
+def _diagram_geom(fig, w):
+    """Grid geometry of a `diagram` figure: nodes sit on `cols` x `rows` cells."""
+    nodes = fig.get("nodes") or []
+    cols = int(fig.get("cols") or max([int(n.get("col", 0)) + int(n.get("colspan", 1))
+                                        for n in nodes] or [1]))
+    rows = int(fig.get("rows") or max([int(n.get("row", 0)) + int(n.get("rowspan", 1))
+                                        for n in nodes] or [1]))
+    labelled_groups = any(gp.get("label") for gp in fig.get("groups") or [])
+    gx = float(fig.get("gap_x", 0.45))
+    gy = float(fig.get("gap_y", 0.36 if labelled_groups else 0.28))
+    node_h = float(fig.get("node_height", 0.62))
+    head = 0.30 if labelled_groups and any(
+        int(gp.get("row", 0)) == 0 for gp in fig.get("groups") or [] if gp.get("label")) else 0.0
+    h = float(fig.get("height") or rows * node_h + (rows - 1) * gy + head)
+    node_h = (h - head - (rows - 1) * gy) / rows
+    node_w = (w - (cols - 1) * gx) / cols
+    return {"cols": cols, "rows": rows, "gx": gx, "gy": gy, "nw": node_w, "nh": node_h,
+            "h": h, "head": head}
+
+
+def _diagram(slide, theme, fig, x, y, w):
+    """Boxes on a grid, joined by connectors: the general-purpose native figure.
+    Every label is slide text in a `part/node`; the audience can edit it."""
+    c = theme["color"]
+    G = _diagram_geom(fig, w)
+    y0 = y + G["head"]
+
+    def cell(col, row, colspan=1, rowspan=1):
+        cx = x + col * (G["nw"] + G["gx"])
+        cy = y0 + row * (G["nh"] + G["gy"])
+        return (cx, cy, colspan * G["nw"] + (colspan - 1) * G["gx"],
+                rowspan * G["nh"] + (rowspan - 1) * G["gy"])
+
+    pad = 0.09
+    for gp in fig.get("groups") or []:
+        gx_, gy_, gw, gh = cell(int(gp.get("col", 0)), int(gp.get("row", 0)),
+                                int(gp.get("colspan", 1)), int(gp.get("rowspan", 1)))
+        top = 0.30 if gp.get("label") else pad
+        sp = _part(slide, "group", gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad, theme,
+                   fill=c["surface"])
+        if gp.get("label"):
+            _shape_label(sp, theme, gp["label"], _panel_size(theme, "panel_label", 11), True,
+                         "accent")
+
+    rects = {}
+    tones = {"outline": ("FFFFFF", c["border"], "ink"),
+             "light": (c["surface_hi"], None, "ink"),
+             "accent": (c["accent"], None, "FFFFFF"),
+             "dark": (c["ink"], None, "FFFFFF")}
+    for k, n in enumerate(fig.get("nodes") or []):
+        nx, ny, nw, nh = cell(int(n.get("col", 0)), int(n.get("row", 0)),
+                              int(n.get("colspan", 1)), int(n.get("rowspan", 1)))
+        fill, line, color = tones.get(n.get("tone", "outline"), tones["outline"])
+        sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line)
+        sub = n.get("text")
+        _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 12.5),
+                     True, color, PP_ALIGN.LEFT if sub else PP_ALIGN.CENTER,
+                     MSO_ANCHOR.TOP if sub else MSO_ANCHOR.MIDDLE)
+        if sub:
+            p2 = sp.text_frame.add_paragraph()
+            _no_bullet(p2)
+            p2.alignment = PP_ALIGN.LEFT
+            r2 = p2.add_run()
+            r2.text = str(sub)
+            _set_run_font(r2, name=theme["font"]["body"],
+                          size=_panel_size(theme, "panel_fig_sub", 10.5),
+                          color=color if color == "FFFFFF" else c["ink"])
+        rects[str(n.get("id", k))] = (nx, ny, nw, nh)
+
+    for e in fig.get("edges") or []:
+        a, b = rects.get(str(e.get("from"))), rects.get(str(e.get("to")))
+        if not a or not b:
+            _warn("diagram: edge %r -> %r names an unknown node" % (e.get("from"), e.get("to")))
+            continue
+        ax, ay, aw, ah = a
+        bx, by, bw, bh = b
+        acx, acy, bcx, bcy = ax + aw / 2, ay + ah / 2, bx + bw / 2, by + bh / 2
+        if abs(bcx - acx) >= abs(bcy - acy):      # leave by a side edge
+            x1, x2 = (ax + aw, bx) if bcx > acx else (ax, bx + bw)
+            y1, y2 = acy, bcy
+        else:                                     # leave by top / bottom
+            y1, y2 = (ay + ah, by) if bcy > acy else (ay, by + bh)
+            x1, x2 = acx, bcx
+        color = c["accent"] if e.get("tone") == "accent" else c["muted"]
+        _seg(slide, x1, y1, x2, y2, color, 1.25, dash=bool(e.get("dashed")),
+             head=e.get("head", True))
+        if e.get("label"):
+            size = _panel_size(theme, "panel_note", 10.5)
+            if abs(bcx - acx) >= abs(bcy - acy):
+                # above the nodes, centered on the gap — never on top of a box
+                lw = max(0.9, _disp_width(e["label"]) * size / 72.0 + 0.2)
+                tf = add_textbox(slide, (x1 + x2) / 2 - lw / 2, min(ay, by) - 0.26, lw, 0.24,
+                                 name="part/text")
+                set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
+                           align=PP_ALIGN.CENTER)
+            else:
+                tf = add_textbox(slide, (x1 + x2) / 2 + 0.06, (y1 + y2) / 2 - 0.12, 1.4, 0.24,
+                                 name="part/text")
+                set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
+                           align=PP_ALIGN.LEFT)
+    return G["h"]
+
+
+def _render_figure(slide, theme, g, s, i):
+    """A native figure on its own, full content width, with an optional caption
+    and note in the body placeholder: the editable counterpart of `image`."""
+    _, bodies = _phs_by_role(slide)
+    fig = s.get("figure") or {}
+    if bodies:
+        ph = bodies[0]
+        x, y = Emu(ph.left).inches, Emu(ph.top).inches
+        w, h = Emu(ph.width).inches, Emu(ph.height).inches
+    else:
+        ph = None
+        x, y, w, h = g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"]
+    label, note = s.get("caption"), (s.get("note") or s.get("description"))
+    sz = theme["size"]
+    cap_h = 0.0
+    if label:
+        cap_h += sz.get("caption", 15) * 1.4 / 72
+    if note:
+        cap_h += _est_lines(note, sz.get("caption_note", 14), w) * sz.get("caption_note", 14) * 1.4 / 72
+    if cap_h:
+        cap_h += 0.2
+    avail = h - cap_h
+    fig = _fit_figure(theme, fig, w, avail)
+    fh = _figure_height(theme, fig, w)
+    if fh > avail + 0.05:
+        _warn("slide %d: figure needs ~%.2f in more than fits — reduce `height` or split it"
+              % (i, fh - avail))
+    _panel_figure(slide, theme, fig, x, y + max(0.0, (avail - fh) / 2), w)
+    if ph is None:
+        return
+    if not (label or note):
+        _drop_placeholder(ph)
+        return
+    _place(ph, x, y + h - cap_h, w, cap_h)
+    ph.name = "part/figure-caption"
+    tf = _prep_ph_tf(ph, anchor=MSO_ANCHOR.BOTTOM)
+    tf.word_wrap = True
+    c = theme["color"]
+    first = True
+    if label:
+        p = tf.paragraphs[0]
+        _no_bullet(p)
+        p.alignment = PP_ALIGN.LEFT
+        run = p.add_run()
+        run.text = str(label)
+        _set_run_font(run, name=theme["font"]["heading"], size=sz.get("caption", 15),
+                      bold=True, color=c["ink"])
+        first = False
+    if note:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        _no_bullet(p)
+        p.alignment = PP_ALIGN.LEFT
+        run = p.add_run()
+        run.text = str(note)
+        _set_run_font(run, name=theme["font"]["body"], size=sz.get("caption_note", 14),
+                      color=c["muted"])
+    for extra in bodies[1:]:
+        _drop_placeholder(extra)
+
+
 def _panel_figure(slide, theme, fig, x, y, w):
     """Draw one native figure at (x, y) with width w; return its height (in)."""
     c = theme["color"]
     kind = fig.get("kind")
+    if kind == "diagram":
+        return _diagram(slide, theme, fig, x, y, w)
     if kind == "stacked_bar":
         h = fig.get("height", 0.30)
         cx = x
@@ -1441,7 +1640,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
                          MSO_ANCHOR.MIDDLE)
             cx += cw + 0.1
         return ch
-    _warn("panels: unknown figure kind %r" % kind)
+    _warn("figure: unknown kind %r (one of %s)" % (kind, " / ".join(FIGURE_KINDS)))
     return 0.0
 
 
@@ -1555,7 +1754,15 @@ def _render_split(slide, theme, g, s, i):
     ph.name = "part/split-text"      # records that this geometry IS the composition
     _fill_col(_prep_ph_tf(ph), theme, {"heading": s.get("heading"),
                                        "bullets": s.get("bullets")})
-    if img and os.path.exists(img):
+    if s.get("figure"):
+        # A native figure beside its reading: every label stays editable text.
+        fig = _fit_figure(theme, s["figure"], fig_w, h)
+        fh = _figure_height(theme, fig, fig_w)
+        if fh > h + 0.05:
+            _warn("slide %d: figure needs ~%.2f in more than the split allows — reduce "
+                  "`height`" % (i, fh - h))
+        _panel_figure(slide, theme, fig, fig_x, y + max(0.0, (h - fh) / 2), fig_w)
+    elif img and os.path.exists(img):
         pic = slide.shapes.add_picture(img, Inches(fig_x), Inches(y), height=Inches(h))
         if pic.width > Inches(fig_w):
             pic.height = int(pic.height * Inches(fig_w) / pic.width)
@@ -2025,12 +2232,13 @@ def render_default(prs, theme, g, slides, meta=None):
             _page_number(slide, th, g, i)
             continue
 
-        if t in ("cards", "steps", "matrix", "split", "lead"):
+        if t in ("cards", "steps", "matrix", "split", "lead", "figure"):
             slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
             _set_bg(slide, theme)
             _title(slide, theme, g, s.get("title", ""), i)
             {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
-             "matrix": _render_matrix, "split": _render_split}[t](slide, theme, g, s, i)
+             "matrix": _render_matrix, "split": _render_split,
+             "figure": _render_figure}[t](slide, theme, g, s, i)
             _source(slide, theme, g, s.get("source"))
             _page_number(slide, theme, g, i)
             continue
@@ -2246,7 +2454,7 @@ def _layout_index_by_role(prs):
         # Composed archetypes are drawn into the body placeholder's region, so
         # they want the same layout a bullets slide would use.
         "cards": content, "steps": content, "matrix": content,
-        "lead": content,
+        "lead": content, "figure": content,
         # A split wants the template's figure-and-text layout when it has one
         # (a PICTURE placeholder beside a body): then the figure lands in a real
         # placeholder and the 38/62 is the LAYOUT's, not drawn per slide.
@@ -2592,7 +2800,7 @@ def render_template(prs, spec, map_cfg):
                 _set_ph_text(pick("subtitle", roles["subtitle"]
                                   or (roles["body"][0] if roles["body"] else None)),
                              s["sub"])
-        elif t == "split" and roles["picture"] is not None and roles["body"]:
+        elif t == "split" and s.get("image") and roles["picture"] is not None and roles["body"]:
             # The template has a figure-and-text layout: the figure goes into its
             # PICTURE placeholder (whole, never cropped) and the reading into its
             # body placeholder as plain levels — heading at level 0, bullets one
@@ -2613,11 +2821,12 @@ def render_template(prs, spec, map_cfg):
             else:
                 _warn("slide %d: image not found (%r) — the figure half is empty"
                       % (i, s.get("image")))
-        elif t in ("cards", "steps", "matrix", "split", "lead"):
+        elif t in ("cards", "steps", "matrix", "split", "lead", "figure"):
             # The template decides WHERE (its body placeholder's region); the
             # archetype decides WHAT gets drawn there.
             {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
-             "matrix": _render_matrix, "split": _render_split}[t](
+             "matrix": _render_matrix, "split": _render_split,
+             "figure": _render_figure}[t](
                 slide, part_theme, part_g, s, i)
         elif t == "blank":
             pass
