@@ -98,6 +98,7 @@ def _shape_defaults(theme, meta=None):
         if isinstance(v, (int, float)):
             sh[k] = v
     theme["shape"] = sh
+    _SEG_WIDTH[0] = float(sh["line"])
     for k in ("surface", "surface_hi", "border", "invert_bg", "invert_ink",
               "invert_muted"):
         theme["color"].setdefault(k, "auto")
@@ -833,7 +834,7 @@ def _lead_para(tf, theme, text, first=True):
     pPr.set("marL", "0")
     pPr.set("indent", "0")
     p.space_after = Pt(12)
-    p.line_spacing = 1.2
+    p.line_spacing = 1.3
     run = p.add_run()
     run.text = str(text)
     _set_run_font(run, name=theme["font"]["heading"], size=theme["size"]["body_lead"],
@@ -914,7 +915,9 @@ def _source(slide, theme, g, text):
     if not text:
         return
     w = g["contentW"] - PAGE_NUM_W - ((FOOTER_W + 0.2) if theme.get("footer") else 0)
-    tf = add_textbox(slide, g["marginX"], g["footY"] - 0.02, w, 0.3)
+    # On the footer line itself (footY): the source IS footer furniture, and the
+    # design checker reads "below the footer line" literally.
+    tf = add_textbox(slide, g["marginX"], g["footY"], w, 0.3)
     set_simple(tf, text, theme, font="body", size=theme["size"]["source"], color="muted")
 
 
@@ -1295,7 +1298,7 @@ def _render_matrix(slide, theme, g, s, i):
 # Floors for a page that is READ, not only projected: 12 pt is the smallest
 # size on a one-pager, 14 pt for anything the reader must take in at a glance.
 PANEL_STYLES = {   # style -> (size key, default pt, bold, color)
-    "label": ("panel_label", 12, True, "accent"),
+    "label": ("panel_label", 12, True, "muted"),
     "heading": ("panel_heading", 18, True, "ink"),
     "lead": ("panel_lead", 15, True, "ink"),
     "body": ("panel_body", 14, False, "ink"),
@@ -1360,7 +1363,7 @@ def _panel_fill(tf, theme, items):
         pPr.set("indent", "0")
         p.alignment = PP_ALIGN.LEFT
         p.space_after = Pt(8 if style in ("label", "heading") else 4)
-        p.line_spacing = 1.15
+        p.line_spacing = 1.3
         for seg, is_emph in _rich_runs(text):
             run = p.add_run()
             run.text = seg
@@ -1373,18 +1376,27 @@ def _panel_fill(tf, theme, items):
                               size=size, bold=bold, color=c[color])
 
 
+_SEG_WIDTH = [None]     # set from the theme at build time: the deck's one line weight
+
+
 def _arrowhead(shape):
     ln = shape.line._get_or_add_ln()
-    tail = ln.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "med", "len": "med"})
+    tail = ln.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "lg", "len": "lg"})
     ln.append(tail)
 
 
-def _seg(slide, x1, y1, x2, y2, color, width_pt, dash=False, head=False):
+def _seg(slide, x1, y1, x2, y2, color, width_pt, dash=False, head=False, descr=None):
+    """A line or arrow. `width_pt` is kept for callers but the deck has ONE line
+    weight (theme.shape.line), so every segment is drawn at that weight."""
     from pptx.enum.shapes import MSO_CONNECTOR
     from pptx.enum.dml import MSO_LINE_DASH_STYLE
     ln = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(x1), Inches(y1),
                                     Inches(x2), Inches(y2))
     ln.name = "part/connector"
+    width_pt = _SEG_WIDTH[0] if _SEG_WIDTH[0] else width_pt
+    nv = ln._element.find(".//" + qn("p:cNvPr"))
+    if nv is not None:
+        nv.set("descr", descr or ("arrow" if head else "line"))
     # Drop the connector's theme style reference: it carries the theme's effect
     # (a soft shadow), which makes a hairline render as a smudged band.
     for st in ln._element.findall(qn("p:style")):
@@ -1497,7 +1509,7 @@ def _diagram(slide, theme, fig, x, y, w):
                    fill=c["surface"])
         if gp.get("label"):
             _shape_label(sp, theme, gp["label"], _panel_size(theme, "panel_label", 12), True,
-                         "accent")
+                         "muted")
         if gp.get("id"):
             # An edge may join whole groups (stage → stage) rather than single boxes.
             rects[str(gp["id"])] = (gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad)
@@ -1576,12 +1588,12 @@ def _diagram(slide, theme, fig, x, y, w):
                 # above the nodes, centered on the gap — never on top of a box
                 lw = max(0.9, _disp_width(e["label"]) * size / 72.0 + 0.2)
                 tf = add_textbox(slide, (x1 + x2) / 2 - lw / 2, min(ay, by) - 0.26, lw, 0.24,
-                                 name="part/text")
+                                 name="part/fig-text")
                 set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
                            align=PP_ALIGN.CENTER)
             else:
                 tf = add_textbox(slide, (x1 + x2) / 2 + 0.06, (y1 + y2) / 2 - 0.12, 1.4, 0.24,
-                                 name="part/text")
+                                 name="part/fig-text")
                 set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
                            align=PP_ALIGN.LEFT)
     return G["h"]
@@ -1593,7 +1605,7 @@ def _tiles(slide, theme, fig, x, y, w):
     c = theme["color"]
     items = fig.get("items") or []
     n = max(1, len(items))
-    gap = 0.22
+    gap = _u(theme, 6)                     # the column gutter, so tiles sit on the column grid
     tw = (w - gap * (n - 1)) / n
     th = float(fig.get("height", 1.15))
     sz = theme["size"]
@@ -1613,7 +1625,7 @@ def _tiles(slide, theme, fig, x, y, w):
         r.text = str(it.get("number", ""))
         _set_run_font(r, name=theme["font"].get("number", theme["font"]["heading"]),
                       size=sz.get("tile_number", 32), bold=True,
-                      color="FFFFFF" if on_accent else c["accent"])
+                      color="FFFFFF" if on_accent else c["ink"])
         if it.get("label"):
             p2 = tf.add_paragraph()
             _no_bullet(p2)
@@ -1628,15 +1640,17 @@ def _tiles(slide, theme, fig, x, y, w):
             p3.alignment = PP_ALIGN.LEFT
             r3 = p3.add_run()
             r3.text = str(it["delta"])
+            # 12 pt regular muted on the tile's surface fill is under 4.5:1; use ink
             _set_run_font(r3, name=theme["font"]["body"], size=sz.get("tile_delta", 12),
-                          color="FFFFFF" if on_accent else c["muted"])
+                          color="FFFFFF" if on_accent else c["ink"])
     return th
 
 
 def _timeline(slide, theme, fig, x, y, w):
     """Milestones on one horizontal line: date above the marker, name and a
-    short line below. `today` (an item's date or label, or an index) draws a
-    dashed accent marker where the reader stands."""
+    short line below, all left-aligned from the marker so the figure keeps the
+    slide's one alignment. `today` (an item's date or label, or an index) is
+    the accent-filled marker with its date in bold accent."""
     from pptx.enum.shapes import MSO_SHAPE as _SH
     c = theme["color"]
     items = [it if isinstance(it, dict) else {"label": str(it)} for it in fig.get("items") or []]
@@ -1644,31 +1658,35 @@ def _timeline(slide, theme, fig, x, y, w):
     th = float(fig.get("height", 1.6))
     line_y = y + 0.42
     slot = w / n
-    _seg(slide, x, line_y, x + w, line_y, c["border"], 1.5)
+    _seg(slide, x, line_y, x + w, line_y, c["border"], 0.75, descr="timeline")
     today = fig.get("today")
+    d = 0.16
     for k, it in enumerate(items):
-        cx = x + slot * (k + 0.5)
-        d = 0.16
+        cx = x + slot * k + d / 2
+        is_today = today is not None and str(today) in (str(it.get("date")), str(it.get("label")), str(k))
         dot = slide.shapes.add_shape(_SH.OVAL, Inches(cx - d / 2), Inches(line_y - d / 2),
                                      Inches(d), Inches(d))
         dot.name = "part/marker"
+        nv = dot._element.find(".//" + qn("p:cNvPr"))
+        if nv is not None:
+            nv.set("descr", "milestone %s" % (it.get("label") or k + 1))
         dot.fill.solid()
-        dot.fill.fore_color.rgb = RGBColor.from_string(c["accent"] if it.get("tone") != "light" else c["border"])
+        dot.fill.fore_color.rgb = RGBColor.from_string(c["accent"] if is_today else c["muted"])
         dot.line.fill.background()
         try:
             dot.shadow.inherit = False
         except Exception:
             pass
+        bx, bw = cx - d / 2, slot - 0.12
         if it.get("date"):
-            tf = add_textbox(slide, cx - slot / 2, y, slot, 0.26, name="part/text")
-            set_simple(tf, str(it["date"]), theme, font="body",
-                       size=_panel_size(theme, "panel_note", 12), color="muted",
-                       align=PP_ALIGN.CENTER)
-        tf = add_textbox(slide, cx - slot / 2 + 0.04, line_y + 0.16, slot - 0.08, th - 0.6,
-                         name="part/text")
+            tf = add_textbox(slide, bx, y, bw, 0.26, name="part/fig-text")
+            set_simple(tf, str(it["date"]), theme, font="heading" if is_today else "body",
+                       size=_panel_size(theme, "panel_note", 12), bold=is_today,
+                       color="accent" if is_today else "muted", align=PP_ALIGN.LEFT)
+        tf = add_textbox(slide, bx, line_y + 0.16, bw, th - 0.6, name="part/fig-text")
         p = tf.paragraphs[0]
         _no_bullet(p)
-        p.alignment = PP_ALIGN.CENTER
+        p.alignment = PP_ALIGN.LEFT
         r = p.add_run()
         r.text = str(it.get("label", ""))
         _set_run_font(r, name=theme["font"]["heading"], size=_panel_size(theme, "panel_fig_label", 14),
@@ -1676,24 +1694,11 @@ def _timeline(slide, theme, fig, x, y, w):
         if it.get("text"):
             p2 = tf.add_paragraph()
             _no_bullet(p2)
-            p2.alignment = PP_ALIGN.CENTER
+            p2.alignment = PP_ALIGN.LEFT
             r2 = p2.add_run()
             r2.text = str(it["text"])
             _set_run_font(r2, name=theme["font"]["body"], size=_panel_size(theme, "panel_fig_sub", 12),
                           color=c["muted"])
-        if today is not None and (str(today) in (str(it.get("date")), str(it.get("label")), str(k))):
-            # the reader's position: the marker becomes an accent ring and its date
-            # is set bold in the accent — nothing is drawn through the labels
-            for sh in list(slide.shapes)[-3:]:
-                if sh.has_text_frame and sh.text_frame.text.strip() == str(it.get("date", "")) and it.get("date"):
-                    for para in sh.text_frame.paragraphs:
-                        for run in para.runs:
-                            run.font.bold = True
-                            run.font.color.rgb = RGBColor.from_string(c["accent"])
-            dot.fill.solid()
-            dot.fill.fore_color.rgb = RGBColor.from_string("FFFFFF")
-            dot.line.color.rgb = RGBColor.from_string(c["accent"])
-            dot.line.width = Pt(2)
     return th
 
 
@@ -1745,7 +1750,6 @@ def _render_decision(slide, theme, g, s, i):
     if band_h:
         by = y + h - band_h
         sp = _part(slide, "recommend", x, by, w, band_h, theme, fill="FFFFFF", line=c["accent"])
-        sp.line.width = Pt(theme["shape"]["line"] * 2)
         tf = sp.text_frame
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         tf.margin_left = tf.margin_right = Inches(0.18)
@@ -1871,7 +1875,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
             sp = _part(slide, "step", x + k * (sw + gap), y + top_h - hk, sw, hk, theme,
                        fill=c["accent"] if last else c["surface_hi"])
             _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 14), True,
-                         "FFFFFF" if last else "accent")
+                         "FFFFFF" if last else "ink")
             if sub:
                 p2 = sp.text_frame.add_paragraph()
                 _no_bullet(p2)
@@ -1891,12 +1895,10 @@ def _panel_figure(slide, theme, fig, x, y, w):
         hot = fig.get("highlight", n - 1)
         for k, label in enumerate(items):
             bx = x + k * (bw + gap)
-            sp = _part(slide, "node", bx, y, bw, bh, theme, fill="FFFFFF",
-                       line=c["accent"] if k == hot else c["border"])
-            if k == hot:
-                sp.line.width = Pt(theme["shape"]["line"] * 2)
+            sp = _part(slide, "node", bx, y, bw, bh, theme, fill=c["accent"] if k == hot else "FFFFFF",
+                       line=None if k == hot else c["border"])
             _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 14), True,
-                         "accent" if k == hot else "ink", PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
+                         "FFFFFF" if k == hot else "ink", PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
             if k < n - 1:
                 _seg(slide, bx + bw + 0.05, y + bh / 2, bx + bw + gap - 0.05, y + bh / 2,
                      c["muted"], 1.25, head=True)
@@ -1911,9 +1913,9 @@ def _panel_figure(slide, theme, fig, x, y, w):
             _seg(slide, x_from, yb, x_to, yb, c["accent"], 1.25, dash=True)
             _seg(slide, x_to, yb, x_to, y + bh + 0.02, c["accent"], 1.25, dash=True, head=True)
             tf = add_textbox(slide, x_to + 0.1, yb + 0.04, x_from - x_to - 0.2, 0.25,
-                             name="part/text")
+                             name="part/fig-text")
             set_simple(tf, back, theme, font="heading", size=_panel_size(theme, "panel_note", 12),
-                       bold=True, color="accent", align=PP_ALIGN.CENTER)
+                       bold=True, color="muted", align=PP_ALIGN.CENTER)
             total = bh + drop + 0.3
         return total
     if kind == "chips":
@@ -1923,7 +1925,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
         for label in fig.get("items", []):
             cw = 0.3 + _disp_width(label) * size / 72.0
             sp = _part(slide, "chip", cx, y, cw, ch, theme, fill="FFFFFF", line=c["accent"])
-            _shape_label(sp, theme, label, size, True, "accent", PP_ALIGN.CENTER,
+            _shape_label(sp, theme, label, size, True, "ink", PP_ALIGN.CENTER,
                          MSO_ANCHOR.MIDDLE)
             cx += cw + 0.1
         return ch
@@ -1948,7 +1950,7 @@ def _render_panels(slide, theme, g, s, i, region=None):
     cols = _panel_columns(s)
     n = max(1, len(cols))
     arrows = bool(s.get("arrows"))
-    gutter = {1: 0.0, 2: 0.45, 3: 0.40}.get(n, 0.34) + (0.16 if arrows else 0.0)
+    gutter = _u(theme, 6) if n > 1 else 0.0      # the token gutter (0.5 in), whatever the count
     col_w = (w0 - gutter * (n - 1)) / n
     if s.get("tiles"):
         th = _panel_figure(slide, theme, {"kind": "tiles", "items": s["tiles"]}, x0, y0, w0)
@@ -2011,10 +2013,10 @@ def _render_panels(slide, theme, g, s, i, region=None):
         run = p.add_run()
         run.text = tk.get("label", "")
         _set_run_font(run, name=theme["font"]["heading"],
-                      size=_panel_size(theme, "panel_label", 12), bold=True, color=c["accent"])
+                      size=_panel_size(theme, "panel_label", 12), bold=True, color=c["muted"])
         p2 = tf.add_paragraph()
         _no_bullet(p2)
-        p2.alignment = PP_ALIGN.CENTER
+        p2.alignment = PP_ALIGN.LEFT
         r2 = p2.add_run()
         r2.text = tk.get("text", "")
         _set_run_font(r2, name=theme["font"]["heading"],
@@ -2022,7 +2024,7 @@ def _render_panels(slide, theme, g, s, i, region=None):
         if tk.get("note"):
             p3 = tf.add_paragraph()
             _no_bullet(p3)
-            p3.alignment = PP_ALIGN.CENTER
+            p3.alignment = PP_ALIGN.LEFT
             p3.space_before = Pt(4)
             r3 = p3.add_run()
             r3.text = tk["note"]
