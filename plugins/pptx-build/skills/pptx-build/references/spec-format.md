@@ -285,7 +285,9 @@ figure:
 
 - `nodes[].tone`: `outline` (default: white, hairline border), `light` (surface fill), `accent`
   (accent fill, white text), `dark` (ink fill, white text). `text` adds a second, smaller line
-  and left-aligns the box; a label alone is centered.
+  and left-aligns the box; a label alone is centered. `text_anchor: middle` on the figure keeps
+  the text vertically centered even when boxes carry a `text` line. Arrows between side-by-side
+  boxes run level, at the middle of the height the two boxes share.
 - `edges` leave by the side that faces the target (right/left for mostly-horizontal, bottom/top
   for mostly-vertical) and carry an arrowhead unless `head: false`. `dashed: true`, `tone:
   accent`, `label` (placed above the row for horizontal edges, beside the line for vertical).

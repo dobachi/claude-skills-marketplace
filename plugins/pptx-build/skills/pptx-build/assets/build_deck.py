@@ -1527,20 +1527,27 @@ def _diagram(slide, theme, fig, x, y, w):
         elif n.get("image"):
             _warn("diagram: node %r image not found: %s" % (n.get("id", k), n.get("image")))
         fill, line, color = tones.get(n.get("tone", "outline"), tones["outline"])
+        if fig.get("label_color") and color == "ink":
+            color = fig["label_color"]        # e.g. "accent": the key phrase in the deck's hue
         sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line)
         sub = n.get("text")
         _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 14),
                      True, color, PP_ALIGN.LEFT if sub else PP_ALIGN.CENTER,
-                     MSO_ANCHOR.TOP if sub else MSO_ANCHOR.MIDDLE)
+                     MSO_ANCHOR.MIDDLE if (not sub or fig.get("text_anchor") == "middle")
+                     else MSO_ANCHOR.TOP)
         if sub:
             p2 = sp.text_frame.add_paragraph()
             _no_bullet(p2)
             p2.alignment = PP_ALIGN.LEFT
-            r2 = p2.add_run()
-            r2.text = str(sub)
-            _set_run_font(r2, name=theme["font"]["body"],
-                          size=_panel_size(theme, "panel_fig_sub", 12),
-                          color=color if color == "FFFFFF" else c["ink"])
+            base = color if color == "FFFFFF" else c["ink"]
+            # `**…**` marks the key phrase: bold, in the accent (bold white on a filled box)
+            for seg, emph in _rich_runs(str(sub)):
+                r2 = p2.add_run()
+                r2.text = seg
+                _set_run_font(r2, name=theme["font"]["body"],
+                              size=_panel_size(theme, "panel_fig_sub", 12),
+                              bold=emph or None,
+                              color=(base if base == "FFFFFF" else c["accent"]) if emph else base)
         rects[str(n.get("id", k))] = (nx, ny, nw, nh)
 
     for e in fig.get("edges") or []:
@@ -1554,6 +1561,9 @@ def _diagram(slide, theme, fig, x, y, w):
         if abs(bcx - acx) >= abs(bcy - acy):      # leave by a side edge
             x1, x2 = (ax + aw, bx) if bcx > acx else (ax, bx + bw)
             y1, y2 = acy, bcy
+            lo, hi = max(ay, by), min(ay + ah, by + bh)
+            if hi > lo:                           # side by side: keep the arrow level
+                y1 = y2 = (lo + hi) / 2
         else:                                     # leave by top / bottom
             y1, y2 = (ay + ah, by) if bcy > acy else (ay, by + bh)
             x1, x2 = acx, bcx
@@ -2822,6 +2832,9 @@ def _append_ph_lines(ph, lines):
         p.text = line
 
 
+_EMPH_RGB = None   # accent for `**…**` in template-mode bullets; set per build
+
+
 def _set_ph_bullets(ph, items, lead=None):
     """Write multi-level bullets into a placeholder; the template styles them.
     `lead` goes first as a bold, unbulleted level-0 paragraph."""
@@ -2845,8 +2858,18 @@ def _set_ph_bullets(ph, items, lead=None):
     for it in norm:
         p = tf.paragraphs[0] if first else tf.add_paragraph()
         first = False
-        p.text = it["text"]
         p.level = min(it["level"], 8)
+        if "**" not in it["text"]:
+            p.text = it["text"]
+            continue
+        # `**…**` marks the key phrase: bold, in the accent, the rest as the template styles it
+        for seg, emph in _rich_runs(it["text"]):
+            r = p.add_run()
+            r.text = seg
+            if emph:
+                r.font.bold = True
+                if _EMPH_RGB:
+                    r.font.color.rgb = RGBColor.from_string(_EMPH_RGB)
 
 
 def _tpl_need(ph, idx, layout_name, role, content):
@@ -3008,6 +3031,8 @@ def render_template(prs, spec, map_cfg):
     for key in ("surface", "surface_hi", "border", "invert_bg", "invert_ink", "invert_muted"):
         part_theme["color"][key] = "auto"
     _resolve_colors(part_theme)
+    global _EMPH_RGB
+    _EMPH_RGB = part_theme["color"]["accent"]
     part_theme["aspect"] = ("4:3" if (prs.slide_height or 0) /
                             max(1, prs.slide_width or 1) > 0.7 else "16:9")
     part_g = make_grid(part_theme)
@@ -3278,7 +3303,9 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, bas
         furniture = {"footer": meta.get("footer"), "pageNumbers": bool(meta.get("page_numbers"))}
         _apply_footer(prs, furniture, slides)
         if furniture["pageNumbers"]:
-            for n, slide in enumerate(_built_slides(prs, slides), start=1):
+            for n, (slide, s) in enumerate(zip(_built_slides(prs, slides), slides), start=1):
+                if (s or {}).get("type") == "title":
+                    continue                # the cover carries no page number
                 _page_number(slide, furniture, None, n)
         _apply_notes(prs, slides)
         prs.save(out)
