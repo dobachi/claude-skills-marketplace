@@ -32,7 +32,7 @@
 
   "size": {
     "title_max": 36,
-    "title_min": 26,
+    "title_min": 28,
     "body": 18,
     "body_sub": 16,
     "part_label": 19,

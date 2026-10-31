@@ -16,6 +16,11 @@ python3 build_deck.py    samples/recommendation-scqa.yaml -o /tmp/out.pptx
 | `recommendation-scqa.yaml` | **"We should do X."** | proposing a decision/investment | SCQA opening → governing thought (answer-first) → 3 MECE reasons → plan → ask |
 | `progress-review.yaml` | **"On track, except Y — approve the fix."** | status / business review (often read async) | bottom-line-up-front → KPIs vs target → risk & cause → ask |
 | `analysis-decision.yaml` | **"Among the options, choose B."** | option/vendor/build-vs-buy decisions | decision-first → explicit MECE criteria → comparison → residual-risk resolution → ask |
+| `onepager-brief.yaml` | **One page: what happened, what it means, what next.** | a report that must survive on one slide | `panels` with 4 `columns` + `arrows` + takeaway; native `diagram` for the angle |
+| `onepager-dashboard.yaml` | **One page: status, approve one thing.** | progress / business review | `dashboard`: `tiles` → status / next columns (with a `timeline`) → the ask |
+| `onepager-timeline.yaml` | **One page: when, and where we stand.** | plans and roadmaps | `figure` `kind: timeline` with `lead` naming the gate |
+| `onepager-decision.yaml` | **One page: choose.** | a decision the reader must take | `decision`: question (`lead`) → options × criteria → recommendation with reason, owner, date |
+| `onepager-event.yaml` | **One page: the event debrief.** | conference / visit / meeting reports | `panels` with `tiles` (facts) + highlights / our angle / next + takeaway |
 
 ## What to copy from them
 

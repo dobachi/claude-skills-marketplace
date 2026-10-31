@@ -1,0 +1,39 @@
+# One-pager: the brief. Context -> findings -> our angle -> next, read left to
+# right, with the takeaway last. Every figure is native. Build and read it:
+#   python3 validate_deck.py samples/onepager-brief.yaml && python3 build_deck.py samples/onepager-brief.yaml -o /tmp/brief.pptx
+meta:
+  title: "実施報告（1 枚）"
+slides:
+- type: panels
+  title: "普及の壁は技術ではなく動機とお金の流れ"
+  lead: "3 名の登壇者が別の領域から同じ壁を挙げ、当社はその設計で貢献できる"
+  arrows: true
+  columns:
+  - label: "背景"
+    blocks:
+    - text:
+      - {style: body, text: "AI の時代に企業内データは取り合いになっている"}
+      - {style: note, text: "取引先とつながる製造業は 16.4%"}
+  - label: "当日わかったこと"
+    blocks:
+    - text:
+      - {style: body, text: "① 政策の主題は「AI に使えるデータ」へ"}
+      - {style: body, text: "② 壁は参加の動機とお金の流れ"}
+      - {style: body, text: "③ 意味を分散したまま扱う技術へ"}
+      - {style: body, text: "④ デバイス企業は「データで稼ぐ」道へ"}
+  - label: "当社の切り口（考察）"
+    blocks:
+    - figure:
+        kind: diagram
+        nodes:
+        - {id: a, label: "価値の分け合いの設計", text: "誰が得をし誰が払うか", col: 0, row: 0, tone: accent}
+        - {id: b, label: "文脈レイヤーの実装", text: "集めずにつなぐ", col: 0, row: 1}
+        edges: [{from: a, to: b}]
+  - label: "次の一手"
+    blocks:
+    - text:
+      - {style: body, text: "A1 論文化（土橋、Q4）"}
+      - {style: body, text: "A2 検討会への参加（金子・土橋）"}
+      - {style: body, text: "A3 2 社との続きの場"}
+  takeaway: {label: "結論", text: "価値の分け合いの設計を、すべての提案の入口に置く"}
+  source: "2026 年 10 月 15 日 幕張メッセ、聴講 521 名（事務局速報値）。①〜④は当日の発言と観察、考察は報告者"

@@ -1,0 +1,16 @@
+# Defect injection for the one-pager rules.
+slides:
+- type: dashboard
+  title: No numbers
+  columns: [{label: A, blocks: [{text: [x]}]}, {label: B, blocks: [{text: [y]}]}]
+- type: panels
+  title: Too many columns
+  columns: [{blocks: []}, {blocks: []}, {blocks: []}, {blocks: []}, {blocks: []}]
+- type: decision
+  title: Recommends a ghost
+  options: [{label: A}, {label: B}]
+  criteria: [{label: Cost, marks: ['◎', '○']}]
+  recommend: {option: C, reason: none}
+- type: figure
+  title: Seven tiles
+  figure: {kind: tiles, items: [{number: 1, label: a}, {number: 2, label: b}, {number: 3, label: c}, {number: 4, label: d}, {number: 5, label: e}, {number: 6, label: f}, {number: 7, label: g}]}

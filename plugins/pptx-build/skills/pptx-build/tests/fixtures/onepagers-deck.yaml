@@ -1,0 +1,108 @@
+# One-pagers and the lead line. Shaped unlike the deck it was written for: an
+# English product-launch story. Every figure is native; every slide has a short
+# claim as title and, where the body is not bullets, a `lead:` sentence.
+meta:
+  aspect: '16:9'
+slides:
+- type: bullets
+  title: Launch slips two weeks
+  lead: The hardware passed; certification paperwork is the only open item.
+  bullets:
+  - Firmware signed off on 12 May
+  - Lab report due 26 May, two weeks after plan
+  - text: Marketing holds the date until the report lands
+    level: 1
+- type: panels
+  title: What we learned and what we do next
+  lead: Three findings from the pilot point to one change in the rollout order.
+  arrows: true
+  columns:
+  - label: Context
+    blocks:
+    - text: ['Pilot in 3 stores over 6 weeks', '1,200 transactions']
+  - label: Findings
+    blocks:
+    - text:
+      - {style: body, text: "① Checkout time fell by **18%**"}
+      - {style: body, text: "② Returns rose where staff were new"}
+      - {style: body, text: "③ Training, not hardware, set the pace"}
+  - label: Next
+    blocks:
+    - figure: {kind: flow, items: [Train, Install, Open]}
+    - text: [{style: note, text: Owner per store manager}]
+  takeaway: {label: Decision asked, text: Reorder the rollout to train first}
+  source: 'Source: pilot log, May'
+- type: dashboard
+  title: On track except certification
+  tiles:
+  - {number: '92%', label: Stores ready, delta: +7 pts vs April, tone: accent}
+  - {number: '14 d', label: Certification slip}
+  - {number: '€0.4M', label: Spend to date, delta: 61% of budget}
+  columns:
+  - label: Status
+    blocks:
+    - text: [Installs complete in 11 of 12 regions, Lab report pending]
+  - label: Next two weeks
+    blocks:
+    - figure: {kind: chips, items: [Lab report, Press date, Go/no-go]}
+  takeaway: {label: Ask, text: Approve a two-week press delay}
+- type: figure
+  title: The plan runs to September
+  lead: Certification is the gate; everything after it moves with it.
+  figure:
+    kind: timeline
+    today: Jun
+    items:
+    - {date: May, label: Firmware done}
+    - {date: Jun, label: Certification, text: lab report}
+    - {date: Jul, label: Train stores}
+    - {date: Sep, label: Launch, text: press and stores}
+- type: decision
+  title: Delay the launch rather than ship uncertified
+  lead: Do we hold the date, delay two weeks, or ship with a provisional label?
+  options:
+  - {label: Hold date, text: Ship on plan}
+  - {label: Delay 2 wks, text: Wait for the report}
+  - {label: Provisional, text: Ship with interim label}
+  criteria:
+  - {label: Legal risk, marks: ['×', '◎', '△']}
+  - {label: Revenue, marks: ['◎', '○', '○']}
+  - {label: Brand, marks: ['△', '◎', '×']}
+  recommend: {option: Delay 2 wks, reason: Two weeks of revenue is recoverable; a recall is not., owner: COO, by: 20 May}
+  recommend_label: Recommended
+  options_label: Summary
+- type: panels
+  title: Event report in one page
+  tiles:
+  - {number: '521', label: Attendees}
+  - {number: '4', label: Panelists}
+  - {number: '2', label: Follow-ups}
+  arrows: true
+  columns:
+  - label: Highlights
+    blocks:
+    - text:
+      - {style: body, text: "① Policy moved from pipes to usable data"}
+      - {style: body, text: "② Incentives, not tech, block adoption"}
+  - label: Our angle
+    blocks:
+    - figure:
+        kind: diagram
+        nodes:
+        - {id: a, label: Incentive design, col: 0, row: 0, tone: accent}
+        - {id: b, label: Context layer, col: 0, row: 1}
+        edges: [{from: a, to: b}]
+  - label: Next steps
+    blocks:
+    - text: ["A1 Paper by Q4", "A2 Join the working group"]
+  takeaway: {label: Takeaway, text: Lead with incentive design in every proposal}
+- type: table
+  title: Two regions still wait on parts
+  lead: Both are supply, not install, problems.
+  columns: [Region, Status]
+  rows: [[North, Parts due 2 Jun], [West, Parts due 9 Jun]]
+- type: two_col
+  title: Costs are flat while coverage grows
+  lead: Spend stays within 61% of budget as stores come online.
+  left: {heading: Cost, bullets: [Flat month on month]}
+  right: {heading: Coverage, bullets: [11 of 12 regions]}

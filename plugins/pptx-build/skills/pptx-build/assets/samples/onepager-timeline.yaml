@@ -1,0 +1,19 @@
+# One-pager: the plan on one line. The lead names the gate.
+meta:
+  title: "計画（1 枚）"
+slides:
+- type: figure
+  title: "9 月の発売まで、認証が関門"
+  lead: "認証の後ろの工程はすべて認証と一緒に動く"
+  figure:
+    kind: timeline
+    today: "6 月"
+    items:
+    - {date: "5 月", label: "ファームウェア確定"}
+    - {date: "6 月", label: "認証", text: "試験所の報告書"}
+    - {date: "7 月", label: "店舗研修"}
+    - {date: "8 月", label: "設置"}
+    - {date: "9 月", label: "発売", text: "発表と店頭"}
+  caption: "図 1: 発売までの節目"
+  note: "7 月以降は認証の完了日から数える"
+  source: "出典: プロジェクト計画 v3"

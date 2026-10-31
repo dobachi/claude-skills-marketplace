@@ -1,0 +1,32 @@
+# One-pager: the event report. A facts row, then highlights / our angle / next
+# steps, then the takeaway. Interpretation has its own column.
+meta:
+  title: "イベント報告（1 枚）"
+slides:
+- type: panels
+  title: "鍵は動機とお金の流れの設計"
+  lead: "セッションは設計どおり回し切り、展示会場で 2 社と続きの話になった"
+  tiles:
+  - {number: "521", label: "聴講（申込 600）"}
+  - {number: "4", label: "登壇者"}
+  - {number: "2", label: "続きの話になった企業"}
+  arrows: true
+  columns:
+  - label: "当日のハイライト"
+    blocks:
+    - text:
+      - {style: body, text: "① 政策の主題は「AI に使えるデータ」へ"}
+      - {style: body, text: "② 壁は参加の動機とお金の流れ"}
+      - {style: body, text: "③ デバイス企業は「データで稼ぐ」道へ"}
+  - label: "当社の切り口（考察）"
+    blocks:
+    - figure: {kind: staircase, items: [{label: "つなぐ"}, {label: "分け合う"}, {label: "稼ぐ"}], height: 0.9}
+    - text: [{style: note, text: "分け合いの設計と文脈レイヤーで貢献できる"}]
+  - label: "次の一手"
+    blocks:
+    - text:
+      - {style: body, text: "A1 論文化（土橋、Q4）"}
+      - {style: body, text: "A2 検討会への参加"}
+      - {style: body, text: "A3 2 社との続きの場"}
+  takeaway: {label: "結論", text: "価値の分け合いの設計を、すべての提案の入口に置く"}
+  source: "2026 年 10 月 15 日 幕張メッセ。聴講数は事務局速報値。考察は報告者"

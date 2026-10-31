@@ -1,0 +1,19 @@
+# One-pager: the decision memo. The question, the options on named criteria,
+# the recommendation with its reason, owner and date.
+meta:
+  title: "判断依頼（1 枚）"
+slides:
+- type: decision
+  title: "未認証で出すより 2 週遅らせる"
+  lead: "日程を守るか、2 週遅らせるか、暫定ラベルで出すか"
+  options:
+  - {label: "日程維持", text: "計画どおり出荷"}
+  - {label: "2 週延期", text: "報告書を待って出荷"}
+  - {label: "暫定ラベル", text: "暫定表示で出荷し後で差し替え"}
+  criteria:
+  - {label: "法的リスク", marks: ["×", "◎", "△"]}
+  - {label: "売上への影響", marks: ["◎", "○", "○"]}
+  - {label: "ブランド", marks: ["△", "◎", "×"]}
+  - {label: "現場の負担", marks: ["○", "◎", "×"]}
+  recommend: {option: "2 週延期", reason: "2 週分の売上は取り戻せるが、回収は取り戻せない", owner: "COO", by: "5/20 まで"}
+  source: "出典: 法務見解 5/9、販売計画 v2"

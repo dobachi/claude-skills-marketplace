@@ -26,7 +26,7 @@
 
   "size": {
     "title_max": 30,
-    "title_min": 24,
+    "title_min": 28,
     "body": 18,
     "body_sub": 16,
     "caption": 15,

@@ -47,8 +47,14 @@ ASSERT_RE = re.compile(
     r"should|will|is|are|was|were|up|down", re.I)
 
 CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart",
-                 "cards", "steps", "matrix", "split", "lead", "panels", "figure"}
-FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram")
+                 "cards", "steps", "matrix", "split", "lead", "panels", "figure",
+                 "dashboard", "decision"}
+FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline")
+# Deck-level tells: the habits that make a generated deck recognisable as one.
+# None of them is wrong on a single slide; all of them are wrong as a pattern.
+LABEL_COLON_RE = re.compile(r"^[^:：]{1,14}[:：]\s*\S")
+ARROW_DASH_RE = re.compile(r"[→⇒➡—–]")
+LEAD_WIDTH = 60
 # A picture of text cannot be edited. These extensions are what photographs and
 # screenshots come as; anything else is probably a drawing and gets asked about.
 PHOTO_EXT = {".jpg", ".jpeg", ".heic", ".heif"}
@@ -82,15 +88,34 @@ def _check_figure(fig, i, add, where):
         dup = {x for x in ids if ids.count(x) > 1}
         if dup:
             add(ERROR, i, "%s diagram node ids repeat: %s" % (where, ", ".join(sorted(dup))))
+        ids += [str(g["id"]) for g in fig.get("groups") or [] if isinstance(g, dict) and g.get("id")]
         for e in fig.get("edges") or []:
             for end in ("from", "to"):
                 if str((e or {}).get(end)) not in ids:
                     add(ERROR, i, "%s diagram edge names unknown node %r — ids are %s"
                         % (where, (e or {}).get(end), ", ".join(ids)))
-    if fig["kind"] in ("flow", "staircase", "chips") and len(fig.get("items") or []) < 2:
+    if fig["kind"] in ("flow", "staircase", "chips", "timeline") and len(fig.get("items") or []) < 2:
         add(WARN, i, "%s %s has fewer than 2 items" % (where, fig["kind"]))
+    if fig["kind"] == "timeline":
+        for k, it in enumerate(fig.get("items") or []):
+            if isinstance(it, dict) and not it.get("label"):
+                add(WARN, i, "%s timeline item %d has no `label`" % (where, k + 1))
+    if fig["kind"] == "tiles":
+        _check_tiles(fig.get("items"), i, add, where)
     if fig["kind"] == "stacked_bar" and not fig.get("segments"):
         add(ERROR, i, "%s stacked_bar has no `segments`" % where)
+
+
+def _check_tiles(items, i, add, where):
+    items = items or []
+    if not 2 <= len(items) <= 6:
+        add(ERROR, i, "%s has %d tile(s) — 2 to 6 numbers fit one row; more is a table"
+            % (where, len(items)))
+    for k, it in enumerate(items):
+        if not isinstance(it, dict) or it.get("number") in (None, ""):
+            add(ERROR, i, "%s tile %d has no `number` — a tile is a number with its label" % (where, k + 1))
+        elif not it.get("label"):
+            add(WARN, i, "%s tile %d has no `label` — a number without its name" % (where, k + 1))
 
 
 def _check_image(s, i, add):
@@ -122,6 +147,7 @@ PART_RANGE = {"cards": ("cards", 2, 4), "steps": ("steps", 3, 5),
 # and the deck flattens — so the length limit is what makes a large title
 # possible, not a separate style rule.
 TITLE_WIDTH = 22
+TITLE_WIDTH_HARD = 26
 ERROR, WARN, INFO = "ERROR", "WARN", "INFO"
 
 
@@ -250,6 +276,10 @@ def validate(spec, theme, g):
             _, over = B._fit_title_size(title, theme, g)
             if over:
                 add(WARN, i, "title needs >2 lines even at the floor size — shorten or split: %r" % title)
+            elif B._disp_width(title) > TITLE_WIDTH_HARD:
+                add(WARN, i, "title is %d wide — the claim is buried in a sentence. Cut the title "
+                             "to the claim (about %d wide) and put the supporting sentence in "
+                             "`lead:`: %r" % (B._disp_width(title), TITLE_WIDTH, title))
             elif B._disp_width(title) > TITLE_WIDTH:
                 add(INFO, i, "title is %d wide — over ~%d it wraps and the renderer drops "
                              "a size, flattening the title/body contrast: %r"
@@ -265,6 +295,13 @@ def validate(spec, theme, g):
                 add(WARN, i, "bullets slide has no bullets")
         if _body_overflows(s, theme, g):
             add(WARN, i, "body won't fit at readable sizes — split into two slides (one message per slide)")
+        elif t == "bullets" and s.get("bullets"):
+            used = B._bullets_height(s.get("bullets"), theme, g["contentW"], lead=s.get("lead"))
+            if used < 0.35 * g["bodyH"] and not isinstance(s.get("lead"), str):
+                add(WARN, i, "body fills ~%d%% of the slide — a short list under a long title reads "
+                             "as filler. Add the supporting sentence as `lead:`, merge with a "
+                             "neighbour, or give the content its shape (cards / statement / figure)"
+                    % round(100 * used / g["bodyH"]))
 
         # tables and charts: the data has to actually be there and stay readable
         if t == "table":
@@ -362,15 +399,45 @@ def validate(spec, theme, g):
             if len(B._normalize_bullets(s.get("bullets"))) > 4:
                 add(WARN, i, "more than 4 bullets in the narrow column — the figure is "
                              "the message here; move the detail to notes or another slide")
-        if t == "panels":
-            cols = [s.get(k) for k in ("left", "right") if s.get(k)]
+        if isinstance(s.get("lead"), str) and B._disp_width(s["lead"]) > LEAD_WIDTH:
+            add(WARN, i, "`lead:` runs %d wide — it is the ONE sentence that supports the title; "
+                         "move the rest into the body" % B._disp_width(str(s["lead"])))
+        if t in ("panels", "dashboard"):
+            cols = B._panel_columns(s) if (s.get("columns") or s.get("left") or s.get("right")) else []
             if not cols:
-                add(ERROR, i, "panels slide has no `left:` / `right:` column")
+                add(ERROR, i, "%s slide has no `columns:` (2-4) and no `left:` / `right:`" % t)
+            elif not 2 <= len(cols) <= 4:
+                add(ERROR, i, "%s has %d columns — 2 to 4 read on one page" % (t, len(cols)))
+            if t == "dashboard" and not s.get("tiles"):
+                add(ERROR, i, "dashboard has no `tiles:` — the numbers row is what makes it one")
+            if s.get("tiles"):
+                _check_tiles(s["tiles"], i, add, t)
             for col in cols:
                 for blk in col.get("blocks") or []:
                     fig = blk.get("figure")
                     if fig is not None:
                         _check_figure(fig, i, add, "panels")
+        if t == "decision":
+            opts = s.get("options") or []
+            labels = [(o.get("label") if isinstance(o, dict) else str(o)) for o in opts]
+            if not 2 <= len(opts) <= 4:
+                add(ERROR, i, "decision has %d options — 2 to 4 can be compared on one page" % len(opts))
+            if not s.get("criteria"):
+                add(ERROR, i, "decision has no `criteria:` — without named criteria the comparison is taste")
+            for cr in s.get("criteria") or []:
+                if len(cr.get("marks") or []) != len(opts):
+                    add(WARN, i, "criterion %r has %d marks for %d options"
+                        % (cr.get("label"), len(cr.get("marks") or []), len(opts)))
+            rec = s.get("recommend")
+            rec_opt = rec.get("option") if isinstance(rec, dict) else rec
+            if not rec_opt:
+                add(ERROR, i, "decision has no `recommend:` — a memo that does not recommend asks the reader to do the work")
+            elif rec_opt not in labels:
+                add(ERROR, i, "recommend.option %r is not one of the options %s" % (rec_opt, labels))
+            if isinstance(rec, dict) and not rec.get("reason"):
+                add(WARN, i, "recommend has no `reason` — state why in one sentence")
+            if not s.get("lead"):
+                add(WARN, i, "decision has no `lead:` (the question being decided) — put the ask above the table")
         if t == "section" and s.get("number") is not None \
                 and B._disp_width(str(s["number"])) > 4:
             add(WARN, i, "section number %r is set as the page's figure (large) — keep it "
@@ -393,6 +460,8 @@ def validate(spec, theme, g):
     if last_section_idx is not None and not section_has_content:
         add(ERROR, last_section_idx, "final section has no content slides — fill it or remove it")
 
+    _deck_tells(slides, add)
+
     for key, idxs in seen_titles.items():
         if len(idxs) > 1:
             add(WARN, idxs[-1], "duplicate title on slides %s — titles should be unique (screen readers and TOCs navigate by title)"
@@ -400,6 +469,100 @@ def validate(spec, theme, g):
 
     findings.sort(key=lambda f: (f["slide"], {ERROR: 0, WARN: 1, INFO: 2}[f["severity"]]))
     return findings
+
+
+def _all_bullets(s):
+    out = []
+    out += [it["text"] for it in B._normalize_bullets(s.get("bullets"))]
+    for k in ("left", "right"):
+        out += [it["text"] for it in B._normalize_bullets((s.get(k) or {}).get("bullets"))]
+    return [str(b) for b in out if b]
+
+
+def _item_count(s):
+    """How many parallel items the slide shows, or None when it has no list."""
+    t = s.get("type", "bullets")
+    if t == "bullets":
+        n = sum(1 for it in B._normalize_bullets(s.get("bullets")) if it["level"] == 0)
+        return n or None
+    for key in ("cards", "steps", "quadrants", "columns", "tiles", "options"):
+        if s.get(key):
+            return len(s[key])
+    return None
+
+
+def _deck_tells(slides, add):
+    """Patterns that mark a deck as generated. Each is fine once; as a habit
+    across the deck it is the tell. Reported on slide 0 (deck level)."""
+    content = [s for s in slides if s.get("type", "bullets") in CONTENT_TYPES]
+    bullets = [b for s in content for b in _all_bullets(s)]
+    # 1. every bullet is "label: text"
+    if len(bullets) >= 6:
+        n = sum(1 for b in bullets if LABEL_COLON_RE.match(b))
+        if n / len(bullets) >= 0.6:
+            add(WARN, 0, "%d of %d bullets are 'label: text' — one scaffold repeated is a tell. "
+                         "Keep it where the label IS the content (a speaker, a region); elsewhere "
+                         "write the sentence, or give the pairs their shape (table / cards)"
+                % (n, len(bullets)))
+    # 2. the same number of bullets on four slides in a row
+    counts = [_item_count(s) for s in content]
+    run, prev = 1, None
+    for k, c in enumerate(counts):
+        run = run + 1 if (c is not None and c == prev) else 1
+        if run == 4:
+            add(WARN, 0, "four consecutive slides each show %d items — the rhythm of a "
+                         "template, not of the content. Vary the count or the shape" % c)
+            break
+        prev = c
+    # 3. rule of three as a reflex
+    threes = [c for c in counts if c is not None]
+    if len(threes) >= 5 and sum(1 for c in threes if c == 3) / len(threes) >= 0.8:
+        add(INFO, 0, "%d of %d listed slides have exactly 3 items — if the content does not "
+                     "come in threes, do not make it" % (sum(1 for c in threes if c == 3), len(threes)))
+    # 4. arrows and dashes doing the work of words
+    texts = bullets + [str(s.get("title") or "") for s in content] + \
+            [str(s.get("lead") or "") for s in content]
+    n_arrow = sum(len(ARROW_DASH_RE.findall(t)) for t in texts)
+    if n_arrow >= 3:
+        add(INFO, 0, "%d arrows or em-dashes in slide text — a relation written as a symbol is a "
+                     "tell; say it (へ移った / の結果 / つまり), or draw it as a figure" % n_arrow)
+
+
+def deck_text(spec):
+    """Every sentence the audience will read, as Markdown — for a de-AI pass
+    (ai-tell-reducer) before the deck is rendered."""
+    out = []
+    for i, s in enumerate(spec.get("slides") or [], start=1):
+        t = s.get("type", "bullets")
+        title = _slide_title(s)
+        out.append("## %d. %s" % (i, title or "(%s)" % t))
+        if s.get("subtitle"):
+            out.append(str(s["subtitle"]))
+        if isinstance(s.get("lead"), str):
+            out.append("**%s**" % s["lead"])
+        for b in _all_bullets(s):
+            out.append("- " + b)
+        for k in ("left", "right"):
+            if (s.get(k) or {}).get("heading"):
+                out.append("- " + str(s[k]["heading"]))
+        for txt in _part_texts(s):
+            if txt:
+                out.append("- " + str(txt))
+        for col in (s.get("columns") or []):
+            if isinstance(col, dict):
+                if col.get("label"):
+                    out.append("- " + str(col["label"]))
+                for blk in col.get("blocks") or []:
+                    for st, tx in B._panel_items(blk):
+                        out.append("- " + tx)
+        for k in ("caption", "note", "sub", "text", "quote", "attribution", "source", "notes"):
+            if s.get(k) and k != "text" or (k == "text" and t == "statement" and s.get(k)):
+                out.append(str(s[k]))
+        if s.get("takeaway"):
+            tk = s["takeaway"]
+            out.append(str(tk.get("text", tk) if isinstance(tk, dict) else tk))
+        out.append("")
+    return "\n".join(out)
 
 
 def build_spine(spec):
@@ -463,6 +626,8 @@ def main(argv=None):
     ap.add_argument("--strict", action="store_true", help="exit nonzero on WARN too, not just ERROR")
     ap.add_argument("--json", action="store_true", help="emit JSON (findings + spine) instead of text")
     ap.add_argument("--theme", default=B.DEFAULT_THEME, help="theme JSON (affects size/overflow checks)")
+    ap.add_argument("--text", metavar="FILE", help="also write every sentence of the deck as Markdown "
+                                                  "(for ai-tell-reducer) to FILE")
     a = ap.parse_args(argv)
 
     spec = B.load_spec(a.spec)
@@ -472,6 +637,10 @@ def main(argv=None):
 
     findings = validate(spec, theme, g)
     spine = build_spine(spec)
+    if a.text:
+        with open(a.text, "w", encoding="utf-8") as f:
+            f.write(deck_text(spec))
+        print("deck text -> %s  (run ai-tell-reducer on it before rendering)" % a.text, file=sys.stderr)
 
     if a.json:
         print(json.dumps({"findings": findings, "spine": spine}, ensure_ascii=False, indent=2))

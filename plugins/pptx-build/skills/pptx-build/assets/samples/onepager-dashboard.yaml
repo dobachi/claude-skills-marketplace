@@ -1,0 +1,23 @@
+# One-pager: the progress dashboard. Numbers first, then status and next, then the ask.
+meta:
+  title: "進捗報告（1 枚）"
+slides:
+- type: dashboard
+  title: "計画どおり。認証だけが 2 週遅れ"
+  lead: "ハードは合格済みで、残る未了は認証の書類 1 件"
+  tiles:
+  - {number: "92%", label: "店舗の準備完了", delta: "+7pt 前月比", tone: accent}
+  - {number: "14 日", label: "認証の遅れ"}
+  - {number: "61%", label: "予算の執行率", delta: "0.4 億円"}
+  - {number: "11/12", label: "設置完了の地域"}
+  columns:
+  - label: "状況"
+    blocks:
+    - text:
+      - {style: body, text: "設置は 12 地域中 11 で完了"}
+      - {style: body, text: "試験所の報告書待ち（5/26 予定）"}
+  - label: "次の 2 週"
+    blocks:
+    - figure: {kind: timeline, today: "5/12", items: [{date: "5/12", label: "現在"}, {date: "5/26", label: "報告書"}, {date: "6/2", label: "発表可否"}]}
+  takeaway: {label: "お願い", text: "発表を 2 週ずらす承認"}
+  source: "出典: 週次進捗 5/12 時点"

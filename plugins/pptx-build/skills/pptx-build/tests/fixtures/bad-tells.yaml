@@ -1,0 +1,15 @@
+# Defect injection for the deck-level tells: every bullet is "label: text",
+# four slides in a row with three bullets, arrows in the text, long titles.
+slides:
+- type: bullets
+  title: 政策の主題は「つなぐ基盤」から「AI に使えるデータ」へ移ったことが今回の最大の発見である
+  bullets: ['経産省: ウラノスは蓄電池 → CMP → リサイクル', 'デジタル庁: ガイドラインを公表予定', '示唆: 提案は供給の仕組みとして語る']
+- type: bullets
+  title: 普及の壁は動機とお金の流れにある
+  bullets: ['古田氏: 規制があったから合意できた', '稲垣氏: CO2 は規制でないので進まない — 動機が要る', '入江氏: 価値の分け合いの仕組みはまだない']
+- type: bullets
+  title: エージェントの時代には意味を分散したまま扱う技術が求められる
+  bullets: ['モデル: 十分賢くなった → 需要は文脈へ', 'M&A: IT 費用の約 40% がパイプラインに消える', '示唆: 文脈レイヤーを作れば払わずに済む']
+- type: bullets
+  title: デバイス企業はデータで稼ぐ道を探している
+  bullets: ['村田: 皮膚感覚型センサ', 'Melt: 触感の再現', '示唆: 企業間の信頼づくりで組める']

@@ -96,6 +96,48 @@ CASES=(
   "1|python3 $A/extract_deck.py $TMP/figure.pptx -o $TMP/figure-back.yaml"
   "has:native figure parts|python3 $A/extract_deck.py $TMP/figure.pptx -o $TMP/figure-back2.yaml"
 
+  # ---- 1 枚物の型と lead: 行 ----
+  # 報告ブリーフ（N 列 panels + 矢印）、進捗ダッシュボード（tiles）、計画タイムライン、
+  # 意思決定メモ、イベント報告、lead: つきの箇条書き・表・2 列をビルドして監査を通す (0)。
+  # tiles のない dashboard、5 列、選択肢にない推奨、7 枚のタイルは検証で止める (1)。
+  "0|python3 $A/validate_deck.py $f/onepagers-deck.yaml --text $TMP/deck-text.md"
+  "has:## 1. Launch slips two weeks|cat $TMP/deck-text.md"
+  "has:**The hardware passed|cat $TMP/deck-text.md"
+  "0|python3 $A/build_deck.py $f/onepagers-deck.yaml -o $TMP/onepagers.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/onepagers.pptx --quiet"
+  "1|python3 $A/validate_deck.py $f/bad-onepagers.yaml"
+  "has:dashboard has no \`tiles:\`|python3 $A/validate_deck.py $f/bad-onepagers.yaml"
+  "has:5 columns|python3 $A/validate_deck.py $f/bad-onepagers.yaml"
+  "has:recommend.option 'C' is not one of|python3 $A/validate_deck.py $f/bad-onepagers.yaml"
+  "has:7 tile(s)|python3 $A/validate_deck.py $f/bad-onepagers.yaml"
+
+  # ---- 同梱サンプルの 1 枚物 5 本: 検証・生成・監査が通る ----
+  "0|python3 $A/validate_deck.py $A/samples/onepager-brief.yaml"
+  "0|python3 $A/build_deck.py $A/samples/onepager-brief.yaml -o $TMP/s1.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/s1.pptx --quiet"
+  "0|python3 $A/validate_deck.py $A/samples/onepager-dashboard.yaml"
+  "0|python3 $A/build_deck.py $A/samples/onepager-dashboard.yaml -o $TMP/s2.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/s2.pptx --quiet"
+  "0|python3 $A/validate_deck.py $A/samples/onepager-timeline.yaml"
+  "0|python3 $A/build_deck.py $A/samples/onepager-timeline.yaml -o $TMP/s3.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/s3.pptx --quiet"
+  "0|python3 $A/validate_deck.py $A/samples/onepager-decision.yaml"
+  "0|python3 $A/build_deck.py $A/samples/onepager-decision.yaml -o $TMP/s4.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/s4.pptx --quiet"
+  "0|python3 $A/validate_deck.py $A/samples/onepager-event.yaml"
+  "0|python3 $A/build_deck.py $A/samples/onepager-event.yaml -o $TMP/s5.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/s5.pptx --quiet"
+
+  # ---- AI っぽさの癖: 検証器がデッキ単位で拾う ----
+  # 全部「ラベル: 説明」の箇条書き、3 項目が 4 枚連続、本文中の矢印、主題の埋もれた
+  # 長いタイトル。WARN なので --strict で落ちる (1)。
+  "1|python3 $A/validate_deck.py $f/bad-tells.yaml --strict"
+  "has:bullets are 'label: text'|python3 $A/validate_deck.py $f/bad-tells.yaml"
+  "has:four consecutive slides each show 3 items|python3 $A/validate_deck.py $f/bad-tells.yaml"
+  "has:arrows or em-dashes|python3 $A/validate_deck.py $f/bad-tells.yaml"
+  "has:the claim is buried in a sentence|python3 $A/validate_deck.py $f/bad-tells.yaml"
+  "has:fills ~|python3 $A/validate_deck.py $f/bad-tells.yaml"
+
   # ---- 欠陥注入: 型の個数・軸・図の規約が効いているか ----
   "1|python3 $A/validate_deck.py $f/bad-archetypes.yaml"
   "has:matrix takes exactly 4 quadrants|python3 $A/validate_deck.py $f/bad-archetypes.yaml"

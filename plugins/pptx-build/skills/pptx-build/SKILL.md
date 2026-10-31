@@ -2,17 +2,17 @@
 name: pptx-build
 description: >-
   Generate clean, white-based .pptx decks that don't look AI-made, and rebuild decks that
-  already exist — built on python-pptx. Three modes, one spec: (1) default — a grid-anchored
-  layout with no drifting bands, plus composed archetypes (cards / steps / matrix / split /
-  statement) picked from the content's shape; (2) template-fill — write into a real corporate
-  .pptx/.potx's own layouts and placeholders, inheriting its master, theme, fonts and logos;
-  (3) refactor — `extract_deck.py` reads an EXISTING deck back into a spec and reports what it
-  cannot carry. Figures are native and editable (`figure` slide, `split figure:`, panels
-  figures: diagram / flow / staircase / stacked_bar / chips) — a drawn diagram is boxes and
-  arrows, never a pasted PNG; `image` is for photographs only and the validator refuses drawn
-  pictures. Use when a PowerPoint file must be produced or fixed — "simple white deck",
-  "テンプレに沿ったパワポ", "この資料を作り直して", "図の文字が編集できない". Ships `validate_deck.py`
-  (spec lint) and `audit_pptx.py` (placeholder audit).
+  already exist — built on python-pptx. Three modes, one spec: (1) default — grid-anchored
+  layout, no drifting bands, composed archetypes (cards / steps / matrix / split / statement)
+  picked from the content's shape; (2) template-fill — write into a corporate .pptx/.potx's own
+  layouts and placeholders; (3) refactor — `extract_deck.py` reads an EXISTING deck back into a
+  spec. Figures are native and editable (`figure`, `split figure:`, panels figures: diagram /
+  flow / staircase / stacked_bar / chips / tiles / timeline) — never a pasted PNG. Five one-pager
+  shapes (brief, dashboard, timeline, decision, event report). A `lead:` line makes title,
+  supporting sentence and evidence three visible levels; the validator flags buried claims,
+  filler slides and deck-level AI tells, and exports the text for ai-tell-reducer. Use for
+  "simple white deck", "テンプレに沿ったパワポ", "この資料を作り直して", "1 枚にまとめて",
+  "図の文字が編集できない", "AIっぽい資料を直して".
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -75,6 +75,27 @@ external`. `document-figures` is for pulling figures *out of* existing documents
 targets that are not PowerPoint; it is not how a deck gets a diagram. If the content needs a
 shape the vocabulary lacks, extend `_diagram` in `build_deck.py` — the generator is the
 artifact.
+
+## Rule two: the reader must find the claim in one glance
+
+The flattest failure a generated deck has is a long assertion title at 24 pt over a list of
+equal bullets at 18 pt: everything is a sentence, nothing is the point. Three levels, each a
+visible step apart, and the claim always at the top:
+
+| Level | What it is | Size (default) | Written as |
+|---|---|---|---|
+| **Title** | the claim, short enough to read as one unit | 28–34 pt | a short assertion, about 20 characters in Japanese; not the whole argument |
+| **`lead:`** | the one sentence that supports the title | 20 pt bold | the sentence you would otherwise have crammed into the title |
+| **Body** | the evidence | 18 / 16 pt | bullets, a table, a figure, a composed part |
+
+`lead:` works on every content type: a bullets slide writes it as the first paragraph; a table,
+chart, figure, two-column or composed slide gets it as a band across the top of the body region
+(the content below is re-placed under it). The title floor is **28 pt** (was 24): a title that
+needs a third line at 28 pt is two claims, and `validate_deck.py` says so. It also warns when a
+title runs past ~26 characters (the claim is buried in a sentence), and when a short list under a
+title fills under a third of the body (filler: add the `lead:`, merge, or give the content its
+shape). One-pager text has its own floors — 12 pt for notes, 14 pt for anything read at a glance —
+because a one-pager is read on paper, not projected.
 
 ## The three guarantees this skill is built around
 
@@ -182,19 +203,50 @@ landed on the wrong layout. It also warns on placeholders that pin their own geo
 
 Read the PNGs back and run the checklist below. LibreOffice may substitute fonts, but it faithfully shows alignment, placeholder fills, and the no-drift property.
 
+## One-pagers: five shapes, all native
+
+A one-pager carries the whole argument on one slide, and its shape follows from what the reader
+must do with it. Pick from these; never paste a drawn picture (Rule one). Each has a sample in
+`assets/samples/onepager-*.yaml` and the reading rules are in `references/one-pagers.md`.
+
+| The reader should… | Shape | Type | Sample |
+|---|---|---|---|
+| understand what happened and what follows | **brief** — context → findings → implications → next, left to right with arrows, takeaway band | `panels` with `columns:` (2–4) and `arrows: true` | `onepager-brief.yaml` |
+| see status at a glance and approve one thing | **dashboard** — a row of number tiles, then status / next columns, takeaway = the ask | `dashboard` (`tiles:` + `columns:`) | `onepager-dashboard.yaml` |
+| see when things happen and where we stand | **timeline** — milestones on one line, today marked | `figure` with `kind: timeline` (+ `lead:`) | `onepager-timeline.yaml` |
+| choose | **decision memo** — the question, options × criteria, the recommendation with its reason | `decision` | `onepager-decision.yaml` |
+| get the debrief of an event | **event report** — facts row (attendance, speakers), highlights / our angle / next steps, takeaway | `panels` with `tiles:` + 3 `columns:` | `onepager-event.yaml` |
+
+## AI tells: the deck-level habits, and the de-AI pass
+
+A deck reads as generated for reasons a single slide never shows: every bullet is `ラベル: 説明`,
+every slide has three items, every title is a sentence of the same length, arrows do the work of
+verbs. `validate_deck.py` reports these at deck level (label-colon bullets, same item count on four
+consecutive slides, rule-of-three reflex, arrows and em-dashes in text, buried claims, filler
+slides) — the full list with fixes is `references/deck-ai-tells.md`. For the words themselves:
+
+```bash
+python3 validate_deck.py deck.yaml --text /tmp/deck-text.md   # every sentence, as Markdown
+```
+
+then run **ai-tell-reducer** on that file and carry its edits back into the spec before building.
+The deck text is short; the pass takes a minute and removes the tells a layout cannot.
+
 ## Slide types
 
 Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`,
 `image`, `table`, `chart`, `blank`.
 
 `figure` is a native, editable figure on its own — `diagram` / `flow` / `staircase` /
-`stacked_bar` / `chips` at full content width, with `caption` and `note` in the body
-placeholder — the counterpart of `image` for anything that was drawn rather than
-photographed. `split` takes the same `figure:` in place of `image:`.
+`stacked_bar` / `chips` / `tiles` / `timeline` at full content width, with `caption` and
+`note` in the body placeholder — the counterpart of `image` for anything that was drawn rather
+than photographed. `split` takes the same `figure:` in place of `image:`. `dashboard` (tiles
+row + columns) and `decision` (options × criteria + recommendation) are the one-pager types;
+`panels` takes `columns:` (2–4), `arrows:` and `tiles:`.
 
-`panels` is the dense one-page overview: two columns of text blocks and
-native, editable figures (bar / staircase / flow / chips) with a takeaway band
-underneath. Every sentence stays slide text, never baked into a picture. See
+`panels` is the dense one-page overview: two to four columns of text blocks and
+native, editable figures (bar / staircase / flow / chips / diagram / timeline) with an
+optional tiles row above and a takeaway band underneath. Every sentence stays slide text, never baked into a picture. See
 `references/spec-format.md`.
 
 **The four large-type pages are four compositions, not one layout with four
@@ -291,7 +343,8 @@ choice.
 - [ ] Every title is an **action title** (states the takeaway), not a topic label.
 - [ ] One message per slide; no wall of text (split if it won't fit).
 - [ ] **No build `warning:` left unaddressed** — each one means a title or body overflows at readable sizes; split or shorten that slide rather than ignoring it.
-- [ ] **Titles:** none collide with the body; titles share one baseline across slides (flip the PNGs).
+- [ ] **Titles:** none collide with the body; titles share one baseline across slides (flip the PNGs). Each is a short claim; the supporting sentence is in `lead:`, not in the title; no slide is a short list floating under a long title.
+- [ ] **Tells:** `validate_deck.py` reports no deck-level tells (label-colon bullets, same count four slides running, arrows for verbs); the `--text` export went through ai-tell-reducer.
 - [ ] **Figures:** every `image` is a photograph, screenshot or external figure (declared `image_kind`); every drawn diagram is a native `figure` / `split figure:` / `panels` figure whose words can be selected in PowerPoint. Each has a `caption` that names it and a `note` that gives the takeaway; the caption is clearly readable, not a tiny footnote.
 - [ ] **Default mode:** background white/near-white; ink `#1A1A1A`, not pure black; exactly **one** accent (rule + emphasis only); **no full-width band**; the rule appears only on turn pages unless `meta.rule: "all"`, and lines up across them (flip the PNGs — the accent should never jump); the four large-type pages (`title` / `section` / `statement` / `quote`) do not look like one another.
 - [ ] **Template mode:** every intended placeholder is actually filled (read the build log + a PNG); no slide fell back to the wrong layout; the deck still looks like the template, not like us.
@@ -311,6 +364,8 @@ Apply the **information test** before adding any shape: if deleting it changes n
 ## References
 
 - `references/spec-format.md` — every spec field and slide type, including the composed archetypes and `meta.shape`
+- `references/one-pagers.md` — the five one-pager shapes: which to pick, reading order, density and size floors
+- `references/deck-ai-tells.md` — the habits that mark a deck as generated, how the validator catches them, and the de-AI pass
 - `references/refactor-mode.md` — rebuilding a deck that already exists: extract → fix the argument as text → rebuild → audit, what extraction recovers and what it cannot carry
 - `references/narrative-and-logic.md` — the cross-slide argument check (Pyramid Principle, SCQA, MECE, action titles, summary consistency) that `validate_deck.py` sets up but can't decide for you
 - `references/template-mode.md` — filling a real `.pptx`/`.potx`: inspect → map → fill, and how foreign layouts/placeholders are resolved

@@ -7,7 +7,9 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 - [meta (all optional — omit to keep defaults; default mode only)](#meta-all-optional-omit-to-keep-defaults-default-mode-only) — deck-wide colors, fonts, aspect, type scale
 - [meta.shape](#metashape--the-three-numbers-every-part-agrees-on) — spacing unit, corner radius, line weight
 - [slides](#slides) — every slide type and its fields
-- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips`)
+- [The lead line](#the-lead-line) — `lead:` on any content slide: the sentence that supports the title
+- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips` / `tiles` / `timeline`)
+- [One-pager types](#one-pager-types) — `panels` with `columns` / `arrows` / `tiles`, `dashboard`, `decision`
 - [Composed archetypes](#composed-archetypes) — cards / steps / lead / matrix / split / statement
 - [Contrast](#contrast--the-dark-page-and-the-tonal-chart) — the dark page, the tonal chart
 - [Conventions the spec assumes](#conventions-the-spec-assumes) — action titles, one message, sources, one accent
@@ -46,6 +48,11 @@ Every size the default renderer uses is routed through one type scale, so text c
 | `title_slide` / `title_slide_min` | `40` / `28` | Deck-title auto-fit range on the title slide (largest size that keeps it to two lines; warns past that) |
 | `body` / `body_sub` | `18` / `16` | Bullets at level 0 / level 1+ |
 | `caption` / `caption_note` | `15` / `14` | Figure caption label / explanation (`image` slide) |
+| `body_lead` | `20` | The `lead:` sentence under the title (bold) |
+| `title_min` | `28` | Floor of the title auto-fit; a title that needs a third line here is two claims |
+| `tile_number` / `tile_label` / `tile_delta` | `32` / `12` / `12` | Dashboard tiles |
+| `panel_label` / `panel_heading` / `panel_lead` / `panel_body` / `panel_note` | `12` / `18` / `15` / `14` / `12` | Text blocks on `panels` / `dashboard` (a page that is read, so 12 pt is the floor) |
+| `panel_fig_label` / `panel_fig_sub` / `panel_fig` | `14` / `12` / `12` | Labels inside native figures |
 | `big_caption` | `20` | Caption under a `big_number` |
 | `statement` / `statement_min` | `40` / `30` | Statement auto-fit range (largest size that keeps the sentence to three lines) |
 | `section_number` | `88` | The section number, set as the divider's figure (same size as `big_number`) |
@@ -209,6 +216,22 @@ Prefer a `caption` that names the figure and a `note` that states the takeaway �
 
 **A picture is for things that were photographed or captured, not drawn.** A diagram that was rendered to PNG/SVG cannot be edited in PowerPoint; build it as a [native figure](#native-figures) instead. `validate_deck.py` errors on `image_kind: drawing` and warns on any `image:` whose extension is not a photograph's (`.jpg` / `.jpeg` / `.heic`) unless `image_kind` says `photo`, `screenshot` or `external`.
 
+## The lead line
+
+```yaml
+- type: bullets            # or table / chart / figure / two_col / cards / steps / matrix / panels …
+  title: "見積の遅れは設計起因"                       # the claim, short
+  lead: "3 件の遅れはすべて設計変更の後に起きており、工程側の問題ではない"   # the sentence that supports it
+  bullets: ["…", "…"]
+```
+
+Title (claim) → lead (the supporting sentence, bold at `body_lead`) → body (evidence). On a
+bullets slide the lead is the first paragraph of the body placeholder; on every other content
+type it is a band across the top of the body region (`part/lead`) and the content is re-placed
+beneath it (template mode included). `validate_deck.py` warns when a lead runs past 60 wide: it
+is one sentence. A `lead` **type** slide uses `lead:` for its featured item instead; the two do
+not mix.
+
 ## Native figures
 
 Figures drawn from native shapes — every label is slide text, every box and arrow a shape the
@@ -236,6 +259,8 @@ in their region and cap `diagram` / `staircase` to the room available (never str
 | `staircase` | `items` (strings or `{label, text}`), `height` (1.25), `low` (0.38) | rising levels, the last one filled accent |
 | `stacked_bar` | `segments: [{label, value, tone}]`, `height` (0.30) | shares of one bar; `tone` accent / dark / light |
 | `chips` | `items`, `height` (0.36) | a row of outlined tags |
+| `tiles` | `items: [{number, label, delta, tone}]` (2–6), `height` (1.15) | KPI tiles: the number large, its label, an optional delta line; `tone: accent` for the headline figure |
+| `timeline` | `items: [{date, label, text, tone}]`, `today` (a date / label / index), `height` (1.6) | milestones on one line, date above, name and a short line below; `today` becomes an accent ring with its date in bold |
 
 ### diagram
 ```yaml
@@ -356,6 +381,65 @@ equal tags) and `diagram` (boxes on a grid joined by arrows — see
 [Native figures](#native-figures)). A text block may set `box: true` to sit on a light panel, and any
 block may set `gap:` (in) before the next one. `validate_deck.py` refuses any
 other figure kind rather than letting the build drop it.
+
+## One-pager types
+
+One slide that carries the whole argument. Which shape to use, and why, is in
+`references/one-pagers.md`; the samples are `assets/samples/onepager-*.yaml`.
+
+### panels (brief / event report)
+`panels` takes `columns:` (2–4) in place of `left:` / `right:`, an `arrows: true` flag that joins
+the columns left to right (context → findings → next), and a `tiles:` row above the columns.
+
+```yaml
+- type: panels
+  title: "鍵は動機とお金の流れの設計"
+  lead: "3 名が別の領域から同じ壁を挙げた"
+  tiles:                                         # optional facts row (2–6)
+    - {number: "521", label: "聴講"}
+    - {number: "4", label: "登壇者"}
+  arrows: true                                   # chevrons between the columns; no hairlines
+  columns:
+    - label: "背景"
+      blocks: [{text: ["…"]}]
+    - label: "当日わかったこと"
+      blocks: [{text: [{style: body, text: "① …"}, {style: body, text: "② …"}]}]
+    - label: "次の一手"
+      blocks: [{figure: {kind: flow, items: ["論文化", "検討会", "続きの場"]}}]
+  takeaway: {label: "結論", text: "One sentence"}
+```
+
+### dashboard
+```yaml
+- type: dashboard
+  title: "計画どおり。認証だけが 2 週遅れ"
+  tiles:                                         # required, 2–6
+    - {number: "92%", label: "店舗準備", delta: "+7pt 前月比", tone: accent}
+    - {number: "14 日", label: "認証の遅れ"}
+  columns:
+    - {label: "状況", blocks: [{text: ["…"]}]}
+    - {label: "次の 2 週", blocks: [{figure: {kind: chips, items: ["報告書", "発表日"]}}]}
+  takeaway: {label: "お願い", text: "発表を 2 週ずらす承認"}
+```
+
+### decision
+```yaml
+- type: decision
+  title: "未認証で出すより 2 週遅らせる"
+  lead: "日程を守るか、2 週遅らせるか、暫定ラベルで出すか"   # the question being decided
+  options:
+    - {label: "日程維持", text: "計画どおり出荷"}
+    - {label: "2 週延期", text: "報告書を待つ"}
+    - {label: "暫定ラベル", text: "暫定表示で出荷"}
+  criteria:                                       # one row per criterion; marks per option
+    - {label: "法的リスク", marks: ["×", "◎", "△"]}
+    - {label: "売上", marks: ["◎", "○", "○"]}
+  recommend: {option: "2 週延期", reason: "2 週の売上は取り戻せるが回収は取り戻せない", owner: "COO", by: "5/20"}
+  recommend_label: "推奨"                          # optional (default 推奨); options_label names the text row
+```
+The options and criteria are a plain table (the recommended column in bold accent) and the
+recommendation sits in an accent-outlined band at the bottom. `validate_deck.py` requires 2–4
+options, named criteria, and a recommendation that is one of the options.
 
 ## Composed archetypes
 

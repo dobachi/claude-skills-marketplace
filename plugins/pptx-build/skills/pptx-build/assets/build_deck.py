@@ -64,9 +64,11 @@ def load_theme(path):
 # are floors the renderer will NOT shrink past — when content won't fit at the
 # floor it warns to split the slide instead of shrinking (see _check_overflow).
 SIZE_DEFAULTS = {
-    "title_max": 34, "title_min": 24, "title_slide": 40, "title_slide_min": 28, "subtitle": 20,
+    "title_max": 34, "title_min": 28, "title_slide": 40, "title_slide_min": 28, "subtitle": 20,
     "section": 34, "section_number": 88,     # the number is the page's figure (= big_number)
     "body": 18, "body_sub": 16, "min_body": 16,
+    "body_lead": 20,                         # the one sentence that supports the title (`lead:`)
+    "tile_number": 32, "tile_label": 12, "tile_delta": 12,   # dashboard tiles
     "big_number": 88, "big_caption": 20,
     "quote": 28, "quote_attr": 18,
     "caption": 15, "caption_note": 14,
@@ -821,9 +823,30 @@ def _title(slide, theme, g, text, idx):
     _hairline(slide, theme, g, g["ruleY"]["content"], family="content")
 
 
-def _fill_bullets(tf, theme, items):
+def _lead_para(tf, theme, text, first=True):
+    """The lead: one bold sentence that supports the title, set a step above the
+    body. Title (claim) -> lead (the supporting sentence) -> bullets (evidence):
+    three levels the eye can tell apart, instead of one claim and a list."""
+    p = tf.paragraphs[0] if first else tf.add_paragraph()
+    _no_bullet(p)
+    pPr = p._p.get_or_add_pPr()
+    pPr.set("marL", "0")
+    pPr.set("indent", "0")
+    p.space_after = Pt(12)
+    p.line_spacing = 1.2
+    run = p.add_run()
+    run.text = str(text)
+    _set_run_font(run, name=theme["font"]["heading"], size=theme["size"]["body_lead"],
+                  bold=True, color=theme["color"]["ink"])
+    return p
+
+
+def _fill_bullets(tf, theme, items, lead=None):
     sz = theme["size"]
     first = True
+    if lead:
+        _lead_para(tf, theme, lead)
+        first = False
     for it in _normalize_bullets(items):
         lvl = it["level"]
         p = tf.paragraphs[0] if first else tf.add_paragraph()
@@ -836,10 +859,12 @@ def _fill_bullets(tf, theme, items):
                       color=theme["color"]["ink" if lvl == 0 else "muted"])
 
 
-def _bullets_height(items, theme, width, heading=None):
+def _bullets_height(items, theme, width, heading=None, lead=None):
     """Estimate the rendered height (inches) of a bullet column at readable sizes."""
     sz = theme["size"]
     h = 0.0
+    if lead:
+        h += _est_lines(lead, sz["body_lead"], width) * (sz["body_lead"] * 1.3 / 72) + 12 / 72
     if heading:
         h += _est_lines(heading, sz["body"], width) * (sz["body"] * 1.32 / 72) + 8 / 72
     for it in _normalize_bullets(items):
@@ -847,6 +872,36 @@ def _bullets_height(items, theme, width, heading=None):
         avail = width - (0.30 + 0.22 * it["level"])
         h += _est_lines(it["text"], size, avail) * (size * 1.34 / 72) + 9 / 72
     return h
+
+
+def _lead_band(slide, theme, g, s, i, bodies=None):
+    """`lead:` on a slide whose body is not a bullet list (table, chart, figure,
+    two columns, a composed part): one bold sentence across the top of the body
+    region, and every body placeholder re-placed below it so the content that
+    follows reads the smaller region. Returns the height taken (in)."""
+    text = s.get("lead")
+    # a `lead` TYPE slide uses `lead:` for its featured item (a dict) — not this
+    if not isinstance(text, str) or not text.strip():
+        return 0.0
+    if bodies is None:
+        _, bodies = _phs_by_role(slide)
+    if bodies:
+        x = min(Emu(b.left).inches for b in bodies)
+        y = min(Emu(b.top).inches for b in bodies)
+        w = max(Emu(b.left + b.width).inches for b in bodies) - x
+    else:
+        x, y, w = g["marginX"], g["bodyTop"], g["contentW"]
+    size = theme["size"]["body_lead"]
+    lh = _est_lines(text, size, w) * size * 1.3 / 72 + 0.22
+    tf = add_textbox(slide, x, y, w, lh, name="part/lead")
+    _lead_para(tf, theme, text)
+    for b in bodies:
+        bx, by = Emu(b.left).inches, Emu(b.top).inches
+        bw, bh = Emu(b.width).inches, Emu(b.height).inches
+        _place(b, bx, by + lh, bw, max(0.5, bh - lh))
+        if not (b.name or "").startswith("part/"):
+            b.name = "part/lead-body"      # this geometry IS the composition (lead above)
+    return lh
 
 
 def _check_body_overflow(height_in, g, idx):
@@ -894,7 +949,8 @@ def _eyebrow(slide, theme, g, text):
 
 
 CONTENT_FAMILY = ("bullets", "two_col", "big_number", "image", "table", "chart",
-                  "cards", "steps", "matrix", "split", "lead", "panels", "figure")
+                  "cards", "steps", "matrix", "split", "lead", "panels", "figure",
+                  "dashboard", "decision")
 
 
 def _apply_eyebrows(prs, theme, g, slides):
@@ -1236,12 +1292,14 @@ def _render_matrix(slide, theme, g, s, i):
 # column's body placeholder; later blocks are `part/text`), and every figure is
 # drawn from native shapes (`part/<kind>`), so the whole slide stays editable.
 # ---------------------------------------------------------------------------
+# Floors for a page that is READ, not only projected: 12 pt is the smallest
+# size on a one-pager, 14 pt for anything the reader must take in at a glance.
 PANEL_STYLES = {   # style -> (size key, default pt, bold, color)
-    "label": ("panel_label", 11, True, "accent"),
-    "heading": ("panel_heading", 16, True, "ink"),
-    "lead": ("panel_lead", 13, True, "ink"),
-    "body": ("panel_body", 12, False, "ink"),
-    "note": ("panel_note", 10.5, False, "muted"),
+    "label": ("panel_label", 12, True, "accent"),
+    "heading": ("panel_heading", 18, True, "ink"),
+    "lead": ("panel_lead", 15, True, "ink"),
+    "body": ("panel_body", 14, False, "ink"),
+    "note": ("panel_note", 12, False, "muted"),
 }
 
 
@@ -1261,11 +1319,16 @@ def _rich_runs(text):
 
 def _panel_items(block):
     items = []
-    for it in block.get("text") or []:
-        if isinstance(it, str):
-            items.append(("body", it))
+    texts = block.get("text")
+    if texts is None:
+        texts = []
+    elif not isinstance(texts, list):
+        texts = [texts]
+    for it in texts:
+        if isinstance(it, dict):
+            items.append((it.get("style", "body"), str(it.get("text", ""))))
         else:
-            items.append((it.get("style", "body"), it.get("text", "")))
+            items.append(("body", str(it)))
     return items
 
 
@@ -1353,7 +1416,7 @@ def _shape_label(sp, theme, text, size, bold=True, color="ink", align=PP_ALIGN.L
                   bold=bold, color=rgb)
 
 
-FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram")
+FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline")
 
 
 def _figure_height(theme, fig, w):
@@ -1371,6 +1434,10 @@ def _figure_height(theme, fig, w):
         return float(fig.get("height", 0.36))
     if kind == "diagram":
         return _diagram_geom(fig, w)["h"]
+    if kind == "tiles":
+        return float(fig.get("height", 1.15))
+    if kind == "timeline":
+        return float(fig.get("height", 1.6))
     return 0.0
 
 
@@ -1421,6 +1488,7 @@ def _diagram(slide, theme, fig, x, y, w):
                 rowspan * G["nh"] + (rowspan - 1) * G["gy"])
 
     pad = 0.09
+    rects = {}
     for gp in fig.get("groups") or []:
         gx_, gy_, gw, gh = cell(int(gp.get("col", 0)), int(gp.get("row", 0)),
                                 int(gp.get("colspan", 1)), int(gp.get("rowspan", 1)))
@@ -1428,10 +1496,12 @@ def _diagram(slide, theme, fig, x, y, w):
         sp = _part(slide, "group", gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad, theme,
                    fill=c["surface"])
         if gp.get("label"):
-            _shape_label(sp, theme, gp["label"], _panel_size(theme, "panel_label", 11), True,
+            _shape_label(sp, theme, gp["label"], _panel_size(theme, "panel_label", 12), True,
                          "accent")
+        if gp.get("id"):
+            # An edge may join whole groups (stage → stage) rather than single boxes.
+            rects[str(gp["id"])] = (gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad)
 
-    rects = {}
     tones = {"outline": ("FFFFFF", c["border"], "ink"),
              "light": (c["surface_hi"], None, "ink"),
              "accent": (c["accent"], None, "FFFFFF"),
@@ -1439,10 +1509,27 @@ def _diagram(slide, theme, fig, x, y, w):
     for k, n in enumerate(fig.get("nodes") or []):
         nx, ny, nw, nh = cell(int(n.get("col", 0)), int(n.get("row", 0)),
                               int(n.get("colspan", 1)), int(n.get("rowspan", 1)))
+        img = _asset(n.get("image")) if n.get("image") else None
+        if img and os.path.exists(img):
+            # A photograph in a cell: cropped to fill it, never stretched.
+            pic = slide.shapes.add_picture(img, Inches(nx), Inches(ny), Inches(nw), Inches(nh))
+            iw, ih = pic.image.size
+            cell_r, img_r = nw / nh, iw / float(ih)
+            if img_r > cell_r:
+                cut = (1 - cell_r / img_r) / 2
+                pic.crop_left = pic.crop_right = cut
+            elif img_r < cell_r:
+                cut = (1 - img_r / cell_r) / 2
+                pic.crop_top = pic.crop_bottom = cut
+            pic.name = "part/photo"
+            rects[str(n.get("id", k))] = (nx, ny, nw, nh)
+            continue
+        elif n.get("image"):
+            _warn("diagram: node %r image not found: %s" % (n.get("id", k), n.get("image")))
         fill, line, color = tones.get(n.get("tone", "outline"), tones["outline"])
         sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line)
         sub = n.get("text")
-        _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 12.5),
+        _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 14),
                      True, color, PP_ALIGN.LEFT if sub else PP_ALIGN.CENTER,
                      MSO_ANCHOR.TOP if sub else MSO_ANCHOR.MIDDLE)
         if sub:
@@ -1452,7 +1539,7 @@ def _diagram(slide, theme, fig, x, y, w):
             r2 = p2.add_run()
             r2.text = str(sub)
             _set_run_font(r2, name=theme["font"]["body"],
-                          size=_panel_size(theme, "panel_fig_sub", 10.5),
+                          size=_panel_size(theme, "panel_fig_sub", 12),
                           color=color if color == "FFFFFF" else c["ink"])
         rects[str(n.get("id", k))] = (nx, ny, nw, nh)
 
@@ -1474,7 +1561,7 @@ def _diagram(slide, theme, fig, x, y, w):
         _seg(slide, x1, y1, x2, y2, color, 1.25, dash=bool(e.get("dashed")),
              head=e.get("head", True))
         if e.get("label"):
-            size = _panel_size(theme, "panel_note", 10.5)
+            size = _panel_size(theme, "panel_note", 12)
             if abs(bcx - acx) >= abs(bcy - acy):
                 # above the nodes, centered on the gap — never on top of a box
                 lw = max(0.9, _disp_width(e["label"]) * size / 72.0 + 0.2)
@@ -1488,6 +1575,192 @@ def _diagram(slide, theme, fig, x, y, w):
                 set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
                            align=PP_ALIGN.LEFT)
     return G["h"]
+
+
+def _tiles(slide, theme, fig, x, y, w):
+    """KPI tiles in a row: the number large, its label under it, an optional
+    delta line. 2-6 tiles; `tone: accent` fills one as the headline figure."""
+    c = theme["color"]
+    items = fig.get("items") or []
+    n = max(1, len(items))
+    gap = 0.22
+    tw = (w - gap * (n - 1)) / n
+    th = float(fig.get("height", 1.15))
+    sz = theme["size"]
+    for k, it in enumerate(items):
+        it = it if isinstance(it, dict) else {"number": str(it)}
+        tone = it.get("tone", "light")
+        fill = {"accent": c["accent"], "light": c["surface"], "outline": "FFFFFF"}.get(tone, c["surface"])
+        line = c["border"] if tone == "outline" else None
+        on_accent = tone == "accent"
+        sp = _part(slide, "tile", x + k * (tw + gap), y, tw, th, theme, fill=fill, line=line)
+        tf = sp.text_frame
+        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]
+        _no_bullet(p)
+        p.alignment = PP_ALIGN.LEFT
+        r = p.add_run()
+        r.text = str(it.get("number", ""))
+        _set_run_font(r, name=theme["font"].get("number", theme["font"]["heading"]),
+                      size=sz.get("tile_number", 32), bold=True,
+                      color="FFFFFF" if on_accent else c["accent"])
+        if it.get("label"):
+            p2 = tf.add_paragraph()
+            _no_bullet(p2)
+            p2.alignment = PP_ALIGN.LEFT
+            r2 = p2.add_run()
+            r2.text = str(it["label"])
+            _set_run_font(r2, name=theme["font"]["heading"], size=sz.get("tile_label", 12),
+                          bold=True, color="FFFFFF" if on_accent else c["ink"])
+        if it.get("delta"):
+            p3 = tf.add_paragraph()
+            _no_bullet(p3)
+            p3.alignment = PP_ALIGN.LEFT
+            r3 = p3.add_run()
+            r3.text = str(it["delta"])
+            _set_run_font(r3, name=theme["font"]["body"], size=sz.get("tile_delta", 12),
+                          color="FFFFFF" if on_accent else c["muted"])
+    return th
+
+
+def _timeline(slide, theme, fig, x, y, w):
+    """Milestones on one horizontal line: date above the marker, name and a
+    short line below. `today` (an item's date or label, or an index) draws a
+    dashed accent marker where the reader stands."""
+    from pptx.enum.shapes import MSO_SHAPE as _SH
+    c = theme["color"]
+    items = [it if isinstance(it, dict) else {"label": str(it)} for it in fig.get("items") or []]
+    n = max(1, len(items))
+    th = float(fig.get("height", 1.6))
+    line_y = y + 0.42
+    slot = w / n
+    _seg(slide, x, line_y, x + w, line_y, c["border"], 1.5)
+    today = fig.get("today")
+    for k, it in enumerate(items):
+        cx = x + slot * (k + 0.5)
+        d = 0.16
+        dot = slide.shapes.add_shape(_SH.OVAL, Inches(cx - d / 2), Inches(line_y - d / 2),
+                                     Inches(d), Inches(d))
+        dot.name = "part/marker"
+        dot.fill.solid()
+        dot.fill.fore_color.rgb = RGBColor.from_string(c["accent"] if it.get("tone") != "light" else c["border"])
+        dot.line.fill.background()
+        try:
+            dot.shadow.inherit = False
+        except Exception:
+            pass
+        if it.get("date"):
+            tf = add_textbox(slide, cx - slot / 2, y, slot, 0.26, name="part/text")
+            set_simple(tf, str(it["date"]), theme, font="body",
+                       size=_panel_size(theme, "panel_note", 12), color="muted",
+                       align=PP_ALIGN.CENTER)
+        tf = add_textbox(slide, cx - slot / 2 + 0.04, line_y + 0.16, slot - 0.08, th - 0.6,
+                         name="part/text")
+        p = tf.paragraphs[0]
+        _no_bullet(p)
+        p.alignment = PP_ALIGN.CENTER
+        r = p.add_run()
+        r.text = str(it.get("label", ""))
+        _set_run_font(r, name=theme["font"]["heading"], size=_panel_size(theme, "panel_fig_label", 14),
+                      bold=True, color=c["ink"])
+        if it.get("text"):
+            p2 = tf.add_paragraph()
+            _no_bullet(p2)
+            p2.alignment = PP_ALIGN.CENTER
+            r2 = p2.add_run()
+            r2.text = str(it["text"])
+            _set_run_font(r2, name=theme["font"]["body"], size=_panel_size(theme, "panel_fig_sub", 12),
+                          color=c["muted"])
+        if today is not None and (str(today) in (str(it.get("date")), str(it.get("label")), str(k))):
+            # the reader's position: the marker becomes an accent ring and its date
+            # is set bold in the accent — nothing is drawn through the labels
+            for sh in list(slide.shapes)[-3:]:
+                if sh.has_text_frame and sh.text_frame.text.strip() == str(it.get("date", "")) and it.get("date"):
+                    for para in sh.text_frame.paragraphs:
+                        for run in para.runs:
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor.from_string(c["accent"])
+            dot.fill.solid()
+            dot.fill.fore_color.rgb = RGBColor.from_string("FFFFFF")
+            dot.line.color.rgb = RGBColor.from_string(c["accent"])
+            dot.line.width = Pt(2)
+    return th
+
+
+def _render_decision(slide, theme, g, s, i):
+    """The decision memo on one page: the options against the criteria as a
+    plain table (the recommended column emphasized), and the recommendation
+    with its reason in a band at the bottom. `ask:` goes in `lead:`'s place."""
+    c = theme["color"]
+    _, bodies = _phs_by_role(slide)
+    if not bodies:
+        _warn("slide %d: layout has no body placeholder — decision not drawn" % i)
+        return
+    ph = bodies[0]
+    x, y = Emu(ph.left).inches, Emu(ph.top).inches
+    w, h = Emu(ph.width).inches, Emu(ph.height).inches
+    options = [o if isinstance(o, dict) else {"label": str(o)} for o in s.get("options") or []]
+    labels = [o.get("label", "") for o in options]
+    rec = s.get("recommend") or {}
+    rec_label = rec.get("option") if isinstance(rec, dict) else rec
+    header = [s.get("criteria_label", "")] + labels
+    rows = []
+    for cr in s.get("criteria") or []:
+        marks = list(cr.get("marks") or [])
+        marks += [""] * (len(labels) - len(marks))
+        rows.append([cr.get("label", "")] + [str(m) for m in marks[:len(labels)]])
+    if any(o.get("text") for o in options):
+        rows.insert(0, [s.get("options_label", "")] + [str(o.get("text", "")) for o in options])
+    band_h = 0.0
+    has_rec = bool(rec_label) or (isinstance(rec, dict) and bool(rec.get("reason")))
+    if has_rec:
+        reason = rec.get("reason", "") if isinstance(rec, dict) else ""
+        size = theme["size"]["body"]
+        band_h = _est_lines(reason, size, w - 1.6) * size * 1.3 / 72 + 0.5
+    table_h = h - band_h - (0.25 if band_h else 0.0)
+    # the table goes where the placeholder was, shortened so the band fits
+    _place(ph, x, y, w, table_h)
+    widths = [1.2] + [max(1.0, (w - 1.2) / max(1, len(labels)))] * len(labels)
+    _render_table(slide, theme, g, {"columns": header, "rows": rows, "widths": widths}, i)
+    frames = [sh for sh in slide.shapes if getattr(sh, "has_table", False)]
+    if frames and rec_label in labels:
+        tbl = frames[-1].table
+        col = labels.index(rec_label) + 1
+        for r in range(len(rows) + 1):
+            cell = tbl.cell(r, col)
+            for p in cell.text_frame.paragraphs:
+                for run in p.runs:
+                    run.font.bold = True
+                    run.font.color.rgb = RGBColor.from_string(c["accent"])
+    if band_h:
+        by = y + h - band_h
+        sp = _part(slide, "recommend", x, by, w, band_h, theme, fill="FFFFFF", line=c["accent"])
+        sp.line.width = Pt(theme["shape"]["line"] * 2)
+        tf = sp.text_frame
+        tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = tf.margin_right = Inches(0.18)
+        p = tf.paragraphs[0]
+        _no_bullet(p)
+        p.alignment = PP_ALIGN.LEFT
+        r1 = p.add_run()
+        r1.text = "%s %s" % (s.get("recommend_label", "推奨"), rec_label or "")
+        _set_run_font(r1, name=theme["font"]["heading"], size=theme["size"]["body_lead"],
+                      bold=True, color=c["accent"])
+        reason = rec.get("reason", "") if isinstance(rec, dict) else ""
+        if reason:
+            r2 = p.add_run()
+            r2.text = "　" + reason
+            _set_run_font(r2, name=theme["font"]["body"], size=theme["size"]["body"],
+                          color=c["ink"])
+        tail = [t for t in (rec.get("owner") if isinstance(rec, dict) else None,
+                            rec.get("by") if isinstance(rec, dict) else None) if t]
+        if tail:
+            p2 = tf.add_paragraph()
+            _no_bullet(p2)
+            r3 = p2.add_run()
+            r3.text = " / ".join(str(t) for t in tail)
+            _set_run_font(r3, name=theme["font"]["body"], size=theme["size"]["body_sub"],
+                          color=c["muted"])
 
 
 def _render_figure(slide, theme, g, s, i):
@@ -1556,6 +1829,10 @@ def _panel_figure(slide, theme, fig, x, y, w):
     kind = fig.get("kind")
     if kind == "diagram":
         return _diagram(slide, theme, fig, x, y, w)
+    if kind == "tiles":
+        return _tiles(slide, theme, fig, x, y, w)
+    if kind == "timeline":
+        return _timeline(slide, theme, fig, x, y, w)
     if kind == "stacked_bar":
         h = fig.get("height", 0.30)
         cx = x
@@ -1565,7 +1842,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
             fill = {"accent": c["accent"], "dark": "4B5563", "light": c["surface"]}[tone]
             sp = _part(slide, "bar", cx, y, sw, h, theme, fill=fill)
             sp.text_frame.margin_top = sp.text_frame.margin_bottom = 0
-            _shape_label(sp, theme, seg.get("label", ""), _panel_size(theme, "panel_fig", 10.5),
+            _shape_label(sp, theme, seg.get("label", ""), _panel_size(theme, "panel_fig", 12),
                          True, "FFFFFF" if tone != "light" else "muted",
                          PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
             cx += sw
@@ -1583,7 +1860,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
             last = k == n - 1
             sp = _part(slide, "step", x + k * (sw + gap), y + top_h - hk, sw, hk, theme,
                        fill=c["accent"] if last else c["surface_hi"])
-            _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 12.5), True,
+            _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 14), True,
                          "FFFFFF" if last else "accent")
             if sub:
                 p2 = sp.text_frame.add_paragraph()
@@ -1592,7 +1869,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
                 r2 = p2.add_run()
                 r2.text = sub
                 _set_run_font(r2, name=theme["font"]["body"],
-                              size=_panel_size(theme, "panel_fig_sub", 10.5),
+                              size=_panel_size(theme, "panel_fig_sub", 12),
                               color="FFFFFF" if last else c["ink"])
         return top_h
     if kind == "flow":
@@ -1608,7 +1885,7 @@ def _panel_figure(slide, theme, fig, x, y, w):
                        line=c["accent"] if k == hot else c["border"])
             if k == hot:
                 sp.line.width = Pt(theme["shape"]["line"] * 2)
-            _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 12.5), True,
+            _shape_label(sp, theme, label, _panel_size(theme, "panel_fig_label", 14), True,
                          "accent" if k == hot else "ink", PP_ALIGN.CENTER, MSO_ANCHOR.MIDDLE)
             if k < n - 1:
                 _seg(slide, bx + bw + 0.05, y + bh / 2, bx + bw + gap - 0.05, y + bh / 2,
@@ -1625,12 +1902,12 @@ def _panel_figure(slide, theme, fig, x, y, w):
             _seg(slide, x_to, yb, x_to, y + bh + 0.02, c["accent"], 1.25, dash=True, head=True)
             tf = add_textbox(slide, x_to + 0.1, yb + 0.04, x_from - x_to - 0.2, 0.25,
                              name="part/text")
-            set_simple(tf, back, theme, font="heading", size=_panel_size(theme, "panel_note", 10.5),
+            set_simple(tf, back, theme, font="heading", size=_panel_size(theme, "panel_note", 12),
                        bold=True, color="accent", align=PP_ALIGN.CENTER)
             total = bh + drop + 0.3
         return total
     if kind == "chips":
-        size = _panel_size(theme, "panel_fig_label", 12.5)
+        size = _panel_size(theme, "panel_fig_label", 14)
         ch = fig.get("height", 0.36)
         cx = x
         for label in fig.get("items", []):
@@ -1644,21 +1921,41 @@ def _panel_figure(slide, theme, fig, x, y, w):
     return 0.0
 
 
-def _render_panels(slide, theme, g, s, i):
+def _panel_columns(s):
+    """[{label?, blocks}] — `columns:` (2-4) or the legacy `left:` / `right:`."""
+    cols = s.get("columns")
+    if isinstance(cols, list) and cols:
+        return [c or {} for c in cols]
+    return [s.get(k) or {} for k in ("left", "right") if s.get(k) is not None] or [{}, {}]
+
+
+def _render_panels(slide, theme, g, s, i, region=None):
     _, bodies = _phs_by_role(slide)
     c = theme["color"]
-    x0, y0, w0, h0 = g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"]
+    x0, y0, w0, h0 = region or (g["marginX"], g["bodyTop"], g["contentW"], g["bodyH"])
     tk = s.get("takeaway")
     tk_h = 0.95 if tk else 0.0
-    gutter = 0.45
-    col_w = (w0 - gutter) / 2
+    cols = _panel_columns(s)
+    n = max(1, len(cols))
+    arrows = bool(s.get("arrows"))
+    gutter = {1: 0.0, 2: 0.45, 3: 0.40}.get(n, 0.34) + (0.16 if arrows else 0.0)
+    col_w = (w0 - gutter * (n - 1)) / n
+    if s.get("tiles"):
+        th = _panel_figure(slide, theme, {"kind": "tiles", "items": s["tiles"]}, x0, y0, w0)
+        y0 += th + 0.22
+        h0 -= th + 0.22
     bottom_limit = y0 + h0 - tk_h
-    for idx, key in enumerate(("left", "right")):
-        col = s.get(key) or {}
+    for idx, col in enumerate(cols):
         cx = x0 + idx * (col_w + gutter)
         cy = y0
         placed_ph = False
-        for block in col.get("blocks", []):
+        blocks = list(col.get("blocks", []))
+        if col.get("label"):
+            blocks.insert(0, {"text": [{"style": "label", "text": col["label"]}]})
+        if idx > 0 and arrows:
+            ax1 = cx - gutter + 0.05
+            _seg(slide, ax1, y0 + 0.17, cx - 0.05, y0 + 0.17, c["accent"], 1.5, head=True)
+        for block in blocks:
             if "figure" in block:
                 cy += 0.06
                 cy += (_panel_figure(slide, theme, block["figure"], cx, cy, col_w)
@@ -1688,11 +1985,13 @@ def _render_panels(slide, theme, g, s, i):
                 _panel_fill(tf, theme, items)
             cy += bh + block.get("gap", 0.12)
         if cy > bottom_limit + 0.05:
-            _warn("slide %d: panel %s needs ~%.2f in more than fits — shorten it"
-                  % (i, key, cy - bottom_limit))
-    # a hairline between the columns
-    _seg(slide, x0 + col_w + gutter / 2, y0, x0 + col_w + gutter / 2, bottom_limit - 0.15,
-         c["border"], 0.75)
+            _warn("slide %d: panel %d needs ~%.2f in more than fits — shorten it"
+                  % (i, idx + 1, cy - bottom_limit))
+    # hairlines between the columns (not when arrows already join them)
+    if not arrows:
+        for k in range(1, n):
+            xk = x0 + k * (col_w + gutter) - gutter / 2
+            _seg(slide, xk, y0, xk, bottom_limit - 0.15, c["border"], 0.75)
     if tk:
         yb = bottom_limit
         _seg(slide, x0, yb, x0 + w0, yb, c["border"], 0.75)
@@ -1702,7 +2001,7 @@ def _render_panels(slide, theme, g, s, i):
         run = p.add_run()
         run.text = tk.get("label", "")
         _set_run_font(run, name=theme["font"]["heading"],
-                      size=_panel_size(theme, "panel_label", 11), bold=True, color=c["accent"])
+                      size=_panel_size(theme, "panel_label", 12), bold=True, color=c["accent"])
         p2 = tf.add_paragraph()
         _no_bullet(p2)
         p2.alignment = PP_ALIGN.CENTER
@@ -1719,7 +2018,7 @@ def _render_panels(slide, theme, g, s, i):
             r3.text = tk["note"]
             _set_run_font(r3, name=theme["font"]["body"],
                           size=_panel_size(theme, "panel_takeaway_note",
-                                           _panel_size(theme, "panel_note", 10.5)),
+                                           _panel_size(theme, "panel_note", 12)),
                           color=c[tk.get("note_color", "muted")])
     for ph in bodies[2:]:
         _drop_placeholder(ph)
@@ -2189,11 +2488,13 @@ def render_default(prs, theme, g, slides, meta=None):
                     p.alignment = PP_ALIGN.LEFT
             continue
 
-        if t == "panels":
+        if t in ("panels", "dashboard"):
             slide = prs.slides.add_slide(prs.slide_layouts[TWO_CONTENT_LAYOUT])
             _set_bg(slide, theme)
             _title(slide, theme, g, s.get("title", ""), i)
-            _render_panels(slide, theme, g, s, i)
+            lh = _lead_band(slide, theme, g, s, i)
+            region = (g["marginX"], g["bodyTop"] + lh, g["contentW"], g["bodyH"] - lh)
+            _render_panels(slide, theme, g, s, i, region=region)
             _source(slide, theme, g, s.get("source"))
             _page_number(slide, theme, g, i)
             continue
@@ -2203,6 +2504,7 @@ def render_default(prs, theme, g, slides, meta=None):
             _set_bg(slide, theme)
             _title(slide, theme, g, s.get("title", ""), i)
             _, bodies = _phs_by_role(slide)
+            _lead_band(slide, theme, g, s, i, bodies)
             gutter = 0.5
             col_w = (g["contentW"] - gutter) / 2
             for idx, key in enumerate(("left", "right")):
@@ -2232,11 +2534,12 @@ def render_default(prs, theme, g, slides, meta=None):
             _page_number(slide, th, g, i)
             continue
 
-        if t in ("cards", "steps", "matrix", "split", "lead", "figure"):
+        if t in ("cards", "steps", "matrix", "split", "lead", "figure", "decision"):
             slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
             _set_bg(slide, theme)
             _title(slide, theme, g, s.get("title", ""), i)
-            {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
+            _lead_band(slide, theme, g, s, i)
+            {"decision": _render_decision, "cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
              "matrix": _render_matrix, "split": _render_split,
              "figure": _render_figure}[t](slide, theme, g, s, i)
             _source(slide, theme, g, s.get("source"))
@@ -2263,6 +2566,7 @@ def render_default(prs, theme, g, slides, meta=None):
             slide = prs.slides.add_slide(prs.slide_layouts[CONTENT_LAYOUT])
             _set_bg(slide, theme)
             _title(slide, theme, g, s.get("title", ""), i)
+            _lead_band(slide, theme, g, s, i)
             (_render_table if t == "table" else _render_chart)(slide, theme, g, s, i)
             _source(slide, theme, g, s.get("source"))
             _page_number(slide, theme, g, i)
@@ -2278,9 +2582,10 @@ def render_default(prs, theme, g, slides, meta=None):
         _set_bg(slide, theme)
         _title(slide, theme, g, s.get("title", ""), i)
         _, bodies = _phs_by_role(slide)
-        _check_body_overflow(_bullets_height(s.get("bullets"), theme, g["contentW"]), g, i)
+        _check_body_overflow(_bullets_height(s.get("bullets"), theme, g["contentW"],
+                                             lead=s.get("lead")), g, i)
         if bodies:
-            _fill_bullets(_prep_ph_tf(bodies[0]), theme, s.get("bullets"))
+            _fill_bullets(_prep_ph_tf(bodies[0]), theme, s.get("bullets"), lead=s.get("lead"))
         _source(slide, theme, g, s.get("source"))
         _page_number(slide, theme, g, i)
 
@@ -2454,7 +2759,9 @@ def _layout_index_by_role(prs):
         # Composed archetypes are drawn into the body placeholder's region, so
         # they want the same layout a bullets slide would use.
         "cards": content, "steps": content, "matrix": content,
-        "lead": content, "figure": content,
+        "lead": content, "figure": content, "decision": content,
+        "panels": find(lambda lo: name_match(lo, *LAYOUT_WORDS["two_col"]), content),
+        "dashboard": find(lambda lo: name_match(lo, *LAYOUT_WORDS["two_col"]), content),
         # A split wants the template's figure-and-text layout when it has one
         # (a PICTURE placeholder beside a body): then the figure lands in a real
         # placeholder and the 38/62 is the LAYOUT's, not drawn per slide.
@@ -2515,17 +2822,29 @@ def _append_ph_lines(ph, lines):
         p.text = line
 
 
-def _set_ph_bullets(ph, items):
-    """Write multi-level bullets into a placeholder; the template styles them."""
+def _set_ph_bullets(ph, items, lead=None):
+    """Write multi-level bullets into a placeholder; the template styles them.
+    `lead` goes first as a bold, unbulleted level-0 paragraph."""
     if ph is None:
         return
     tf = ph.text_frame
     tf.clear()
     norm = _normalize_bullets(items)
-    if not norm:
+    if not norm and not lead:
         return
-    for i, it in enumerate(norm):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+    first = True
+    if lead:
+        p = tf.paragraphs[0]
+        p.text = str(lead)
+        p.level = 0
+        _no_bullet(p)
+        p.space_after = Pt(10)
+        for r in p.runs:
+            r.font.bold = True
+        first = False
+    for it in norm:
+        p = tf.paragraphs[0] if first else tf.add_paragraph()
+        first = False
         p.text = it["text"]
         p.level = min(it["level"], 8)
 
@@ -2675,6 +2994,20 @@ def render_template(prs, spec, map_cfg):
     del _WARNINGS[:]
     # Composed archetypes are drawn, not filled, so they need tokens even here.
     part_theme = _theme_of_template(prs)
+    # meta.size still tunes the drawn parts (labels, figure text) in template mode;
+    # colors and fonts stay the template's.
+    for k, v in (((spec.get("meta") or {}).get("size")) or {}).items():
+        if isinstance(v, (int, float)):
+            part_theme["size"][k] = v
+    # The neutrals were derived before the template's accent was read; derive them
+    # again from the accent in use (meta.accent picks one when the template's
+    # accent1 is too dark to tint, e.g. a near-black brand navy).
+    meta_accent = (spec.get("meta") or {}).get("accent")
+    if meta_accent:
+        part_theme["color"]["accent"] = str(meta_accent).lstrip("#").upper()
+    for key in ("surface", "surface_hi", "border", "invert_bg", "invert_ink", "invert_muted"):
+        part_theme["color"][key] = "auto"
+    _resolve_colors(part_theme)
     part_theme["aspect"] = ("4:3" if (prs.slide_height or 0) /
                             max(1, prs.slide_width or 1) > 0.7 else "16:9")
     part_g = make_grid(part_theme)
@@ -2751,11 +3084,14 @@ def render_template(prs, spec, map_cfg):
         elif t == "section":
             pass  # title placeholder already filled
         elif t == "table":
+            _lead_band(slide, part_theme, part_g, s, i, roles["body"])
             _render_table_template(slide, s, i, layout.name, roles, table_style)
         elif t == "chart":
+            _lead_band(slide, part_theme, part_g, s, i, roles["body"])
             _render_chart_template(slide, s, i, layout.name)
         elif t == "two_col":
             bodies = roles["body"]
+            _lead_band(slide, part_theme, part_g, s, i, bodies)
             left = _tpl_need(pick("left", bodies[0] if len(bodies) > 0 else None),
                              i, layout.name, "body", s.get("left"))
             right = pick("right", bodies[1] if len(bodies) > 1 else None)
@@ -2821,19 +3157,35 @@ def render_template(prs, spec, map_cfg):
             else:
                 _warn("slide %d: image not found (%r) — the figure half is empty"
                       % (i, s.get("image")))
-        elif t in ("cards", "steps", "matrix", "split", "lead", "figure"):
+        elif t in ("panels", "dashboard"):
+            # Default-mode composition drawn into the union of the template's
+            # body placeholders, so the template still decides the region.
+            bodies = roles["body"]
+            lh = _lead_band(slide, part_theme, part_g, s, i, bodies)
+            if bodies:
+                x = min(Emu(b.left).inches for b in bodies)
+                y = min(Emu(b.top).inches for b in bodies)
+                w = max(Emu(b.left + b.width).inches for b in bodies) - x
+                h = max(Emu(b.top + b.height).inches for b in bodies) - y
+                region = (x, y, w, h)
+            else:
+                region = (part_g["marginX"], part_g["bodyTop"] + lh, part_g["contentW"],
+                          part_g["bodyH"] - lh)
+            _render_panels(slide, part_theme, part_g, s, i, region=region)
+        elif t in ("cards", "steps", "matrix", "split", "lead", "figure", "decision"):
             # The template decides WHERE (its body placeholder's region); the
             # archetype decides WHAT gets drawn there.
+            _lead_band(slide, part_theme, part_g, s, i, roles["body"])
             {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
              "matrix": _render_matrix, "split": _render_split,
-             "figure": _render_figure}[t](
+             "figure": _render_figure, "decision": _render_decision}[t](
                 slide, part_theme, part_g, s, i)
         elif t == "blank":
             pass
         else:  # bullets
             _set_ph_bullets(_tpl_need(pick("body", roles["body"][0] if roles["body"] else None),
                                       i, layout.name, "body", s.get("bullets")),
-                            s.get("bullets"))
+                            s.get("bullets"), lead=s.get("lead"))
 
         # The source line: every slide type may carry one. It goes into the
         # layout's source placeholder (named so on the layout, or mapped); a
