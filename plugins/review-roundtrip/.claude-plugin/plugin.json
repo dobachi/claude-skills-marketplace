@@ -1,0 +1,6 @@
+{
+  "name": "review-roundtrip",
+  "description": "Stabilizes the loop where a person reviews an AI-made document or deck and the AI applies the comments. Generates a Markdown comment sheet shaped like the artifact (a global section, then one section per slide, heading or page, each with a short excerpt) from .pptx, .docx, .md or .pdf, so the reviewer writes next to the thing they mean from any device. Ingests the filled sheet into numbered comments with a work plan (global first, then independent locations that can run in parallel), records every outcome in the sheet and a log, carries unresolved items into the next round, and ends each reply with a hand-over block naming host, absolute paths and the commands to open the sheet. Use for 「コメントシートを作って」「レビュー用の md を用意して」「コメントを反映して」「コメントを取り込んで」「レビューの往復」, \"make a review sheet\", \"apply the reviewer's comments\", \"comment round-trip\" or when a deliverable goes to a person for comments. Judging the document is doc-review's job; rebuilding it is pptx-build's or docx's; serving a preview is preview-access's.",
+  "version": "0.1.0",
+  "author": {"name": "dobachi"}
+}
