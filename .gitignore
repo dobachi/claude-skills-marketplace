@@ -10,3 +10,8 @@ node_modules/
 
 # Build artifacts (Desktop skill zips, etc.)
 /dist/
+
+# npm install inside a skill dir leaves these behind (skills declare deps in SKILL.md;
+# no package.json is tracked anywhere in this repo)
+plugins/*/skills/*/package.json
+plugins/*/skills/*/package-lock.json
