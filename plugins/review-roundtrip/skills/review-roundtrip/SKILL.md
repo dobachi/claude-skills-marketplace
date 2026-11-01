@@ -24,7 +24,7 @@ HAND OVER  reply ends with `where` block     (host, paths, how to open)
            ... the reviewer writes in the sheet, in Fude / any Markdown editor ...
 INGEST     review_sheet.py check, ingest     →  ids, counts, work plan
 APPLY      global comments first, then locations in parallel; fix the SOURCE, rebuild
-RECORD     review_sheet.py resolve per comment  (mark + ↳ reply + log row)
+RECORD     review_sheet.py resolve per comment  (mark + ↳ "反映/見送り/確認: what, where" + outcome table + log row)
 NEXT       review_sheet.py new --carry      →  round N+1 sheet with the [ ] and [?] items
 HAND OVER  reply ends with `where` block again
 ```
@@ -104,17 +104,34 @@ docx skill or the project's pandoc pipeline; `.md` directly; `.pdf` to whatever 
 
 ## 5. Record
 
+One `resolve` per comment, as soon as that comment is done. The reviewer reads the sheet, not
+the chat: what was done to each comment has to be *in the sheet*, next to the comment.
+
 ```bash
 review_sheet.py resolve review/review-r1.md S3-2 --status applied \
-    --note "p.3 の 2 つ目の箇条書きを削り、根拠を注に移した (deck.yaml slide 3)" [--by worker-a]
-review_sheet.py resolve review/review-r1.md G-1 --status declined --note "読み手の指定どおりの量"
-review_sheet.py resolve review/review-r1.md S5-1 --status question --note "表を残すか図にするか"
+    --note "2 つ目の箇条書きを削り、根拠を注に移した" --where "deck.yaml slide 3 → summary.pptx p.3" [--by worker-a]
+review_sheet.py resolve review/review-r1.md G-1 --status declined --note "読み手の指定どおりの量なので据え置き"
+review_sheet.py resolve review/review-r1.md S5-1 --status question --note "表を残すか図にするか。図なら数値は注へ"
 ```
 
-Each call rewrites the mark (`[x]` applied, `[-]` declined, `[?]` question), adds a `↳` reply
-under the comment, and appends a row to `review-log.md` beside the sheet. The note must name
-**where** the change landed (slide or section, and the file edited). "Done" is not a note.
-A comment marked applied without a location in its note is the failure this skill exists for.
+Each call does four things:
+
+1. rewrites the mark: `[x]` applied, `[-]` declined, `[?]` question;
+2. adds a reply under the comment that says the outcome in words, what was done, and where:
+   `↳ r1 反映 worker-a: 2 つ目の箇条書きを削り、根拠を注に移した（場所: deck.yaml slide 3 → summary.pptx p.3）`;
+3. rewrites the **対応一覧** table at the top of the sheet (id, location, comment, result, latest
+   reply), so the whole round is readable in one screen without scrolling to each comment;
+4. appends a row to `review-log.md` beside the sheet.
+
+`--note` is required for applied / declined / question and must say something: `done`, `対応済`
+and the like are refused (exit 2). `--where` is required for applied: the source file edited and
+the slide or section, and the output it landed in when they differ. The note is the *what*
+(the edit in one sentence, in the reviewer's terms), `--where` is the *where*. For declined,
+the note is the reason. For question, the note names the readings the reviewer must choose
+between. `check` reports any `[x]` / `[-]` / `[?]` that has no reply, so a mark flipped by hand
+or by `sed` is caught before hand-over.
+
+Workers in parallel report `(id, status, note, where)` back; only the conductor runs `resolve`.
 
 ## 6. Next round
 
@@ -131,7 +148,9 @@ in the global section with their old location named. Then hand over again (step 
 1. **The sheet is generated, never hand-written.** Anchors and hashes come from the artifact.
 2. **Reviewer text is read-only.** The tool changes the mark and adds `↳` lines; nothing else.
 3. **Global before local.** Then locations in parallel, one writer for the sheet.
-4. **Every outcome has a location.** Applied means "changed X in file Y"; declined means why.
+4. **Every outcome is written next to its comment.** `resolve --note --where` for every comment,
+   never a bare mark. Applied means "changed X in file Y at Z"; declined means why; question
+   means which readings. The 対応一覧 table and the log follow from that; they are never edited.
 5. **Every reply ends with `where`.** Host, absolute paths, open commands. No `localhost`-only
    links, no keys.
 6. **One sheet per reviewer per round.** Rounds are files; the log is the history.
@@ -143,7 +162,8 @@ in the global section with their old location named. Then hand over again (step 
 |---|---|---|
 | Hand-written comments file with "コメント:" blanks | No anchors, no ids, no carry; the next round starts from zero | `new`, then `--carry` |
 | Asking for comments in chat | Lost with the session; no place to point at | A sheet beside the source |
-| "Reflected your comments" with no per-comment record | The reviewer re-reads everything to find what moved | `resolve` with a located note |
+| "Reflected your comments" with no per-comment record | The reviewer re-reads everything to find what moved | `resolve --note --where` per comment; the 対応一覧 table shows it |
+| Flipping `[ ]` to `[x]` with `sed` or by hand | The mark says "done" and nothing else; `check` flags it | `resolve`, which writes the reply and the table |
 | Applying slide comments before the "cut it in half" comment | Work discarded when the global change lands | Global first |
 | Two workers editing the same sheet | Lost updates in a read-modify-write file | Workers report; the conductor resolves |
 | Editing the `.pptx` directly when it has a spec | Drift from the spec at the next rebuild | Fix the source, rebuild |
@@ -153,7 +173,7 @@ in the global section with their old location named. Then hand over again (step 
 ## References
 
 - `references/sheet-format.md` — the sheet grammar (front matter, anchors, comment lines,
-  marks, replies, ids, hint lines), the log format, carry semantics, exit codes.
+  marks, replies, the outcome table, ids, hint lines), the log format, carry semantics, exit codes.
 - `scripts/review_sheet.py` — `new` / `check` / `ingest` / `resolve` / `where`.
 - `tests/run_tests.sh` — three-direction tests on pandoc-built fixtures, including a `.docx`
   with Japanese Word style ids.

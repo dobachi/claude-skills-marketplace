@@ -6,7 +6,10 @@ and an AI, for .pptx / .docx / .md / .pdf artifacts. Stdlib only (pdf needs popp
                         [--carry PREV] [--depth N] [--excerpt N] [--lang ja|en] [--force]
   check   <sheet>                      validate; stale artifact and ID problems are findings
   ingest  <sheet>... [--json] [--no-write]   assign IDs, list open comments, print the plan
-  resolve <sheet> <id> --status applied|declined|question|open [--note TEXT] [--log F] [--by NAME]
+  resolve <sheet> <id> --status applied|declined|question|open --note TEXT [--where TEXT] [--log F] [--by NAME]
+                        note = what was done (required unless open); where = file/slide/section (required for applied)
+                        writes `[mark]`, a `↳ r<round> <status> [by]: <note>（場所: <where>）` reply, refreshes the
+                        outcome table at the top of the sheet, appends a log row
   where   <sheet> [--url-template T]   the hand-over block: host, paths, how to open
 
 Exit codes: 0 = ok / 1 = findings / 2 = usage error or precondition missing.
@@ -43,10 +46,15 @@ L = {
         "title": "レビューシート（第{n}回）",
         "howto": (
             "**書き方** 各箇所の `- [ ]` の後ろに書く。足りなければ行を増やす。空のまま残した行は「コメントなし」。"
-            "記号は AI が処理後に書き換える: `[x]` 反映 / `[-]` 見送り / `[?]` 確認したい（AI の返事は `↳` の行）。"
+            "記号は AI が処理後に書き換える: `[x]` 反映 / `[-]` 見送り / `[?]` 確認したい。"
+            "何をどこに直したかは各コメント直下の `↳` 行と、冒頭の「対応一覧」に出る。"
             "`[?]` に答えるときは記号を `[ ]` に戻し、同じ行の続きに書く。斜体の行は説明なので消してよい。"
         ),
         "targets": "**対象**",
+        "status": {"open": "未対応", "applied": "反映", "declined": "見送り", "question": "確認"},
+        "where": "場所",
+        "summary": "**対応一覧**（AI が `resolve` のたびに書き直す。手で直さない。詳細は各コメント直下の `↳` 行）",
+        "summary_th": "| ID | 箇所 | コメント | 結果 | 対応 |",
         "th": "| # | ファイル | 単位 |",
         "global": "全体",
         "global_hint": "*結論、構成、量、言い回し、読み手への合い方など、どこか一箇所に収まらないこと。*",
@@ -63,10 +71,15 @@ L = {
         "title": "Review sheet (round {n})",
         "howto": (
             "**How to comment** Write after `- [ ]` under the item. Add lines as needed; an empty line means no comment. "
-            "The AI rewrites the mark afterwards: `[x]` applied / `[-]` declined / `[?]` needs your answer (its reply is on the `↳` line). "
+            "The AI rewrites the mark afterwards: `[x]` applied / `[-]` declined / `[?]` needs your answer. "
+            "What changed and where is on the `↳` line under each comment and in the outcome table at the top. "
             "To answer a `[?]`, set the mark back to `[ ]` and continue on the same line. Italic lines are instructions; delete them if you like."
         ),
         "targets": "**Artifacts**",
+        "status": {"open": "open", "applied": "applied", "declined": "declined", "question": "question"},
+        "where": "where",
+        "summary": "**Outcomes** (rewritten by the AI on every `resolve`; do not edit by hand. Details are on the `↳` line under each comment)",
+        "summary_th": "| ID | Location | Comment | Result | Response |",
         "th": "| # | File | Units |",
         "global": "Overall",
         "global_hint": "*Conclusion, structure, length, wording, fit for the reader: anything that belongs to no single place.*",
@@ -299,6 +312,10 @@ COMMENT_RE = re.compile(r"^- \[([ xX?-])\]\s?(?:([A-Za-z0-9.]+-\d+):\s*)?(.*)$")
 REPLY_RE = re.compile(r"^\s+(?:- )?↳\s?(.*)$")
 BARE_RE = re.compile(r"^(?:[-*+]\s+|\d+[.)]\s+)?(.*)$")
 HINT_RE = re.compile(r"^(\*[^*].*[^*]\*|_[^_].*[^_]_)$")
+SUMMARY_BEGIN, SUMMARY_END = "<!-- summary:begin -->", "<!-- summary:end -->"
+# A note that says nothing. `resolve` refuses these: the sheet must tell the reviewer what moved.
+EMPTY_NOTES = {"done", "ok", "fixed", "applied", "declined", "yes", "済", "対応済", "対応済み", "修正済", "修正済み",
+               "反映済", "反映済み", "完了", "対応した", "修正した", "反映した", "対応", "修正", "反映", "見送り"}
 
 
 class Sheet:
@@ -337,6 +354,10 @@ class Sheet:
         if i >= len(self.lines) or self.meta.get("review_sheet") is None:
             die(f"not a review sheet (no review_sheet: in front matter): {self.path}")
         self.body_start = i + 1
+
+    def reparse(self):
+        self.locs = []
+        self._parse_body()
 
     def _parse_body(self):
         cur = None
@@ -378,6 +399,13 @@ class Sheet:
             for c in loc["comments"]:
                 yield c
 
+    @property
+    def lang(self) -> str:
+        return self.meta.get("lang") if self.meta.get("lang") in L else "ja"
+
+    def loc_label(self, loc_id: str) -> str:
+        return next((l["label"] for l in self.locs if l["id"] == loc_id), loc_id)
+
     def full_text(self, c) -> str:
         return " ".join([c["text"], *c["cont"]]).strip()
 
@@ -407,6 +435,38 @@ def artifact_state(sheet: Sheet) -> list[tuple[dict, str]]:
     return res
 
 
+def refresh_summary(sheet: Sheet) -> bool:
+    """(Re)write the outcome table between SUMMARY_BEGIN/END, just above the first location.
+    One row per comment that has an id: location, comment, result in words, latest ↳ reply.
+    The sheet itself is the record the reviewer reads; the log is the history. Returns True if changed."""
+    T = L[sheet.lang]
+    rows = []
+    for c in sheet.comments():
+        if not c["id"] or not sheet.full_text(c):
+            continue
+        last = c["replies"][-1] if c["replies"] else ""
+        rows.append("| " + " | ".join([c["id"], md_cell(sheet.loc_label(c["loc"]), 28), md_cell(sheet.full_text(c), 48),
+                                       T["status"][MARKS[c["mark"]]], md_cell(last, 120)]) + " |")
+    block = [SUMMARY_BEGIN, T["summary"], "", T["summary_th"], "|---|---|---|---|---|", *rows, SUMMARY_END, ""] if rows else []
+    lines = sheet.lines
+    b = next((i for i, s in enumerate(lines) if s.strip() == SUMMARY_BEGIN), None)
+    e = next((i for i, s in enumerate(lines) if s.strip() == SUMMARY_END), None)
+    if b is not None and e is not None and e > b:
+        old = lines[b:e + 1 + (1 if e + 1 < len(lines) and lines[e + 1] == "" else 0)]
+        if old == block:
+            return False
+        lines[b:b + len(old)] = block
+    else:
+        if not block:
+            return False
+        first = next((i for i in range(sheet.body_start, len(lines)) if lines[i].startswith("#") and LOC_RE.search(lines[i])), None)
+        if first is None:
+            return False
+        lines[first:first] = block
+    sheet.reparse()
+    return True
+
+
 # ----------------------------------------------------------------------------- new
 
 
@@ -425,7 +485,7 @@ def cmd_new(args) -> int:
         arts.append({"idx": f"A{i}", "path": p, "kind": kind, "units": units, "sha": sha8(p)})
     multi = len(arts) > 1
     hdr = ["---", f"review_sheet: {FORMAT_VERSION}", f"round: {rnd}", f'reviewer: "{args.reviewer or ""}"',
-           f"generated: {now_iso()}", f"host: {socket.gethostname()}", "artifacts:"]
+           f"generated: {now_iso()}", f"host: {socket.gethostname()}", f"lang: {args.lang}", "artifacts:"]
     for a in arts:
         hdr += [f"  - path: {a['path']}", f"    kind: {a['kind']}", f"    sha256: {a['sha']}",
                 f"    units: {len(a['units'])}"]
@@ -444,6 +504,7 @@ def cmd_new(args) -> int:
         for c in prev.comments():
             if prev.full_text(c) and c["mark"] in (" ", "?"):
                 carried.setdefault(c["loc"], []).append(c)
+    carried_any = bool(carried)
 
     def emit_carried(loc_id: str, lines: list[str]):
         for c in carried.pop(loc_id, []):
@@ -484,6 +545,10 @@ def cmd_new(args) -> int:
 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(hdr + body).rstrip("\n") + "\n", encoding="utf-8")
+    if carried_any:
+        sh = Sheet(out)
+        if refresh_summary(sh):
+            sh.save()
     print(f"sheet: {out.resolve()}")
     for a in arts:
         print(f"  {a['idx']} {a['kind']} {a['path']} ({len(a['units'])} units, sha256 {a['sha']})")
@@ -509,6 +574,9 @@ def cmd_check(args) -> int:
                 findings.append(f"id {c['id']} sits under location {c['loc']} (line {c['line'] + 1})")
         if c.get("bare") and sheet.full_text(c):
             findings.append(f"comment without a checkbox at line {c['line'] + 1}; `ingest` will normalize it")
+        if c["mark"] != " " and sheet.full_text(c) and not c["replies"]:
+            findings.append(f"{c['id'] or 'comment'} at line {c['line'] + 1} is marked {MARKS[c['mark']]} but has no ↳ reply "
+                            f"saying what was done and where; record it with `resolve --note`")
     if not any(l["id"] == "G" for l in sheet.locs):
         findings.append("no global section (<!-- loc: G -->)")
     for a, state in artifact_state(sheet):
@@ -553,7 +621,7 @@ def cmd_ingest(args) -> int:
     report = {"sheets": [], "global": [], "locations": {}, "question": [], "stale": []}
     for sh in sheets:
         n = 0 if args.no_write else assign_ids(sh)
-        if n:
+        if not args.no_write and (refresh_summary(sh) or n):
             sh.save()
         report["sheets"].append({"path": str(sh.path.resolve()), "round": sh.meta.get("round"),
                                  "reviewer": sh.meta.get("reviewer", ""), "ids_assigned": n, "counts": counts(sh)})
@@ -623,18 +691,35 @@ def cmd_resolve(args) -> int:
     if target is None:
         print(f"review_sheet: no comment with id {args.id} in {sheet.path}", file=sys.stderr)
         return 1
+    T = L[sheet.lang]
+    note = (args.note or "").strip()
+    where = (args.where or "").strip()
+    if args.status != "open":
+        if not note:
+            die(f"--note is required for --status {args.status}: say what was done (applied), why not (declined) "
+                f"or what you need to know (question)")
+        if len(note) < 4 or note.rstrip("。.!") .lower() in EMPTY_NOTES:
+            die(f"--note {note!r} says nothing; write what changed, e.g. 'p.2 の本文を一文にし、理由を注へ移した'")
+    if args.status == "applied" and not where:
+        die("--where is required for --status applied: the file and slide/section that changed, e.g. 'deck.yaml slide 2'")
     mark = MARK_OF[args.status]
     line = sheet.lines[target["line"]]
     sheet.lines[target["line"]] = re.sub(r"^- \[.\]", f"- [{mark}]", line, count=1)
-    if args.note:
+    body = ""
+    if note:
+        body = note
+        if where:
+            body += f"（{T['where']}: {where}）" if sheet.lang == "ja" else f" ({T['where']}: {where})"
         rnd = sheet.meta.get("round", "?")
         who = f" {args.by}" if args.by else ""
-        reply = f"  - ↳ r{rnd}{who}: {args.note}"
+        reply = f"  - ↳ r{rnd} {T['status'][args.status]}{who}: {body}"
         # after the comment line, its continuation lines and existing replies
         ins = target["line"] + 1
         while ins < len(sheet.lines) and (REPLY_RE.match(sheet.lines[ins]) or sheet.lines[ins].startswith(("  ", "\t"))):
             ins += 1
         sheet.lines.insert(ins, reply)
+    sheet.reparse()
+    refresh_summary(sheet)
     sheet.save()
     log = Path(args.log) if args.log else sheet.path.parent / "review-log.md"
     new = not log.exists()
@@ -642,7 +727,7 @@ def cmd_resolve(args) -> int:
         if new:
             f.write("\n".join(LOG_HEADER) + "\n")
         f.write("| " + " | ".join([now_iso(), str(sheet.meta.get("round", "")), sheet.path.name, args.id, target["loc"],
-                                   md_cell(sheet.full_text(target)), args.status, md_cell(args.note or "", 160)]) + " |\n")
+                                   md_cell(sheet.full_text(target)), args.status, md_cell(body, 160)]) + " |\n")
     print(f"{args.id}: {args.status} -> {sheet.path} ; log {log}")
     return 0
 
@@ -675,7 +760,8 @@ def cmd_where(args) -> int:
 
     print("## 開く場所 / Where to open")
     print(f"- host: {host}" + (f" ({'tailscale ' if ts else ''}{addr})" if addr else "") + (f", user {user}" if user else ""))
-    print(f"- sheet: {sp}  (round {sheet.meta.get('round')}, updated {mtime}, open {cnt['open']}, question {cnt['question']})")
+    print(f"- sheet: {sp}  (round {sheet.meta.get('round')}, updated {mtime}, open {cnt['open']}, applied {cnt['applied']}, "
+          f"declined {cnt['declined']}, question {cnt['question']})")
     print(f"- log: {log}" + ("" if log.exists() else "  (not yet)"))
     for a, state in artifact_state(sheet):
         p = Path(a.get("path", ""))
@@ -735,7 +821,8 @@ def main(argv=None) -> int:
     r.add_argument("sheet")
     r.add_argument("id")
     r.add_argument("--status", required=True, choices=sorted(MARK_OF))
-    r.add_argument("--note", default="", help="what was done and where; written as a ↳ reply and into the log")
+    r.add_argument("--note", default="", help="what was done / why declined / what to ask; required unless --status open")
+    r.add_argument("--where", default="", help="file and slide/section that changed; required for --status applied")
     r.add_argument("--log")
     r.add_argument("--by", default="", help="who resolved it, e.g. an agent name")
     r.set_defaults(fn=cmd_resolve)

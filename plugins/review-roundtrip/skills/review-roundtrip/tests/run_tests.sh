@@ -108,17 +108,47 @@ run ingest s-pptx.md --json
 expect_rc 0 "ingest --json"
 python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); assert d["locations"]["S2"]["items"][0]["id"]=="S2-1"; assert len(d["global"])==1' <<<"$OUT" && ok || ng "ingest --json: structure" "$OUT"
 
-# ---- resolve: mark, reply, log -----------------------------------------------------------
-run resolve s-pptx.md S2-1 --status applied --note "p.2 を一文にした" --by worker-a
+# ---- resolve: the outcome must be readable in the sheet ------------------------------------
+run resolve s-pptx.md S2-1 --status applied
+expect_rc 2 "resolve: applied without --note is refused"
+expect_has "--note is required" "resolve: note required message"
+run resolve s-pptx.md S2-1 --status applied --note "対応済" --where "deck.yaml slide 2"
+expect_rc 2 "resolve: a content-free note is refused"
+expect_has "says nothing" "resolve: empty-note message"
+run resolve s-pptx.md S2-1 --status applied --note "p.2 を一文にした"
+expect_rc 2 "resolve: applied without --where is refused"
+expect_has "--where is required" "resolve: where required message"
+run resolve s-pptx.md G-1 --status declined
+expect_rc 2 "resolve: declined without --note is refused"
+expect_fhas s-pptx.md "- [ ] S2-1: 結論を一文で。" "resolve: refused call leaves the mark untouched"
+[ -e review-log.md ] && ng "resolve: refused call wrote a log" || ok
+
+run resolve s-pptx.md S2-1 --status applied --note "p.2 を一文にした" --where "deck.yaml slide 2" --by worker-a
 expect_rc 0 "resolve applied"
 expect_fhas s-pptx.md "- [x] S2-1: 結論を一文で。" "resolve: mark rewritten"
-expect_fhas s-pptx.md "  - ↳ r1 worker-a: p.2 を一文にした" "resolve: reply line"
-expect_fhas review-log.md "| S2-1 | S2 | 結論を一文で。 理由も添える。 | applied | p.2 を一文にした |" "resolve: log row"
+expect_fhas s-pptx.md "  - ↳ r1 反映 worker-a: p.2 を一文にした（場所: deck.yaml slide 2）" "resolve: reply names status, note and where"
+expect_fhas review-log.md "| S2-1 | S2 | 結論を一文で。 理由も添える。 | applied | p.2 を一文にした（場所: deck.yaml slide 2） |" "resolve: log row"
 run resolve s-pptx.md S2-2 --status question --note "根拠は 3 案ある"
+expect_rc 0 "resolve question (no --where needed)"
 expect_fhas s-pptx.md "- [?] S2-2: 予算の根拠が弱い" "resolve question"
+expect_fhas s-pptx.md "  - ↳ r1 確認: 根拠は 3 案ある" "resolve: question reply"
 run resolve s-pptx.md G-1 --status declined --note "量は指定どおり"
-run resolve s-pptx.md NOPE-1 --status applied
+expect_rc 0 "resolve declined (no --where needed)"
+expect_fhas s-pptx.md "  - ↳ r1 見送り: 量は指定どおり" "resolve: declined reply"
+run resolve s-pptx.md NOPE-1 --status applied --note "p.2 を一文にした" --where "deck.yaml slide 2"
 expect_rc 1 "resolve: unknown id is a finding"
+# the outcome table at the top of the sheet: one row per comment, result in words, latest reply
+expect_fhas s-pptx.md "<!-- summary:begin -->" "summary: table present"
+expect_fhas s-pptx.md "| S2-1 | p.2 要旨 | 結論を一文で。 理由も添える。 | 反映 | r1 反映 worker-a: p.2 を一文にした（場所: deck.yaml slide 2） |" "summary: applied row"
+expect_fhas s-pptx.md "| G-1 | 全体 | 全体に長い。半分に。 | 見送り | r1 見送り: 量は指定どおり |" "summary: declined row"
+expect_fhas s-pptx.md "| S4-1 | p.4 次の一手 | 日付を入れる | 未対応 |  |" "summary: open row"
+grep -c '<!-- summary:begin -->' s-pptx.md | grep -qx 1 && ok || ng "summary: written once, not appended" "$(grep -n summary s-pptx.md)"
+python3 - <<'PY2' && ok || ng "summary: sits above the first location"
+import pathlib,sys
+L = pathlib.Path("s-pptx.md").read_text().splitlines()
+b = next(k for k,l in enumerate(L) if "summary:begin" in l); g = next(k for k,l in enumerate(L) if "loc: G" in l)
+sys.exit(0 if b < g else 1)
+PY2
 # the reply line is placed after the continuation line, not between them
 python3 - <<'PY' && echo ORDER_OK
 import pathlib,sys
@@ -129,7 +159,24 @@ PY
 [ "${PIPESTATUS[0]}" -eq 0 ] && ok || ng "resolve: reply placed after continuation"
 grep -c '^| 2' review-log.md | grep -qx 3 && ok || ng "log: 3 rows" "$(cat review-log.md)"
 run check s-pptx.md
+expect_rc 0 "check: clean after resolve (summary table is not a comment)"
 expect_has "open 1, applied 1, declined 1, question 1" "check: counts after resolve"
+
+# ---- defect injection: a mark changed by hand, with no reply -------------------------------
+sed 's/^- \[ \] S4-1: 日付を入れる/- [x] S4-1: 日付を入れる/' s-pptx.md > s-hand.md
+run check s-hand.md
+expect_rc 1 "check: [x] without a reply is a finding"
+expect_has "S4-1 at line" "check: names the comment"
+expect_has "marked applied but has no ↳ reply" "check: says what is missing"
+
+# ---- English sheet: status words follow the sheet's lang ----------------------------------
+run new deck.pptx --out s-en.md --lang en
+printf -- 'shorten the title\n' >> s-en.md   # a bare line under the last location (S4); ingest gives it S4-1
+run ingest s-en.md
+run resolve s-en.md S4-1 --status applied --note "title cut to five words" --where "deck.yaml slide 4"
+expect_rc 0 "resolve en"
+expect_fhas s-en.md "  - ↳ r1 applied: title cut to five words (where: deck.yaml slide 4)" "resolve en: reply words"
+expect_fhas s-en.md "| ID | Location | Comment | Result | Response |" "summary en: header"
 
 # ---- defect injection: duplicate id, id under the wrong location ---------------------------
 sed 's/^- \[ \] S4-1: 日付を入れる/- [ ] S2-1: 日付を入れる/' s-pptx.md > s-dup.md
@@ -152,7 +199,8 @@ expect_rc 0 "new --carry"
 expect_has "carried from" "carry: reported"
 expect_fhas s-r2.md "round: 2" "carry: round incremented"
 expect_fhas s-r2.md "- [?] S2-2: 予算の根拠が弱い" "carry: question carried"
-expect_fhas s-r2.md "  - ↳ r1: 根拠は 3 案ある" "carry: its reply carried"
+expect_fhas s-r2.md "  - ↳ r1 確認: 根拠は 3 案ある" "carry: its reply carried"
+expect_fhas s-r2.md "| S2-2 | p.2 要旨 | 予算の根拠が弱い | 確認 | 第1回から持ち越し |" "carry: outcome table seeded with carried items"
 expect_fhas s-r2.md "  - ↳ 第1回から持ち越し" "carry: marked"
 expect_fhas s-r2.md "- [ ] S4-1: 日付を入れる" "carry: open carried"
 expect_fnot s-r2.md "S2-1:" "carry: applied not carried"

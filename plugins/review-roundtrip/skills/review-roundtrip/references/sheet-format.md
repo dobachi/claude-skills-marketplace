@@ -12,6 +12,7 @@ have meaning to the tool.
 - Comment lines
 - Marks (status)
 - Reply lines
+- Outcome table
 - Hint lines
 - Ids
 - What the parser ignores
@@ -29,6 +30,7 @@ round: 1
 reviewer: ""               # --reviewer; one sheet per reviewer per round
 generated: 2026-10-31T20:44:29+09:00
 host: k16
+lang: ja                   # ja | en; the words `resolve` writes (反映 / applied …) follow it
 artifacts:
   - path: /abs/path/summary.pptx
     kind: pptx             # pptx | docx | md | pdf
@@ -47,6 +49,7 @@ add nested structures by hand.
 <--header line, e.g. a confidentiality marking>
 <italic how-to line>
 **対象**  table: A1 / A2 … with absolute paths and unit counts
+<!-- summary:begin --> … <!-- summary:end -->   (the outcome table, once any comment has an id)
 
 ## 全体 <!-- loc: G -->
 *hint*
@@ -120,13 +123,41 @@ then lists it as open again, with the AI's earlier `↳` reply still underneath.
 ## Reply lines
 
 ```
-  - ↳ r1 worker-a: p.2 の本文を一文にした (deck.yaml slide 2)
+  - ↳ r1 反映 worker-a: 本文を一文にし、理由を注へ移した（場所: deck.yaml slide 2 → summary.pptx p.2）
+  - ↳ r1 見送り: 量は読み手の指定どおり
+  - ↳ r1 確認: 表を残すか図にするか
   - ↳ 第1回から持ち越し
 ```
 
 An indented line starting with `↳` (with or without `- `) is a reply and belongs to the comment
-above. `resolve --note` writes `↳ r<round>[ <by>]: <note>` after the comment's continuation
-lines and existing replies. The reviewer's text is never edited.
+above. `resolve` writes `↳ r<round> <status word>[ <by>]: <note>[（場所: <where>）]` after the
+comment's continuation lines and existing replies. The status word follows the sheet's `lang`
+(反映 / 見送り / 確認, or applied / declined / question); `--where` is appended as `（場所: …）`
+(`(where: …)` in English). The reviewer's text is never edited.
+
+`resolve` refuses (exit 2) a missing note for any status but `open`, a note that says nothing
+(`done`, `ok`, `対応済`, `修正した`, fewer than four characters…), and `--status applied` without
+`--where`. `check` reports a comment whose mark is not `[ ]` but has no reply.
+
+## Outcome table
+
+```
+<!-- summary:begin -->
+**対応一覧**（AI が `resolve` のたびに書き直す。手で直さない。詳細は各コメント直下の `↳` 行）
+
+| ID | 箇所 | コメント | 結果 | 対応 |
+|---|---|---|---|---|
+| G-1 | 全体 | 全体に長い。半分に。 | 見送り | r1 見送り: 量は読み手の指定どおり |
+| S2-1 | p.2 要旨 | 結論を一文で。 理由も添える。 | 反映 | r1 反映 worker-a: 本文を一文にし…（場所: deck.yaml slide 2） |
+| S2-2 | p.2 要旨 | 予算の根拠が弱い | 確認 | r1 確認: 表を残すか図にするか |
+| S4-1 | p.4 次の一手 | 日付を入れる | 未対応 |  |
+<!-- summary:end -->
+```
+
+One row per comment that has an id, in sheet order: location label, comment (48 chars), result in
+words, latest `↳` reply (120 chars). Written above the first location by `resolve`, `ingest`
+(when it writes) and `new --carry`; replaced in full each time, so a hand edit inside the
+markers is lost. It sits before the first `loc:` anchor and is therefore invisible to the parser.
 
 ## Hint lines
 
@@ -198,5 +229,5 @@ is a key in a log.
 | Code | `new` | `check` | `ingest` | `resolve` | `where` |
 |---|---|---|---|---|---|
 | 0 | sheet written | valid, no findings | plan printed | recorded | printed |
-| 1 | output exists (no `--force`) | findings (duplicate id, bare line, stale or missing artifact) | — | unknown id | — |
-| 2 | unsupported type, missing file, not a zip, pdf without poppler | not a sheet | not a sheet | not a sheet | not a sheet, token in template |
+| 1 | output exists (no `--force`) | findings (duplicate id, bare line, resolved mark without a reply, stale or missing artifact) | — | unknown id | — |
+| 2 | unsupported type, missing file, not a zip, pdf without poppler | not a sheet | not a sheet | not a sheet, note missing or empty, applied without `--where` | not a sheet, token in template |
