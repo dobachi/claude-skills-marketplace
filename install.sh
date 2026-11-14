@@ -385,9 +385,44 @@ info "Installing / updating plugins from '$MARKET_NAME'"
 # with the version in the source's plugin.json, and only shell out for plugins that
 # actually differ. `claude plugin update` on a matching version is already a no-op —
 # skipping it changes nothing but the wall clock. `--force` updates everything anyway.
-INSTALLED_VERSIONS="$(claude plugin list 2>/dev/null | awk '
-  { for (i=1;i<=NF;i++) if ($i ~ /^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$/) { id=$i; break } }
-  $1=="Version:" && id!="" { print id "\t" $2; id="" }' || true)"
+#
+# The installed version is read from installed_plugins.json, NOT from `claude plugin
+# list`. For a `directory` marketplace, `claude plugin list` prints the version in the
+# SOURCE's plugin.json ("Read from: <source>"), so it always equals want_ver and a bumped
+# plugin was counted "already current" and never updated (observed 2026-11-14: list said
+# pptx-build 2.11.0 while installed_plugins.json still recorded 2.7.0). `claude plugin
+# list` stays only as the fallback when the JSON cannot be read.
+INSTALLED_JSON="$CLAUDE_DIR/plugins/installed_plugins.json"
+installed_versions_from_json() {
+  [ -f "$INSTALLED_JSON" ] || return 1
+  if have python3; then
+    python3 - "$INSTALLED_JSON" <<'PY'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit(1)
+for pid, entries in (d.get("plugins") or {}).items():
+    if not isinstance(entries, list) or not entries:
+        continue
+    user = [e for e in entries if e.get("scope") == "user"] or entries
+    v = user[0].get("version")
+    if v:
+        print(f"{pid}\t{v}")
+PY
+  elif have jq; then
+    jq -r '.plugins | to_entries[] | "\(.key)\t\((([.value[] | select(.scope=="user")] + .value)[0].version) // "")"' \
+      "$INSTALLED_JSON" 2>/dev/null
+  else
+    return 1
+  fi
+}
+INSTALLED_VERSIONS="$(installed_versions_from_json || true)"
+if [ -z "$INSTALLED_VERSIONS" ]; then
+  INSTALLED_VERSIONS="$(claude plugin list 2>/dev/null | awk '
+    { for (i=1;i<=NF;i++) if ($i ~ /^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$/) { id=$i; break } }
+    $1=="Version:" && id!="" { print id "\t" $2; id="" }' || true)"
+fi
 
 # Echo the installed version of $1, or return 1 if it is not installed.
 # Pure bash (no fork per plugin, and no bash-4 associative arrays — macOS ships 3.2).
