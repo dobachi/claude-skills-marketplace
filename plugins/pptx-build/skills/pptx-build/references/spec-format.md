@@ -123,6 +123,9 @@ Any slide may also carry `notes:` — a string written into the slide's real **s
   presenter: "Name"                  # optional; falls back to meta.presenter / meta.author
   affiliation: "Organization"        # optional; meta.affiliation / meta.organization
   date: "2026-09-13"                 # optional; meta.date
+  tagline: "One line under the title" # optional; template-fill mode only
+  tagline_size: 22                   # optional, pt (default 22)
+  tagline_gap: 10                    # optional, pt of space before it (default 10)
 ```
 Composition: rule / title / subtitle, then the presenter block (name in ink,
 affiliation and date muted) lower on the page. The title region holds two lines
@@ -134,6 +137,10 @@ placeholder (idx 13, "Presenter Placeholder") that build_deck adds to the Title
 Slide layout, so it is master-governed like everything else. In template-fill
 mode the lines go into the title layout's second body placeholder if it has one,
 else under the subtitle.
+
+`tagline` (template-fill mode) adds one non-bold paragraph to the title placeholder itself,
+right under the title. Use it when the template's subtitle placeholder sits far from the title
+and the line belongs with the title; the subtitle placeholder keeps the presenter line.
 
 ### Page furniture (default mode)
 Page numbers are the layout's **SLIDE_NUMBER placeholder** (a real `slidenum`
@@ -308,13 +315,15 @@ and reports a LOSS naming the parts; keep the spec that drew it.
     - ["方式A", "1.2億円", "2,400万円", "既存資産を流用"]
     - ["方式B", "0.9億円", "1,800万円", "推奨"]
   widths: [1, 1, 1, 2]              # optional relative column widths
+  font_size: 14                     # optional, pt; template-fill mode only
   source: "出典: 社内試算 2026-07"
 ```
 `rows` may also be a list of dicts keyed by the `columns` names. The table is inserted at the
 **body placeholder's** region and adopts its placeholder marker, so it stays master-governed.
 Default mode draws it plain — no banded template style, transparent cells, bold header with an
 accent hairline under it, light hairlines between rows; template-fill mode uses the template's
-own table style. Readability ceilings the linter enforces: **6 columns, ~8 rows**. Beyond that,
+own table style, and `font_size` sets the text size of every cell (and lets rows shrink to
+fit), for templates whose table style is too large for the body region. Readability ceilings the linter enforces: **6 columns, ~8 rows**. Beyond that,
 split the table or move the detail to an appendix — a slide is not a spreadsheet.
 
 ### chart

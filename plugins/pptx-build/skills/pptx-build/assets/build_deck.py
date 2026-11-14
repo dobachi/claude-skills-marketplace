@@ -2944,9 +2944,19 @@ def _render_table_template(slide, s, i, layout_name, roles=None, style_id=None):
         tot = float(sum(ws))
         for c, x in enumerate(ws):
             tbl.columns[c].width = int(total_w * x / tot)
+    # `font_size` (pt, optional): the template's table style sets no size, so cells fall back
+    # to the theme's 18 pt; a dense table can ask for a smaller, uniform size.
+    fsz = s.get("font_size")
     for r, data in enumerate(([header] if header else []) + rows):
+        if fsz:
+            tbl.rows[r].height = Emu(int(Inches(0.3)))
         for c in range(ncols):
-            tbl.cell(r, c).text_frame.text = data[c] if c < len(data) else ""
+            tf = tbl.cell(r, c).text_frame
+            tf.text = data[c] if c < len(data) else ""
+            if fsz:
+                for p in tf.paragraphs:
+                    for run in p.runs:
+                        run.font.size = Pt(float(fsz))
 
 
 def _render_chart_template(slide, s, i, layout_name):
@@ -3092,6 +3102,17 @@ def render_template(prs, spec, map_cfg):
         if t == "quote":
             _drop_placeholder(roles["title"])   # no title text — don't leave it empty
 
+        if t == "title" and s.get("tagline"):
+            # `tagline` (optional): a smaller line kept right under the title, in the title
+            # placeholder itself, for templates whose subtitle box sits far below the title.
+            tph = pick("title", roles["title"])
+            if tph is not None:
+                p = tph.text_frame.add_paragraph()
+                p.space_before = Pt(float(s.get("tagline_gap", 10)))
+                r = p.add_run()
+                r.text = str(s["tagline"])
+                r.font.size = Pt(float(s.get("tagline_size", 22)))
+                r.font.bold = False
         if t == "title":
             sub_ph = _tpl_need(pick("subtitle", roles["subtitle"]
                                     or (roles["body"][0] if roles["body"] else None)),
