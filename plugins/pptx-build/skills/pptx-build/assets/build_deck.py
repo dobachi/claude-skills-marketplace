@@ -905,6 +905,34 @@ def _lead_band(slide, theme, g, s, i, bodies=None):
     return lh
 
 
+def _takeaway_room(theme, s, bodies):
+    """`takeaway:` on a table or two-column slide: one sentence below the body,
+    outside it, for what the slide leads to. Reserves a band at the bottom of the body region and
+    shrinks the body placeholder so the table cannot run into it. Returns the band's
+    (x, y, w, h) in inches, or None."""
+    text = s.get("takeaway")
+    if not isinstance(text, str) or not text.strip() or not bodies:
+        return None
+    x = min(Emu(b.left).inches for b in bodies)
+    w = max(Emu(b.left + b.width).inches for b in bodies) - x
+    bottom = max(Emu(b.top + b.height).inches for b in bodies)
+    size = theme["size"]["body_lead"]
+    th = _est_lines(text, size, w - 0.2) * size * 1.3 / 72 + 0.22
+    for b in bodies:
+        bx, by = Emu(b.left).inches, Emu(b.top).inches
+        bw = Emu(b.width).inches
+        _place(b, bx, by, bw, max(0.5, bottom - th - 0.15 - by))
+    return (x, bottom - th, w, th)
+
+
+def _takeaway_band(slide, theme, s, box):
+    if not box:
+        return
+    x, y, w, h = box
+    tf = add_textbox(slide, x, y, w, h, name="part/takeaway")
+    _lead_para(tf, theme, s["takeaway"])
+
+
 def _check_body_overflow(height_in, g, idx):
     if height_in > g["bodyH"] + 0.05:
         _warn("slide %d: body needs ~%.1f in but only %.1f in fits at readable sizes"
@@ -1477,13 +1505,21 @@ def _diagram_geom(fig, w):
     gx = float(fig.get("gap_x", 0.45))
     gy = float(fig.get("gap_y", 0.36 if labelled_groups else 0.28))
     node_h = float(fig.get("node_height", 0.62))
-    head = 0.30 if labelled_groups and any(
+    ghead = _group_head(fig)
+    head = ghead if labelled_groups and any(
         int(gp.get("row", 0)) == 0 for gp in fig.get("groups") or [] if gp.get("label")) else 0.0
     h = float(fig.get("height") or rows * node_h + (rows - 1) * gy + head)
     node_h = (h - head - (rows - 1) * gy) / rows
     node_w = (w - (cols - 1) * gx) / cols
     return {"cols": cols, "rows": rows, "gx": gx, "gy": gy, "nw": node_w, "nh": node_h,
             "h": h, "head": head}
+
+
+def _group_head(fig):
+    """Height of a labelled group's heading band: 0.30 in at the default size,
+    taller when `group_label_size` asks for a larger heading."""
+    size = fig.get("group_label_size")
+    return max(0.30, float(size) * 2.0 / 72) if size else 0.30
 
 
 def _diagram(slide, theme, fig, x, y, w):
@@ -1504,12 +1540,13 @@ def _diagram(slide, theme, fig, x, y, w):
     for gp in fig.get("groups") or []:
         gx_, gy_, gw, gh = cell(int(gp.get("col", 0)), int(gp.get("row", 0)),
                                 int(gp.get("colspan", 1)), int(gp.get("rowspan", 1)))
-        top = 0.30 if gp.get("label") else pad
+        top = _group_head(fig) if gp.get("label") else pad
         sp = _part(slide, "group", gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad, theme,
                    fill=c["surface"])
         if gp.get("label"):
-            _shape_label(sp, theme, gp["label"], _panel_size(theme, "panel_label", 12), True,
-                         "muted")
+            _shape_label(sp, theme, gp["label"],
+                         fig.get("group_label_size") or _panel_size(theme, "panel_label", 12), True,
+                         fig.get("group_label_color", "muted"))
         if gp.get("id"):
             # An edge may join whole groups (stage → stage) rather than single boxes.
             rects[str(gp["id"])] = (gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad)
@@ -3133,13 +3170,16 @@ def render_template(prs, spec, map_cfg):
             pass  # title placeholder already filled
         elif t == "table":
             _lead_band(slide, part_theme, part_g, s, i, roles["body"])
+            tk_box = _takeaway_room(part_theme, s, roles["body"])
             _render_table_template(slide, s, i, layout.name, roles, table_style)
+            _takeaway_band(slide, part_theme, s, tk_box)
         elif t == "chart":
             _lead_band(slide, part_theme, part_g, s, i, roles["body"])
             _render_chart_template(slide, s, i, layout.name)
         elif t == "two_col":
             bodies = roles["body"]
             _lead_band(slide, part_theme, part_g, s, i, bodies)
+            _takeaway_band(slide, part_theme, s, _takeaway_room(part_theme, s, bodies))
             left = _tpl_need(pick("left", bodies[0] if len(bodies) > 0 else None),
                              i, layout.name, "body", s.get("left"))
             right = pick("right", bodies[1] if len(bodies) > 1 else None)

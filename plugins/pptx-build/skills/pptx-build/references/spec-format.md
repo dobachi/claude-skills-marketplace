@@ -239,6 +239,12 @@ beneath it (template mode included). `validate_deck.py` warns when a lead runs p
 is one sentence. A `lead` **type** slide uses `lead:` for its featured item instead; the two do
 not mix.
 
+`takeaway:` (a string) is the closing counterpart on a `table` or `two_col` slide in template
+mode: one sentence below the body, outside the table or the columns, for what the slide leads
+to (the next slide's question, what the table leaves open). The body placeholders are shortened
+so the content cannot run into it, and it is drawn as `part/takeaway` in the lead's style. Keep
+it to one line; a row appended to the table for the same purpose reads as one more item.
+
 ## Native figures
 
 Figures drawn from native shapes — every label is slide text, every box and arrow a shape the
@@ -299,7 +305,9 @@ figure:
   for mostly-vertical) and carry an arrowhead unless `head: false`. `dashed: true`, `tone:
   accent`, `label` (placed above the row for horizontal edges, beside the line for vertical).
 - `groups` are drawn first, behind the nodes they cover; a labelled group on row 0 reserves a
-  0.3 in head for its label.
+  0.3 in head for its label. The label is `panel_label` size and muted by default; when the groups
+  are the figure's main points, set `group_label_size` (pt; the head grows to fit) and
+  `group_label_color` (`ink` / `accent` / `muted`) on the figure.
 - `validate_deck.py` requires at least two nodes, unique ids, and edges that name real nodes.
 
 Parts are named `part/node`, `part/group`, `part/connector`, `part/text`, so `audit_pptx.py`
