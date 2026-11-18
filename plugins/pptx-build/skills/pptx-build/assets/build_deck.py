@@ -906,7 +906,7 @@ def _lead_band(slide, theme, g, s, i, bodies=None):
 
 
 def _takeaway_room(theme, s, bodies):
-    """`takeaway:` on a table or two-column slide: one sentence below the body,
+    """`takeaway:` on a table, two-column, cards or steps slide: one sentence below the body,
     outside it, for what the slide leads to. Reserves a band at the bottom of the body region and
     shrinks the body placeholder so the table cannot run into it. Returns the band's
     (x, y, w, h) in inches, or None."""
@@ -3264,10 +3264,12 @@ def render_template(prs, spec, map_cfg):
             # The template decides WHERE (its body placeholder's region); the
             # archetype decides WHAT gets drawn there.
             _lead_band(slide, part_theme, part_g, s, i, roles["body"])
+            tk_box = _takeaway_room(part_theme, s, roles["body"]) if t in ("cards", "steps") else None
             {"cards": _render_cards, "steps": _render_steps, "lead": _render_lead,
              "matrix": _render_matrix, "split": _render_split,
              "figure": _render_figure, "decision": _render_decision}[t](
                 slide, part_theme, part_g, s, i)
+            _takeaway_band(slide, part_theme, s, tk_box)
         elif t == "blank":
             pass
         else:  # bullets

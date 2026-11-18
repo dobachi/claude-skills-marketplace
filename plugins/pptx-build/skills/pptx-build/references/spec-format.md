@@ -239,7 +239,7 @@ beneath it (template mode included). `validate_deck.py` warns when a lead runs p
 is one sentence. A `lead` **type** slide uses `lead:` for its featured item instead; the two do
 not mix.
 
-`takeaway:` (a string) is the closing counterpart on a `table` or `two_col` slide in template
+`takeaway:` (a string) is the closing counterpart on a `table`, `two_col`, `cards` or `steps` slide in template
 mode: one sentence below the body, outside the table or the columns, for what the slide leads
 to (the next slide's question, what the table leaves open). The body placeholders are shortened
 so the content cannot run into it, and it is drawn as `part/takeaway` in the lead's style. Keep
