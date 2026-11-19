@@ -1898,6 +1898,11 @@ def _render_figure(slide, theme, g, s, i):
         run.text = str(note)
         _set_run_font(run, name=theme["font"]["body"], size=sz.get("caption_note", 14),
                       color=c["muted"])
+    for para in tf.paragraphs:
+        # The body placeholder's level-0 style has a hanging indent for bullets;
+        # a caption has no bullet, so its second line must start at the margin.
+        para._p.get_or_add_pPr().set("marL", "0")
+        para._p.get_or_add_pPr().set("indent", "0")
     for extra in bodies[1:]:
         _drop_placeholder(extra)
 
