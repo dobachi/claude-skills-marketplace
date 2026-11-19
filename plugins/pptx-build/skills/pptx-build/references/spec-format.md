@@ -268,6 +268,8 @@ in their region and cap `diagram` / `staircase` to the room available (never str
 | Kind | Fields | Draws |
 |---|---|---|
 | `diagram` | `nodes`, `edges`, `groups`, `cols`, `rows`, `height`, `gap_x` (0.45), `gap_y` (0.28), `node_height` (0.62) | boxes on a grid joined by connectors — the general-purpose figure |
+
+A diagram box does not grow. The build estimates each node's label and `text` at the deck's sizes and prints `warning: slide N [id]: diagram: node … text overflows its box` when they cannot fit; raise `node_height` / `colspan` or shorten the text. A `note:` line flags a last line holding only one or two characters (a word broken mid-way). A `\n` in a label or text becomes a real line break (`<a:br/>`) in the file.
 | `flow` | `items`, `highlight` (index, default last), `feedback` (text), `height` (0.46) | boxes left to right with arrows; the optional dashed feedback arrow returns to the first |
 | `staircase` | `items` (strings or `{label, text}`), `height` (1.25), `low` (0.38) | rising levels, the last one filled accent |
 | `stacked_bar` | `segments: [{label, value, tone}]`, `height` (0.30) | shares of one bar; `tone` accent / dark / light |

@@ -337,7 +337,12 @@ def _apply_notes(prs, slides):
 _WARNINGS = []
 
 
+_CUR_SLIDE = [None]   # the slide being built, so a warning says where it came from
+
+
 def _warn(msg):
+    if _CUR_SLIDE[0] and not str(msg).startswith("slide "):
+        msg = "slide %s: %s" % (_CUR_SLIDE[0], msg)
     _WARNINGS.append(msg)
     sys.stderr.write("  warning: %s\n" % msg)
 
@@ -1522,6 +1527,28 @@ def _group_head(fig):
     return max(0.30, float(size) * 2.0 / 72) if size else 0.30
 
 
+def _node_fit(theme, n, k, nw, nh):
+    """Warn when a diagram node's label and text cannot fit its box at the deck's
+    sizes (the box does not grow; the text would spill over the border), and note
+    a last line that holds only one or two characters (a word broken mid-way)."""
+    ls, ss = _panel_size(theme, "panel_fig_label", 14), _panel_size(theme, "panel_fig_sub", 12)
+    inner = nw - 0.12 - 0.04
+    lines_l = _est_lines(n.get("label", ""), ls, inner)
+    lines_s = _est_lines(n.get("text", ""), ss, inner)
+    need = 0.08 + lines_l * ls * 1.2 / 72.0 + lines_s * ss * 1.2 / 72.0
+    if need > nh + 0.03:
+        _warn("diagram: node %r text overflows its box (needs %.2f in, has %.2f in): "
+              "raise node_height / colspan or shorten it" % (n.get("id", k), need, nh))
+    for txt, size in ((n.get("label", ""), ls), (n.get("text", ""), ss)):
+        cpl = max(1.0, inner / (size / 72.0))
+        for seg in str(txt or "").split("\n"):
+            wd = _disp_width(seg.replace("**", ""))
+            rest = wd - cpl * math.floor(wd / cpl)
+            if wd > cpl and 0 < rest <= 2.0:
+                sys.stderr.write("  note: slide %s: diagram node %r: the last line of %r holds only "
+                                 "%.0f character(s)\n" % (_CUR_SLIDE[0], n.get("id", k), seg[:20], rest))
+
+
 def _diagram(slide, theme, fig, x, y, w):
     """Boxes on a grid, joined by connectors: the general-purpose native figure.
     Every label is slide text in a `part/node`; the audience can edit it."""
@@ -1578,6 +1605,7 @@ def _diagram(slide, theme, fig, x, y, w):
         fill, line, color = tones.get(n.get("tone", "outline"), tones["outline"])
         if fig.get("label_color") and color == "ink":
             color = fig["label_color"]        # e.g. "accent": the key phrase in the deck's hue
+        _node_fit(theme, n, k, nw, nh)
         sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line)
         sub = n.get("text")
         _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 14),
@@ -2459,6 +2487,7 @@ def render_default(prs, theme, g, slides, meta=None):
     (Peripheral footnotes — source line, page number — remain small annotations.)"""
     setup_layouts(prs, theme, g)
     for i, s in enumerate(slides, start=1):
+        _CUR_SLIDE[0] = "%d [%s]" % (i, s.get("id", "")) if s.get("id") else i
         t = s.get("type", "bullets")
 
         if t == "title":
@@ -3059,6 +3088,33 @@ def _theme_of_template(prs, theme_path=DEFAULT_THEME):
     return theme
 
 
+def _line_breaks(prs):
+    """A newline typed inside a spec string (e.g. a diagram label) would be written
+    as a raw LF inside <a:t>, which PowerPoint does not show as a break. Split such
+    runs and put a real line break (<a:br/>) between the pieces, keeping the run's
+    formatting."""
+    import copy
+    A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    for slide in prs.slides:
+        for r in list(slide.shapes._spTree.iter(A + "r")):
+            t = r.find(A + "t")
+            if t is None or not t.text or "\n" not in t.text:
+                continue
+            parts = t.text.split("\n")
+            rpr = r.find(A + "rPr")
+            t.text = parts[0]
+            anchor = r
+            for part in parts[1:]:
+                br = r.makeelement(A + "br", {})
+                if rpr is not None:
+                    br.append(copy.deepcopy(rpr))
+                anchor.addnext(br)
+                nr = copy.deepcopy(r)
+                nr.find(A + "t").text = part
+                br.addnext(nr)
+                anchor = nr
+
+
 def render_template(prs, spec, map_cfg):
     slides = spec.get("slides") or []
     role_layout = _layout_index_by_role(prs)
@@ -3090,6 +3146,7 @@ def render_template(prs, spec, map_cfg):
     section_label = None
 
     for i, s in enumerate(slides, start=1):
+        _CUR_SLIDE[0] = "%d [%s]" % (i, s.get("id", "")) if s.get("id") else i
         t = s.get("type", "bullets")
         m = (map_cfg or {}).get(t, {})
         # layout: explicit per-slide > map > heuristic
@@ -3373,6 +3430,7 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, bas
                     continue                # the cover carries no page number
                 _page_number(slide, furniture, None, n)
         _apply_notes(prs, slides)
+        _line_breaks(prs)
         prs.save(out)
         print("wrote %s  (template-fill: %s)" % (out, os.path.basename(template)))
         for t, name in chosen:
@@ -3392,6 +3450,7 @@ def build(spec, out, theme_path=DEFAULT_THEME, template=None, map_path=None, bas
         _apply_eyebrows(prs, theme, g, slides)
         _apply_footer(prs, theme, slides)
         _apply_notes(prs, slides)
+        _line_breaks(prs)
         prs.save(out)
         print("wrote %s  (default theme: %s)" % (out, theme.get("name", "?")))
         if _WARNINGS:
