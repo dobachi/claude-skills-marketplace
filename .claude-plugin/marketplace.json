@@ -324,6 +324,11 @@
       "name": "session-summary",
       "source": "./plugins/session-summary",
       "description": "Writes a structured summary of the current AI working session — a one-line overview, what the user must decide or do, where the work happened (paths, repository, remote, branch, HEAD, uncommitted state), the roadmap with the current position, what was created or changed, decisions with their reasons and rejected options, what is done but unverified, and the next step together with what is blocking it and who must act. Workspace facts come from a bundled script run against the repository, not from memory of the conversation. Saves to a file only when asked. Use when the user wants a recap richer than one line — \"セッションをまとめて\", \"今の状況を整理して\", \"進捗サマリ\", \"どこまで進んだ？\", \"引き継ぎ用にまとめて\", \"summarize this session\", \"where are we\", \"status summary\", \"handoff note\". Not for the built-in one-line `/recap`, meeting or trip reports (debrief-report), summarizing a document (document-summary), parking tasks for later (backlog), or posting progress to GitHub Issues (commit-and-report)."
+    },
+    {
+      "name": "session-map",
+      "source": "./plugins/session-map",
+      "description": "Lists every Claude Code session running on this machine and says what each one is doing — laid out along the tmux structure (session, window, pane), then terminals outside tmux, Remote Control children and background sessions. A bundled script reads the facts Claude Code already writes (~/.claude/sessions, the transcripts, ps, tmux list-panes), flags what needs the user (waiting for input, stopped with Ctrl-Z, idle for days, duplicate names, two claude in one pane, no transcript), and with --summarize has a cheap model (haiku) turn each transcript into five lines — purpose, now, state, waiting on, next — cached by transcript mtime so unchanged sessions cost nothing. Use when the user asks \"動いているセッションを一覧して\", \"セッションのまとめ\", \"tmux で何が動いてる？\", \"どのセッションが返事待ち？\", \"放置しているセッションは？\", \"what sessions are running\", \"session overview\". Not for summarizing the current session in depth (session-summary), saving or restoring tmux layouts (tmux-revive), or sessions on other machines and in the cloud (ListAgents)."
     }
   ]
 }

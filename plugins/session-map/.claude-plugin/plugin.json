@@ -1,0 +1,6 @@
+{
+  "name": "session-map",
+  "description": "Lists every Claude Code session running on this machine and says what each one is doing — laid out along the tmux structure (session, window, pane), then terminals outside tmux, Remote Control children and background sessions. A bundled script reads the facts Claude Code already writes (~/.claude/sessions, the transcripts, ps, tmux list-panes), flags what needs the user (waiting for input, stopped with Ctrl-Z, idle for days, duplicate names, two claude in one pane, no transcript), and with --summarize has a cheap model (haiku) turn each transcript into five lines — purpose, now, state, waiting on, next — cached by transcript mtime so unchanged sessions cost nothing. Use when the user asks \"動いているセッションを一覧して\", \"セッションのまとめ\", \"tmux で何が動いてる？\", \"どのセッションが返事待ち？\", \"放置しているセッションは？\", \"what sessions are running\", \"session overview\". Not for summarizing the current session in depth (session-summary), saving or restoring tmux layouts (tmux-revive), or sessions on other machines and in the cloud (ListAgents).",
+  "version": "0.1.0",
+  "author": {"name": "dobachi"}
+}

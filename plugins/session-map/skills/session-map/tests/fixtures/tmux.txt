@@ -1,0 +1,3 @@
+%7	work: main.1	1	2	editor	0	claude	/srv/work/レポート
+%8	work: main.1	1	2	editor	1	bash	/srv/work
+%9	scratch	0	0	bash	0	bash	/tmp
