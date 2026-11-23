@@ -6,13 +6,14 @@ description: >-
   layout, no drifting bands, composed archetypes (cards / steps / matrix / split / statement)
   picked from the content's shape; (2) template-fill — write into a corporate .pptx/.potx's own
   layouts and placeholders; (3) refactor — `extract_deck.py` reads an EXISTING deck back into a
-  spec. Figures are native and editable (`figure`, `split figure:`, panels figures: diagram /
-  flow / staircase / stacked_bar / chips / tiles / timeline) — never a pasted PNG. Five one-pager
+  spec. Figures are native and editable, never a pasted PNG, picked from 29 figure patterns
+  (comparison, cycle, tree, venn, swimlane …) that `find_pattern.py` searches by
+  intent. Five one-pager
   shapes (brief, dashboard, timeline, decision, event report). A `lead:` line makes title,
   supporting sentence and evidence three visible levels; the validator flags buried claims,
   filler slides and deck-level AI tells, and exports the text for ai-tell-reducer. Use for
   "simple white deck", "テンプレに沿ったパワポ", "この資料を作り直して", "1 枚にまとめて",
-  "図の文字が編集できない", "AIっぽい資料を直して".
+  "図の文字が編集できない", "どの図にすればいい", "AIっぽい資料を直して".
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -43,7 +44,7 @@ When the spec seems not to cover what you need:
 |---|---|
 | A table is needed | `type: table` (rows/columns land in the body placeholder's region) |
 | A chart is needed | `type: chart` (column / bar / line / area / pie / doughnut) |
-| A diagram is needed | A **native figure**: `type: figure` (full width), `split` with `figure:` (beside its reading), or a figure block in `panels`. Kinds: `diagram` (boxes on a grid + arrows), `flow`, `staircase`, `stacked_bar`, `chips`. Never a rendered PNG/SVG |
+| A diagram is needed | First say its logic and run `find_pattern.py` (below); then a **native figure**: `type: figure` (full width), `split` with `figure:` (beside its reading), or a figure block in `panels`. Never a rendered PNG/SVG |
 | A photograph, a screenshot, someone else's figure | `type: image` with `image_kind: photo \| screenshot \| external` — the only things that belong in a picture |
 | Something genuinely unsupported | Extend `build_deck.py` and `references/spec-format.md` — the generator is the artifact, not the deck |
 
@@ -70,6 +71,12 @@ So a figure is built from the native vocabulary, and the shape of the content pi
 | A comparison grid: options × criteria, values like required / voluntary / — | `matrix` — header row, row labels, cells; `marks` give each value one look and `legend: true` says what it means | same |
 | Layers or strength groups, each named at its left (a reference stack; law / rule / voluntary) | `bands` — one row per layer, items spread by `span` | same |
 | Two of the above, one over the other (a loop on top of the layers it runs on) | `stack` — `parts:` of figures, each with an optional `title` | same |
+| Levels resting on a wider base / counts shrinking through stages | `pyramid` / `funnel` — labels inside, `text` in a column beside | same |
+| What two or three groups share | `venn` — translucent circles, the overlap named | same |
+| A breakdown (MECE / issue tree), an org chart, causes converging on an effect | `tree` — `direction: right / down / left`, square brackets | same |
+| One center related to each of the others | `hub` — the parts evenly around it | same |
+| Who does what, in what order | `swimlane` — a lane per actor, steps by `col` | same |
+| The state before and after a change (or A vs B with `arrow: false`) | `before_after` | same |
 | A real 3–5 stage process with its own text per stage | `type: steps` | its own slide |
 | 2×2 with named axes | `type: matrix` | its own slide |
 
@@ -153,6 +160,22 @@ Author a small YAML (or JSON) spec describing slides. Start from `assets/deck.ex
 - The **same spec** drives both modes — you don't rewrite it to switch.
 - **Start from a sample if the argument shape is known.** `assets/samples/` has argument-shaped specs — `recommendation-scqa` ("we should do X"), `progress-review` ("on track except Y"), `analysis-decision` ("choose B") — each a clean SCQA + Pyramid-Principle skeleton you adapt rather than inventing structure from scratch. See `assets/samples/README.md`.
 
+### 1a. Before drawing a figure: state its logic, then pick a pattern
+
+A figure is chosen by what it has to show, not by what looks interesting. For every figure:
+
+1. **Say its logic in one line** — 「3つの方式を同じ軸で比べる」, 「繰り返す」, "who does what".
+   If that line will not come, the slide needs a sentence, not a figure.
+2. **Search the catalog**: `python3 find_pattern.py "3つを比べる"` (Japanese or English). It
+   ranks patterns from `references/figure-patterns/patterns.yaml`, says why each matched, when
+   to use it and when not, what makes it look good, the image of it, and a spec to adapt.
+   `--show ID` prints one in full; `--list` all 29. Exit 0 found, 1 nothing matched, 2 usage.
+3. **Pick one and adapt its spec**, keeping its design notes (one accent, one shape per kind of
+   thing, labels inside, everything on the grid). Only when no pattern fits, compose a `diagram`.
+
+The index with images: `references/figure-patterns/README.md`; every pattern rendered in one
+deck: `assets/samples/figure-patterns.yaml`.
+
 ### 1b. Validate the structure and narrative (before you render)
 
 ```bash
@@ -160,6 +183,8 @@ python3 validate_deck.py deck.yaml          # lint + print the title-only "spine
 ```
 
 This does two things a renderer can't: it **lints** the spec (action titles present, one-message density, sources on data, section structure, duplicate titles, overflow — each a finding with a severity, nonzero exit on ERROR) and it prints the **narrative spine** — every title in order, grouped by section. Read that spine end-to-end against `references/narrative-and-logic.md`: one governing thought? MECE sections? does the close deliver the open? Fix the argument here, where edits are cheap, before generating the file.
+
+It also prints `pattern hint:` lines (INFO, never a failure) when a diagram's shape matches a pattern that draws it better: a loop laid out as a line, a table built from loose boxes, every edge through one node, three scattered fills with no legend.
 
 ### 2a. Generate — default white-minimal look
 
@@ -368,6 +393,8 @@ Apply the **information test** before adding any shape: if deleting it changes n
 ## References
 
 - `references/spec-format.md` — every spec field and slide type, including the composed archetypes and `meta.shape`
+- `references/figure-patterns/` — the figure-pattern catalog (`patterns.yaml`, `README.md` index with images): logic, when to use / not, mistakes, design notes, keywords, a spec per pattern
+- `assets/find_pattern.py` — searches that catalog by intent (Japanese or English); `--gallery` regenerates `assets/samples/figure-patterns.yaml`
 - `references/one-pagers.md` — the five one-pager shapes: which to pick, reading order, density and size floors
 - `references/deck-ai-tells.md` — the habits that mark a deck as generated, how the validator catches them, and the de-AI pass
 - `references/refactor-mode.md` — rebuilding a deck that already exists: extract → fix the argument as text → rebuild → audit, what extraction recovers and what it cannot carry

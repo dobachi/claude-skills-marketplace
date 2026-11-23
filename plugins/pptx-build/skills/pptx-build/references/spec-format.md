@@ -8,7 +8,7 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 - [meta.shape](#metashape--the-three-numbers-every-part-agrees-on) — spacing unit, corner radius, line weight
 - [slides](#slides) — every slide type and its fields
 - [The lead line](#the-lead-line) — `lead:` on any content slide: the sentence that supports the title
-- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips` / `tiles` / `timeline` / `cycle` / `matrix` / `bands` / `stack`), `legend`
+- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips` / `tiles` / `timeline` / `cycle` / `matrix` / `bands` / `stack` / `pyramid` / `funnel` / `venn` / `tree` / `hub` / `swimlane` / `before_after`), `legend`; which one to pick: `figure-patterns/`
 - [One-pager types](#one-pager-types) — `panels` with `columns` / `arrows` / `tiles`, `dashboard`, `decision`
 - [Composed archetypes](#composed-archetypes) — cards / steps / lead / matrix / split / statement
 - [Contrast](#contrast--the-dark-page-and-the-tonal-chart) — the dark page, the tonal chart
@@ -278,6 +278,13 @@ in their region and cap `diagram` / `staircase` to the room available (never str
 | `matrix` | `columns`, `rows: [{label, cells}]`, `marks`, `legend`, `label_width`, `row_height`, `flow` | a comparison grid: header row, row labels, cells whose `mark` sets one look per value |
 | `bands` | `bands: [{label, text, tone, items}]`, `cols`, `label_width` (1.8), `arrows`, `band_height` (0.8) | layers, each named in a cell at its left |
 | `stack` | `parts` (figures, each with an optional `title`), `gap` (0.18) | figures one above the other |
+| `pyramid` | `items: [{label, text, tone}]` (2–6, apex first), `height`, `shape_width` | levels widening downward; `text` goes in an aligned column to the right |
+| `funnel` | `items: [{label, value, text, tone}]` (2–6), `neck` (0.34), `height` | stages narrowing downward; `value` is the second line |
+| `venn` | `sets: [{label, text, tone}]` (2 or 3), `overlap`, `height` (3.2) | translucent circles; the overlap is named in the accent |
+| `tree` | `root: {label, children: [...]}`, `direction` (right / down / left), `arrows`, `level_widths`, `node_height` (0.5) | a hierarchy with square brackets: logic tree, org chart, causes into an effect |
+| `hub` | `center`, `items` (3–10), `arrows` (none / out / in / both), `height` (3.2) | one center, the parts evenly around it, a line to each |
+| `swimlane` | `lanes`, `steps: [{id, lane, col, label}]`, `edges`, `label_width` (1.8), `lane_height` (0.86) | one band per actor, steps in their lane, square arrows between them |
+| `before_after` | `before: {label, items}`, `after: {label, items}`, `change`, `pairs`, `arrow` | two columns, quiet before and accented after, one arrow (or one per row) |
 
 A diagram box does not grow. The build estimates each node's label and `text` at the deck's sizes and prints `warning: slide N [id]: diagram: node … text overflows its box` when they cannot fit; raise `node_height` / `colspan` or shorten the text. A `note:` line flags a last line holding only one or two characters (a word broken mid-way). A `\n` in a label or text becomes a real line break (`<a:br/>`) in the file.
 
@@ -431,6 +438,44 @@ figure:
 A row of keys under the figure (0.34 in, counted in the figure's height): a swatch in the tone
 and shape, or a short line for `line: solid | dashed`. Use it when a color or an outline carries
 meaning the reader would otherwise have to guess; `matrix` builds it from `marks` with `legend: true`.
+
+### Figure patterns (2.16): pyramid, funnel, venn, tree, hub, swimlane, before_after
+
+Each draws one pattern of `references/figure-patterns/`; `find_pattern.py` gives a spec to
+start from. Every part is a native shape (levels and stages are freeforms, circles are ovals),
+named `part/node` / `part/connector` / `part/fig-text`, and every label is slide text.
+
+```yaml
+figure: {kind: pyramid, items: [{label: 洞察, text: なぜ欠品したか, tone: accent}, {label: 情報}, {label: データ}]}
+figure: {kind: funnel, items: [{label: 申請, value: 1200件}, {label: 承認, value: 410件, tone: accent}]}
+figure: {kind: venn, sets: [病棟, 薬剤部, 仕入先], overlap: 共有の記録}
+figure:
+  kind: tree
+  direction: right              # right: logic / MECE tree; down: org chart; left: causes → effect
+  arrows: none                  # none (default; `in` for left) / out / in
+  level_widths: [1, 1, 1.6]     # right / left only: give the leaves more room
+  root: {label: 納品の遅れ, children: [{label: 予測, children: [季節の山を外す]}, 発注, 輸送]}
+figure: {kind: hub, center: {label: 取引所}, items: [病棟, 薬剤部, 仕入先, 経理], arrows: none}
+figure:
+  kind: swimlane
+  lanes: [{id: w, label: 病棟}, {id: s, label: 調達課}]
+  steps: [{id: r, lane: w, col: 0, label: 依頼}, {id: a, lane: s, col: 1, label: 承認, tone: accent}]
+  edges: [{from: r, to: a, label: 申請}]   # an edge that changes lanes turns once (route hv)
+figure:
+  kind: before_after
+  change: 共有の記録へ           # label under the arrow; `pairs: true` = one arrow per row
+  before: {label: いま, items: [表A, 表B]}
+  after: {label: これから, items: [一つの記録]}
+```
+
+- Tones are the diagram's (`outline` / `light` / `accent` / `dark` / `none`); defaults are light
+  levels, an accent hub center, a dark tree root, outline leaves and steps.
+- A pyramid level or funnel stage warns when its label is wider than the shape; move the words
+  to `text`. A venn overlap warns when its label is wider than the overlap.
+- `validate_deck.py` errors on a pyramid / funnel with one level, a venn with other than 2 or 3
+  sets, a tree without children, a hub without a center or with fewer than 3 spokes, a swimlane
+  step in an unknown lane, and `pairs: true` with unequal sides.
+- `arrow: false` on `before_after` makes it a plain A-versus-B comparison.
 
 ### table
 ```yaml

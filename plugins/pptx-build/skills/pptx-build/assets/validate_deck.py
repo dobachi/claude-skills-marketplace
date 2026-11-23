@@ -50,7 +50,8 @@ CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart",
                  "cards", "steps", "matrix", "split", "lead", "panels", "figure",
                  "dashboard", "decision"}
 FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline",
-                "cycle", "matrix", "bands", "stack")
+                "cycle", "matrix", "bands", "stack", "pyramid", "funnel", "venn", "tree", "hub",
+                "swimlane", "before_after")
 NODE_TONES = ("outline", "light", "accent", "dark", "none")
 ROUTES = ("elbow", "hv", "vh")
 # Deck-level tells: the habits that make a generated deck recognisable as one.
@@ -63,7 +64,8 @@ LEAD_WIDTH = 60
 PHOTO_EXT = {".jpg", ".jpeg", ".heic", ".heif"}
 IMAGE_KINDS = ("photo", "screenshot", "external")
 NATIVE_HINT = ("build it as a native figure instead: `type: figure` with `figure: {kind: "
-               "diagram | flow | staircase | stacked_bar | chips | cycle | matrix | bands | stack}`, `split` with `figure:`, "
+               "diagram | flow | staircase | stacked_bar | chips | cycle | matrix | bands | stack | pyramid | "
+               "funnel | venn | tree | hub | swimlane | before_after}`, `split` with `figure:`, "
                "or a panels figure — then every label stays editable text")
 
 
@@ -157,11 +159,173 @@ def _check_figure(fig, i, add, where):
                 add(ERROR, i, "%s stack part %d is itself a stack — flatten it" % (where, k + 1))
             else:
                 _check_figure(p, i, add, "%s stack part %d" % (where, k + 1))
+    _check_pattern_kinds(fig, i, add, where)
+    _pattern_hints(fig, i, add, where)
     lg = fig.get("legend")
     if isinstance(lg, list):
         for k, it in enumerate(lg):
             if not isinstance(it, dict) or not it.get("label"):
                 add(WARN, i, "%s legend item %d has no `label`" % (where, k + 1))
+
+
+def _labels_of(items):
+    return [it if isinstance(it, dict) else {"label": str(it)} for it in items or []]
+
+
+def _check_pattern_kinds(fig, i, add, where):
+    """The kinds added for the figure-pattern catalog (2.16)."""
+    k = fig["kind"]
+    if k in ("pyramid", "funnel"):
+        items = _labels_of(fig.get("items"))
+        if len(items) < 2:
+            add(ERROR, i, "%s %s has %d level(s) — it needs at least two" % (where, k, len(items)))
+        elif len(items) > 6:
+            add(WARN, i, "%s %s has %d levels — past six the levels are too thin to read; "
+                "group them" % (where, k, len(items)))
+    if k == "venn":
+        sets = _labels_of(fig.get("sets"))
+        if len(sets) not in (2, 3):
+            add(ERROR, i, "%s venn has %d set(s) — it draws 2 or 3 (more overlaps cannot be "
+                "read; use a matrix)" % (where, len(sets)))
+    if k == "tree":
+        root = fig.get("root")
+        if not isinstance(root, dict) or not root.get("label"):
+            add(ERROR, i, "%s tree has no `root: {label, children}`" % where)
+        elif not root.get("children"):
+            add(ERROR, i, "%s tree root has no `children` — a tree breaks one thing down" % where)
+        if fig.get("direction") not in (None, "right", "down", "left"):
+            add(ERROR, i, "%s tree direction %r is not right / down / left"
+                % (where, fig.get("direction")))
+        if fig.get("arrows") not in (None, "none", "out", "in"):
+            add(ERROR, i, "%s tree arrows %r is not none / out / in" % (where, fig.get("arrows")))
+    if k == "hub":
+        ctr = fig.get("center")
+        if not ctr or (isinstance(ctr, dict) and not ctr.get("label")):
+            add(ERROR, i, "%s hub has no `center` — the hub is the point of the figure" % where)
+        n = len(fig.get("items") or [])
+        if not 3 <= n <= 10:
+            add(ERROR, i, "%s hub has %d spoke(s) — it draws 3 to 10" % (where, n))
+        if fig.get("arrows") not in (None, "none", "out", "in", "both"):
+            add(ERROR, i, "%s hub arrows %r is not none / out / in / both" % (where, fig.get("arrows")))
+    if k == "swimlane":
+        lanes = _labels_of(fig.get("lanes"))
+        if len(lanes) < 2:
+            add(ERROR, i, "%s swimlane has %d lane(s) — who-does-what needs two actors or more"
+                % (where, len(lanes)))
+        names = set()
+        for n_, ln in enumerate(lanes):
+            names.update({str(ln.get("id", ln.get("label", n_))), str(n_)})
+        ids = []
+        for n_, st in enumerate(fig.get("steps") or []):
+            st = st if isinstance(st, dict) else {}
+            ids.append(str(st.get("id", n_)))
+            if str(st.get("lane", 0)) not in names:
+                add(ERROR, i, "%s swimlane step %r names unknown lane %r"
+                    % (where, st.get("id", n_), st.get("lane")))
+        for e in fig.get("edges") or []:
+            for end in ("from", "to"):
+                if str((e or {}).get(end)) not in ids:
+                    add(ERROR, i, "%s swimlane edge names unknown step %r" % (where, (e or {}).get(end)))
+            if isinstance(e, dict) and e.get("route") not in (None,) + ROUTES:
+                add(ERROR, i, "%s swimlane edge route %r is not one of %s"
+                    % (where, e.get("route"), " / ".join(ROUTES)))
+    if k == "before_after":
+        b, a = fig.get("before") or {}, fig.get("after") or {}
+        if not b.get("items") or not a.get("items"):
+            add(ERROR, i, "%s before_after needs `before.items` and `after.items`" % where)
+        elif fig.get("pairs") and len(b["items"]) != len(a["items"]):
+            add(ERROR, i, "%s before_after `pairs: true` but before has %d item(s) and after %d — "
+                "each row maps one to one" % (where, len(b["items"]), len(a["items"])))
+
+
+HINT = "pattern hint:"
+
+
+def _ring(nodes, edges):
+    """The first directed cycle of 3 or more nodes in the edges, or None."""
+    out = {}
+    for a, b in edges:
+        out.setdefault(a, []).append(b)
+    best = None
+    for start in nodes:
+        stack = [(start, [start])]
+        while stack:
+            cur, path = stack.pop()
+            for nx in out.get(cur, []):
+                if nx == start and len(path) >= 3:
+                    if best is None or len(path) > len(best):
+                        best = path
+                elif nx not in path and len(path) < 9:
+                    stack.append((nx, path + [nx]))
+        if best:
+            return best
+    return best
+
+
+def _pattern_hints(fig, i, add, where):
+    """Light hints that a diagram's shape matches a named pattern the catalog
+    draws better (references/figure-patterns/). INFO, never a failure: the
+    author may have a reason. Each hint names the pattern and the query to run."""
+    if fig.get("kind") != "diagram":
+        return
+    nodes = [n for n in fig.get("nodes") or [] if isinstance(n, dict)]
+    ids = [str(n.get("id", k)) for k, n in enumerate(nodes)]
+    pos = {str(n.get("id", k)): (int(n.get("col", 0)), int(n.get("row", 0)))
+           for k, n in enumerate(nodes)}
+    edges = [(str(e.get("from")), str(e.get("to"))) for e in fig.get("edges") or []
+             if isinstance(e, dict) and str(e.get("from")) in pos and str(e.get("to")) in pos]
+    # 1. a loop drawn as a line
+    ring = _ring(ids, edges)
+    if ring:
+        rows = {pos[n][1] for n in ring}
+        cols = {pos[n][0] for n in ring}
+        if len(rows) == 1 or len(cols) == 1:
+            add(INFO, i, "%s %s the edges form a loop (%s → back) but the boxes stand in one line, "
+                "so the return arrow runs across the others — a loop reads as one on a ring: "
+                "`kind: cycle` (find_pattern.py \"循環\" / \"cycle\")"
+                % (HINT, where, " → ".join(ring)))
+    # 2. rows of boxes that repeat one column structure, with no arrows: a table
+    if not edges and len(nodes) >= 6 and not fig.get("groups"):
+        sig = {}
+        for n in nodes:
+            sig.setdefault(int(n.get("row", 0)), []).append((int(n.get("col", 0)),
+                                                             int(n.get("colspan", 1))))
+        shapes = [tuple(sorted(v)) for v in sig.values() if len(v) >= 3]
+        common = max(set(shapes), key=shapes.count) if shapes else ()
+        # a table is not ragged: lists of different lengths under column heads are
+        # groups (cards), not a grid, so a short row below the head rules it out
+        body = [len(v) for r, v in sorted(sig.items())][1:]
+        ragged = any(k < len(common) - 1 for k in body)
+        if shapes and shapes.count(common) >= 3 and not ragged:
+            add(INFO, i, "%s %s %d rows of boxes repeat the same %d columns with no arrows — that "
+                "is a table; `kind: matrix` gives it a header row, row labels and one look per "
+                "value (find_pattern.py \"比べる\" / \"compare\")"
+                % (HINT, where, shapes.count(common), len(common)))
+    # 3. one node joined to everything, and nothing else joined
+    if len(edges) >= 4:
+        deg = {}
+        for a, b in edges:
+            deg[a] = deg.get(a, 0) + 1
+            deg[b] = deg.get(b, 0) + 1
+        top = max(deg, key=deg.get)
+        if deg[top] == len(edges) and len(deg) - 1 >= 4 and len(deg) == len(ids):
+            add(INFO, i, "%s %s every edge touches %r — a hub with spokes; `kind: hub` places "
+                "the others around it evenly (find_pattern.py \"中心\" / \"hub\")"
+                % (HINT, where, top))
+    # 4. fills used as categories without a key. One accent box is emphasis, a column
+    #    of dark boxes is a heading row; fills that recur scattered over the grid read
+    #    as categories, and with three of them the reader has to guess what they are.
+    spots = {}
+    for n in nodes:
+        spots.setdefault(n.get("tone", "outline"), []).append((int(n.get("col", 0)),
+                                                                int(n.get("row", 0))))
+    cats = [t for t in ("light", "accent", "dark") if len(spots.get(t, [])) >= 2
+            and len({c for c, _ in spots[t]}) > 1 and len({r for _, r in spots[t]}) > 1]
+    if len(cats) >= 3 and not fig.get("legend"):
+        add(INFO, i, "%s %s three fills recur across rows and columns (%s) with no `legend` — "
+            "scattered fills read as categories; add a `legend` that says what each means, or "
+            "keep one accent for the point and one fill for structure"
+            % (HINT, where, ", ".join("%s ×%d" % (t, len(spots[t])) for t in cats)))
 
 
 def _check_tiles(items, i, add, where):

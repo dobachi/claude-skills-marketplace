@@ -1,0 +1,110 @@
+# The figure kinds added in 2.16 for the pattern catalog: pyramid, funnel,
+# venn, tree (right / down / left), hub, swimlane, before_after.
+# Shaped unlike the lecture deck: English, a hospital-supply story.
+meta:
+  aspect: '16:9'
+slides:
+- type: figure
+  title: Most decisions rest on the bottom two levels
+  figure:
+    kind: pyramid
+    items:
+    - {label: Insight, text: why stock ran out, tone: accent}
+    - {label: Information, text: stock by ward and by day}
+    - {label: Data, text: every scan at every cabinet}
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: Two in three requests are lost before approval
+  figure:
+    kind: funnel
+    items:
+    - {label: Requests, value: '1,200'}
+    - {label: Reviewed, value: '700'}
+    - {label: Approved, value: '410', tone: accent}
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: The shared record sits where the three needs meet
+  figure:
+    kind: venn
+    sets:
+    - {label: Wards, text: what is on the shelf}
+    - {label: Pharmacy, text: what was dispensed}
+    - {label: Suppliers, text: what is on the way}
+    overlap: Shared record
+- type: figure
+  title: Late deliveries split into three causes we can fix
+  figure:
+    kind: tree
+    level_widths: [1, 1.1, 1.6]
+    root:
+      label: Late deliveries
+      children:
+      - label: Forecast
+        children: [{label: Seasonal peaks missed, text: flu season}, Ward data a week old]
+      - label: Ordering
+        children: [Approval waits for a signature]
+      - label: Transport
+        children: [Carrier slots booked late, {label: Wrong dock, tone: accent}]
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: The supply office answers to two directors
+  figure:
+    kind: tree
+    direction: down
+    root:
+      label: Hospital board
+      children:
+      - label: Clinical director
+        children: [Wards, Pharmacy]
+      - label: Operations director
+        children: [Supply office, Estates]
+- type: figure
+  title: Three causes converge on one stock-out
+  figure:
+    kind: tree
+    direction: left
+    root:
+      label: Stock-out
+      tone: accent
+      children: [Forecast too low, Order sent late, Delivery missed]
+- type: figure
+  title: The exchange connects every party through one point
+  figure:
+    kind: hub
+    center: {label: Exchange}
+    items: [Wards, Pharmacy, Suppliers, Carriers, Finance]
+- type: figure
+  title: The order crosses three teams before it ships
+  figure:
+    kind: swimlane
+    lanes:
+    - {id: ward, label: Ward}
+    - {id: sup, label: Supply office}
+    - {id: ven, label: Supplier}
+    steps:
+    - {id: r, lane: ward, col: 0, label: Request}
+    - {id: a, lane: sup, col: 1, label: Approve}
+    - {id: o, lane: sup, col: 2, label: Order}
+    - {id: s, lane: ven, col: 3, label: Ship, tone: accent}
+    edges:
+    - {from: r, to: a}
+    - {from: a, to: o}
+    - {from: o, to: s, label: EDI}
+- type: figure
+  title: One record replaces three spreadsheets
+  figure:
+    kind: before_after
+    change: shared record
+    before:
+      label: Before
+      items: [Ward sheet, Pharmacy sheet, Supplier email]
+    after:
+      label: After
+      items: [{label: One record, text: read by all three}]
+- type: figure
+  title: Each old step maps to one new step
+  figure:
+    kind: before_after
+    pairs: true
+    before: {label: Today, items: [Phone the supplier, Count by hand]}
+    after: {label: Next year, items: [Order from the record, Scan at the cabinet]}

@@ -1,0 +1,30 @@
+# Each slide breaks one rule of the 2.16 figure kinds; validate_deck.py must stop it.
+meta:
+  aspect: '16:9'
+slides:
+- type: figure
+  title: One level is not a pyramid
+  figure: {kind: pyramid, items: [Only]}
+- type: figure
+  title: Four sets cannot be read
+  figure: {kind: venn, sets: [A, B, C, D]}
+- type: figure
+  title: A tree needs children
+  figure: {kind: tree, root: {label: Alone}}
+- type: figure
+  title: A hub needs a center
+  figure: {kind: hub, items: [A, B, C]}
+- type: figure
+  title: A step in no lane
+  figure:
+    kind: swimlane
+    lanes: [{id: a, label: A}, {id: b, label: B}]
+    steps: [{id: x, lane: zz, col: 0, label: X}, {id: y, lane: a, col: 1, label: Y}]
+    edges: [{from: x, to: nope}]
+- type: figure
+  title: Pairs that do not pair
+  figure:
+    kind: before_after
+    pairs: true
+    before: {items: [One, Two]}
+    after: {items: [Three]}

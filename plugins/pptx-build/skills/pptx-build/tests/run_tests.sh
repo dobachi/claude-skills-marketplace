@@ -36,6 +36,7 @@ fi
 # ─────────── 編集点: 検査を足したら、両方向の行を足す ───────────
 # 書式1: 期待exit|コマンド行        0=指摘なし / 1=指摘あり / 2=前提エラー
 # 書式2: has:<文字列>|コマンド行    その文字列が出力に現れること
+# 書式3: lacks:<文字列>|コマンド行  その文字列が出力に現れないこと（誤検出の対照）
 CASES=(
   # ---- 正常系: 自前の出力は無損失で戻る ----
   "0|python3 $A/extract_deck.py $f/clean-deck.pptx -o $TMP/clean.yaml"
@@ -111,6 +112,64 @@ CASES=(
   "has:bands has 1 band(s)|python3 $A/validate_deck.py $f/bad-vocab.yaml"
   "has:edge route 'curvy'|python3 $A/validate_deck.py $f/bad-vocab.yaml"
 
+  # ---- 図のパターン（2.16）: pyramid / funnel / venn / tree / hub / swimlane / before_after ----
+  # 新しい図を含む版をその場でビルドして監査を通し (0)、図形そのものを見て約束どおりに
+  # 描けているか、カタログの各項目がそろい、spec が検証を通り、見本のデッキが
+  # カタログから作り直したものと一致するかを確かめる (0)。規則を破る図は検証で止める (1)。
+  "0|python3 $A/validate_deck.py $f/patterns-deck.yaml"
+  "0|python3 $A/build_deck.py $f/patterns-deck.yaml -o $TMP/patterns.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/patterns.pptx --quiet"
+  "0|python3 patterns_check.py"
+  "1|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:pyramid has 1 level(s)|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:venn has 4 set(s)|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:tree root has no \`children\`|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:hub has no \`center\`|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:names unknown lane 'zz'|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:edge names unknown step 'nope'|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "has:\`pairs: true\` but before has 2|python3 $A/validate_deck.py $f/bad-patterns.yaml"
+  "0|python3 $A/validate_deck.py $A/samples/figure-patterns.yaml"
+  "0|python3 $A/build_deck.py $A/samples/figure-patterns.yaml -o $TMP/gallery.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/gallery.pptx --quiet"
+
+  # ---- find_pattern.py: 図の論理を言葉で引く ----
+  # 日本語・英語の言い方で、期待するパターンが 1 位に来る (0)。何にも当たらない (1)、
+  # 問いがない・カタログが読めない (2)。
+  "has:1. compare-matrix|python3 $A/find_pattern.py 3つを比べる"
+  "has:1. cycle|python3 $A/find_pattern.py 循環を示す"
+  "has:1. swimlane|python3 $A/find_pattern.py who does what"
+  "has:1. swimlane|python3 $A/find_pattern.py 部門をまたぐ受け渡し"
+  "has:1. hierarchy-org|python3 $A/find_pattern.py 組織の階層"
+  "has:1. venn|python3 $A/find_pattern.py 重なりを見せる"
+  "has:1. logic-tree|python3 $A/find_pattern.py 課題を要素に分解したい"
+  "has:1. before-after|python3 $A/find_pattern.py before and after"
+  "has:1. funnel|python3 $A/find_pattern.py conversion funnel"
+  "has:1. system-context|python3 $A/find_pattern.py data flows between companies"
+  "has:spec:|python3 $A/find_pattern.py 3つを比べる"
+  "has:img/compare-matrix.png|python3 $A/find_pattern.py 3つを比べる"
+  "0|python3 $A/find_pattern.py 循環"
+  "0|python3 $A/find_pattern.py --list"
+  "0|python3 $A/find_pattern.py --show swimlane"
+  "1|python3 $A/find_pattern.py zzzz qqq"
+  "2|python3 $A/find_pattern.py"
+  "2|python3 $A/find_pattern.py --show no-such-pattern"
+  "2|python3 $A/find_pattern.py 循環 --catalog $f/not-a-deck.txt"
+  "2|python3 $A/find_pattern.py 循環 --catalog $f/does-not-exist.yaml"
+
+  # ---- 図の形の示唆（validate_deck.py の pattern hint、INFO で落とさない） ----
+  # 一列に並べた輪、矢印のない表、すべての線が一点を通る図、散らばった三つの塗りを
+  # 拾う (has)。示唆では終了コードは変わらない (0)。既存のきれいな図では何も言わない (lacks)。
+  "0|python3 $A/validate_deck.py $f/hint-deck.yaml"
+  "has:the edges form a loop (s → l → r → c → back)|python3 $A/validate_deck.py $f/hint-deck.yaml"
+  "has:4 rows of boxes repeat the same 3 columns|python3 $A/validate_deck.py $f/hint-deck.yaml"
+  "has:every edge touches 'cat'|python3 $A/validate_deck.py $f/hint-deck.yaml"
+  "has:three fills recur across rows and columns|python3 $A/validate_deck.py $f/hint-deck.yaml"
+  "lacks:pattern hint|python3 $A/validate_deck.py $f/figure-deck.yaml"
+  "lacks:pattern hint|python3 $A/validate_deck.py $f/vocab-deck.yaml"
+  "lacks:pattern hint|python3 $A/validate_deck.py $f/panels-deck.yaml"
+  "lacks:pattern hint|python3 $A/validate_deck.py $f/onepagers-deck.yaml"
+  "lacks:pattern hint|python3 $A/validate_deck.py $A/samples/figure-patterns.yaml"
+
   # ---- 1 枚物の型と lead: 行 ----
   # 報告ブリーフ（N 列 panels + 矢印）、進捗ダッシュボード（tiles）、計画タイムライン、
   # 意思決定メモ、イベント報告、lead: つきの箇条書き・表・2 列をビルドして監査を通す (0)。
@@ -178,7 +237,15 @@ run() { eval "$1" >"$TMP/out" 2>&1; echo $?; }
 for case in "${CASES[@]}"; do
   want="${case%%|*}"; cmd="${case#*|}"
   code="$(run "$cmd")"
-  if [[ "$want" == has:* ]]; then
+  if [[ "$want" == lacks:* ]]; then
+    needle="${want#lacks:}"
+    if grep -qF -- "$needle" "$TMP/out"; then
+      fail=$((fail+1)); echo "NG  出力に次の文字列が出てはいけない: $needle"; echo "    $cmd"
+      grep -F -- "$needle" "$TMP/out" | head -3 | sed 's/^/    | /'
+    else
+      pass=$((pass+1))
+    fi
+  elif [[ "$want" == has:* ]]; then
     needle="${want#has:}"
     if grep -qF -- "$needle" "$TMP/out"; then
       pass=$((pass+1))

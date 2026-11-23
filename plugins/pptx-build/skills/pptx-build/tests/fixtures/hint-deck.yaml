@@ -1,0 +1,65 @@
+# Diagrams whose shape matches a named pattern, for validate_deck.py's pattern
+# hints (INFO, never a failure). English, a library-loans story.
+meta:
+  aspect: '16:9'
+slides:
+- type: figure
+  title: Loans return to the shelf and go out again
+  figure:
+    kind: diagram
+    nodes:
+    - {id: s, label: Shelf, col: 0, row: 0}
+    - {id: l, label: Loan, col: 1, row: 0}
+    - {id: r, label: Return, col: 2, row: 0}
+    - {id: c, label: Check, col: 3, row: 0}
+    edges:
+    - {from: s, to: l}
+    - {from: l, to: r}
+    - {from: r, to: c}
+    - {from: c, to: s}
+- type: figure
+  title: Only the city branch opens on Sunday
+  figure:
+    kind: diagram
+    nodes:
+    - {id: h1, label: Branch, col: 0, row: 0, tone: dark}
+    - {id: h2, label: Saturday, col: 1, row: 0, tone: dark}
+    - {id: h3, label: Sunday, col: 2, row: 0, tone: dark}
+    - {id: a1, label: City, col: 0, row: 1}
+    - {id: a2, label: Open, col: 1, row: 1}
+    - {id: a3, label: Open, col: 2, row: 1}
+    - {id: b1, label: North, col: 0, row: 2}
+    - {id: b2, label: Open, col: 1, row: 2}
+    - {id: b3, label: Closed, col: 2, row: 2}
+    - {id: c1, label: South, col: 0, row: 3}
+    - {id: c2, label: Closed, col: 1, row: 3}
+    - {id: c3, label: Closed, col: 2, row: 3}
+- type: figure
+  title: The catalogue connects every branch
+  figure:
+    kind: diagram
+    nodes:
+    - {id: cat, label: Catalogue, col: 1, row: 1}
+    - {id: a, label: City, col: 1, row: 0}
+    - {id: b, label: North, col: 2, row: 1}
+    - {id: c, label: South, col: 1, row: 2}
+    - {id: d, label: Mobile, col: 0, row: 1}
+    edges:
+    - {from: cat, to: a}
+    - {from: cat, to: b}
+    - {from: cat, to: c}
+    - {from: cat, to: d}
+- type: figure
+  title: Three kinds of item move through the branches
+  figure:
+    kind: diagram
+    nodes:
+    - {id: a, label: Book, col: 0, row: 0, tone: light}
+    - {id: b, label: Film, col: 1, row: 0, tone: accent}
+    - {id: c, label: Game, col: 2, row: 0, tone: dark}
+    - {id: d, label: Book, col: 2, row: 1, tone: light}
+    - {id: e, label: Film, col: 0, row: 1, tone: accent}
+    - {id: f, label: Game, col: 1, row: 1, tone: dark}
+    edges:
+    - {from: a, to: e}
+    - {from: c, to: d}

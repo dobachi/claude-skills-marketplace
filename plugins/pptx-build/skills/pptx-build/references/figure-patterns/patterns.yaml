@@ -1,0 +1,933 @@
+# Figure pattern catalog for pptx-build.
+#
+# One entry per generally recognised figure pattern: the logic it shows, when to
+# use it and when not, the mistakes that make it fail, what makes it look good,
+# the words people use when they want it (Japanese and English), and a slide spec
+# that draws it with the native vocabulary. assets/find_pattern.py searches this
+# file; assets/samples/figure-patterns.yaml is generated from the `spec` fields
+# (find_pattern.py --gallery) and its render is in img/.
+#
+# The descriptions are this skill's own wording. The ideas come from widely taught
+# practice named in `references` (titles only, nothing quoted).
+version: 1
+
+references:
+  minto: Barbara Minto, "The Pyramid Principle" (MECE grouping, issue and logic trees, SCQA)
+  zelazny: Gene Zelazny, "Say It with Charts" (choosing a chart from the comparison it makes)
+  abela: Andrew Abela, "Chart Suggestions — A Thought-Starter" and "Advanced Presentations by Design"
+  ftvv: Financial Times, "Visual Vocabulary" (chart chooser by relationship)
+  smartart: Microsoft Office SmartArt graphic categories (list, process, cycle, hierarchy, relationship, matrix, pyramid)
+  tufte: Edward Tufte, "The Visual Display of Quantitative Information" and "Envisioning Information" (data-ink, small multiples, layering)
+  williams: Robin Williams, "The Non-Designer's Design Book" (contrast, repetition, alignment, proximity)
+  ware: Colin Ware, "Information Visualization — Perception for Design" (preattentive features, Gestalt grouping)
+  knaflic: Cole Nussbaumer Knaflic, "Storytelling with Data" (declutter, one point of emphasis)
+  duarte: Nancy Duarte, "slide:ology" (diagram types, visual hierarchy)
+  bpmn: OMG, "Business Process Model and Notation (BPMN) 2.0" (pools and lanes)
+  porter: Michael E. Porter, "Competitive Advantage" (the value chain)
+  ishikawa: Kaoru Ishikawa, "Guide to Quality Control" (cause-and-effect diagram)
+  deming: The Shewhart / Deming PDCA cycle (plan, do, check, act)
+  ackoff: Russell Ackoff, "From Data to Wisdom" (the data–information–knowledge–wisdom hierarchy)
+  bcg: The BCG growth-share matrix and other 2×2 portfolio grids
+  venn: John Venn's diagrams of set overlap (1880) and their use in logic teaching
+
+# kind: the figure kind or slide type that draws it. `native` = one figure kind
+# does the whole pattern; `composed` = built from existing parts as shown.
+patterns:
+
+- id: compare-matrix
+  name: {ja: 比較表, en: Comparison matrix}
+  logic: comparison
+  logic_ja: 比較 — 複数の対象を同じ軸でそろえて比べる
+  kind: matrix
+  build: native
+  use_when: Three or more options, regions or products are judged on the same criteria, and the reader should scan across a row or down a column.
+  avoid_when: Two items only (before_after or a-vs-b reads faster), or the values are numbers that should be plotted (use a chart).
+  mistakes:
+  - Building the grid from loose diagram boxes, so headers, row labels and cells drift and differ in alignment.
+  - Coloring cells for variety; the same value must look the same everywhere.
+  - Long sentences in cells; a cell holds a mark and a short note.
+  design:
+  - Header row dark, row labels light, cells outline; one look per value through `marks`, explained by `legend: true`.
+  - Left-align every cell and center them vertically; keep the column widths equal unless one column carries the point.
+  - Put the column the slide is about in the accent, and nothing else.
+  keywords:
+    ja: [比べる, 比較, 比較表, 対比, 違い, 並べて比べる, 選択肢, 評価軸, 項目ごと, 一覧表, ○×, 星取表, 3つを比べる, 国ごと, 製品ごと]
+    en: [compare, comparison, table, options, criteria, side by side, versus, feature grid, scorecard, evaluate]
+  sources: [zelazny, abela, ftvv]
+  image: img/compare-matrix.png
+  spec:
+    type: figure
+    title: 記録の義務があるのは EU だけ
+    figure:
+      kind: matrix
+      corner: 項目
+      columns: [EU, 米国, 日本]
+      marks:
+      - {mark: 義務, tone: outline, color: accent, label: 法令で求める}
+      - {mark: 任意, tone: light, label: 指針・任意}
+      - {mark: —, tone: none, color: muted, label: 定めなし}
+      legend: true
+      rows:
+      - label: 温度の記録
+        cells: [{mark: 義務, text: 受け渡しごと}, {mark: 任意, text: 指針あり}, {mark: 任意}]
+      - label: 回収の追跡
+        cells: [{mark: 義務}, {mark: 義務, text: 一つ前と後}, {mark: —}]
+      - label: 包装の情報
+        cells: [{mark: 任意}, {mark: —}, {mark: 義務, text: 表示の法律}]
+    source: '出典: 説明用の例'
+
+- id: a-vs-b
+  name: {ja: 二者の対比, en: A versus B}
+  logic: comparison (two)
+  logic_ja: 二者の対比 — 二つの立場・方式を左右に並べる
+  kind: before_after
+  build: native
+  use_when: Exactly two approaches, products or positions are contrasted point by point and neither is "later" than the other.
+  avoid_when: One is the successor of the other (use before-after with the arrow), or there are three or more (compare-matrix).
+  mistakes:
+  - Unmatched rows, so point 2 on the left has nothing to answer it on the right.
+  - Giving both sides the accent; the side the slide argues for takes it, or neither does.
+  design:
+  - Row k on the left answers row k on the right; keep the same number of rows.
+  - Headings name the two sides in plain words; `arrow: false` removes the change arrow.
+  keywords:
+    ja: [二者比較, 対比, AとB, 2つを比べる, 違い, 方式の違い, 集中と分散, どちらが, 対照]
+    en: [a vs b, versus, two options, contrast, either or, two approaches, pros and cons]
+  sources: [zelazny, williams]
+  image: img/a-vs-b.png
+  spec:
+    type: figure
+    title: 集中型は始めやすく、分散型は崩れにくい
+    figure:
+      kind: before_after
+      arrow: false
+      before: {label: 集中型, items: [一か所にデータを集める, 運用者が全体を決める, 始めるのは早い]}
+      after: {label: 分散型, items: [データは持ち主の手元に置く, 参加者が共通のルールに従う, 相手が増えても作り直さない]}
+    source: '出典: 説明用の例'
+
+- id: before-after
+  name: {ja: 変化の前後, en: Before and after}
+  logic: before/after
+  logic_ja: 変化 — 今の状態と、変えたあとの状態
+  kind: before_after
+  build: native
+  use_when: A proposal changes a process, an organisation or a system and the reader must see what goes away and what replaces it.
+  avoid_when: The change happens in many steps over time (timeline or roadmap), or nothing is removed (a plain list of additions).
+  mistakes:
+  - Making the "before" side look broken with red or icons; quiet tone is enough.
+  - Listing different aspects on each side so the change cannot be read row by row.
+  design:
+  - Before is light with a muted heading; after is outline with the accent heading — the eye lands on the result.
+  - One arrow between the columns, labelled with the mechanism (`change:`); `pairs: true` draws one arrow per row when each item maps to one item.
+  keywords:
+    ja: [前後, ビフォーアフター, 変化, 今と将来, 将来像, 現行と新方式, 変える前, 変えた後, 現状と将来, 今と今後, 置き換える, 移行, As-Is, To-Be, 改善前後]
+    en: [before and after, as-is to-be, current vs future, change, transformation, replace, migration, from to]
+  sources: [duarte, knaflic]
+  image: img/before-after.png
+  spec:
+    type: figure
+    title: 三つの表が一つの記録に置き換わる
+    figure:
+      kind: before_after
+      change: 共有の記録へ
+      before: {label: いま, items: [病棟の在庫表, 薬剤部の払出表, 仕入先とのメール]}
+      after: {label: これから, items: [{label: 一つの記録, text: 三者が同じものを読む}]}
+    source: '出典: 説明用の例'
+
+- id: process-flow
+  name: {ja: 一方向の流れ, en: Process flow}
+  logic: sequence / process
+  logic_ja: 順序 — 決まった順に進む手続き
+  kind: flow
+  build: native
+  use_when: Three to six steps happen in a fixed order and the point is the order itself (or one step in it).
+  avoid_when: Steps need a sentence each (steps-detailed), the work moves between actors (swimlane), or it repeats (cycle).
+  mistakes:
+  - Arrows between things that do not follow one another (a list wearing arrows).
+  - Every box in a different color; one highlighted step is the message.
+  design:
+  - Equal boxes, equal gaps, one row; `highlight` puts the accent on the step that matters.
+  - Short noun labels; the explanation goes in the caption or note.
+  keywords:
+    ja: [流れ, 手順, プロセス, 順番, 工程, ステップ, 段取り, 手続き, 左から右, 順を追って]
+    en: [process, flow, sequence, steps, pipeline, workflow, procedure, order, stages]
+  sources: [smartart, duarte]
+  image: img/process-flow.png
+  spec:
+    type: figure
+    title: 四段のうち止まるのは承認だけ
+    figure: {kind: flow, items: [申請, 承認, 発注, 出荷], highlight: 1}
+    source: '出典: 説明用の例'
+
+- id: steps-detailed
+  name: {ja: 説明つきの手順, en: Numbered steps with text}
+  logic: sequence / process
+  logic_ja: 順序 — 各段に説明が要る手順
+  kind: steps (slide type)
+  build: composed
+  use_when: A 3–5 stage process where each stage needs a short sentence of its own.
+  avoid_when: The labels alone carry it (process-flow) or there is no real order (parallel-set).
+  mistakes:
+  - Numbering items that have no order.
+  - Five long paragraphs; each stage is a label plus one line.
+  design:
+  - The numbers (01, 02 …) and the single arrow direction encode the order; nothing else needs color.
+  keywords:
+    ja: [手順, 段階, ステップ, 進め方, 導入の手順, 番号つき, やり方]
+    en: [steps, how to, numbered steps, phases, roll-out, procedure]
+  sources: [smartart, minto]
+  image: img/steps-detailed.png
+  spec:
+    type: steps
+    title: 導入は三段で進め、二段目で参加者を決める
+    steps:
+    - {label: 目的を決める, text: 誰の何の困りごとか}
+    - {label: 参加者をそろえる, text: 最初の三者で始める}
+    - {label: ルールを書く, text: 使い方と記録の残し方}
+
+- id: cycle
+  name: {ja: 循環, en: Cycle}
+  logic: cycle
+  logic_ja: 循環 — 最後が最初に戻って繰り返す
+  kind: cycle
+  build: native
+  use_when: Three to eight steps repeat (plan–do–check–act, a weekly replenishment loop) and returning to the start is the point.
+  avoid_when: The process ends (process-flow) or only one step loops back (feedback-loop).
+  mistakes:
+  - Drawing the loop as a line with a long arrow running back under it; the return reads as an exception.
+  - Decorative circular arrows with no steps on them.
+  design:
+  - Steps on a ring, evenly spaced, arrows between neighbours in one direction; ellipses mark actions, `center` names the loop.
+  - Label one arrow (`edge`) only where something passes that is worth naming.
+  keywords:
+    ja: [循環, サイクル, 繰り返す, 回す, ループ, PDCA, 回る, 輪, 戻る, 定期的に]
+    en: [cycle, loop, repeat, recurring, pdca, iterative, circular, continuous improvement]
+  sources: [deming, smartart]
+  image: img/cycle.png
+  spec:
+    type: figure
+    title: 補充は毎週回り、売れた数が次の予測に戻る
+    figure:
+      kind: cycle
+      center: {label: 毎週}
+      items:
+      - {label: 予測, text: 先週の販売から}
+      - {label: 発注}
+      - {label: 配送}
+      - {label: 販売, edge: 実績が戻る, tone: accent}
+    source: '出典: 説明用の例'
+
+- id: feedback-loop
+  name: {ja: 戻りのある流れ, en: Flow with feedback}
+  logic: feedback loop
+  logic_ja: フィードバック — 一方向の流れに、結果が先頭へ戻る線
+  kind: flow (feedback)
+  build: native
+  use_when: A forward process whose output informs its start (monitoring feeds design, returns re-enter stock).
+  avoid_when: Every step feeds the next in a closed loop (cycle).
+  mistakes:
+  - Drawing the feedback as solid and equal to the forward arrows; it is the secondary path.
+  design:
+  - Forward arrows muted, the feedback dashed in the accent with a short label saying what returns.
+  keywords:
+    ja: [フィードバック, 戻り, 結果を返す, 学習, 見直し, 改善につなげる, 反映する]
+    en: [feedback, feedback loop, learn, return path, close the loop, monitoring feeds back]
+  sources: [deming, duarte]
+  image: img/feedback-loop.png
+  spec:
+    type: figure
+    title: 現場の記録が、次の設計の入力に戻る
+    figure: {kind: flow, items: [設計, 製造, 出荷, 現場で使う], feedback: 使われ方の記録が設計に戻る}
+    source: '出典: 説明用の例'
+
+- id: hierarchy-org
+  name: {ja: 階層・組織図, en: Hierarchy / org chart}
+  logic: hierarchy / tree
+  logic_ja: 階層 — 上位が下位を束ねる関係
+  kind: tree (direction down)
+  build: native
+  use_when: Reporting lines, a classification, or a whole made of parts made of parts, with two or three levels.
+  avoid_when: Relations cross levels or form loops (diagram), or there are more than about twelve leaves (split it).
+  mistakes:
+  - Diagonal connector lines from a parent to each child.
+  - Every level in its own color; the root may be dark, the rest neutral.
+  design:
+  - Square brackets (one trunk, one bar, one drop per child); siblings share one row and one size.
+  - Put the person or unit the slide is about in the accent.
+  keywords:
+    ja: [階層, 組織図, 組織, 上下関係, ツリー, 体系, 分類, 親子, 構成, 系統]
+    en: [hierarchy, org chart, organization, tree, reporting line, taxonomy, classification, parent child]
+  sources: [smartart, duarte]
+  image: img/hierarchy-org.png
+  spec:
+    type: figure
+    title: 調達課は二人の部長の両方に報告している
+    figure:
+      kind: tree
+      direction: down
+      root:
+        label: 理事会
+        children:
+        - label: 診療部長
+          children: [病棟, 薬剤部]
+        - label: 管理部長
+          children: [{label: 調達課, tone: accent}, 施設課]
+
+- id: logic-tree
+  name: {ja: 分解の木（MECE）, en: Logic tree / MECE breakdown}
+  logic: MECE breakdown
+  logic_ja: 分解 — 一つの問いや数字を、漏れなく重なりなく分ける
+  kind: tree (direction right)
+  build: native
+  use_when: A question, a goal or a number is broken into parts that together make it up (issue tree, KPI tree, why-tree).
+  avoid_when: The parts overlap (venn) or follow in time (process-flow).
+  mistakes:
+  - Branches at one level that are not the same kind of thing (a cause next to a remedy).
+  - Uneven depth that hides a gap; if one branch goes deeper, the slide should say why.
+  design:
+  - Root at the left, each level one column, leaves in one aligned column; `level_widths` gives the leaves more room.
+  - Accent only on the leaf the slide acts on.
+  keywords:
+    ja: [分解, MECE, ロジックツリー, 論点, イシューツリー, 要素に分ける, ブレークダウン, なぜなぜ, KPIツリー, 内訳を分ける, 漏れなく]
+    en: [logic tree, issue tree, mece, breakdown, decompose, driver tree, kpi tree, why tree, split into]
+  sources: [minto]
+  image: img/logic-tree.png
+  spec:
+    type: figure
+    title: 納品の遅れは三つに分けられ、どれも手を打てる
+    figure:
+      kind: tree
+      level_widths: [1, 1, 1.6]
+      root:
+        label: 納品の遅れ
+        children:
+        - label: 予測
+          children: [季節の山を外す, 病棟のデータが一週遅い]
+        - label: 発注
+          children: [承認の署名待ち]
+        - label: 輸送
+          children: [便の予約が遅い, {label: 荷受け口の誤り, tone: accent}]
+    source: '出典: 説明用の例'
+
+- id: cause-effect
+  name: {ja: 原因と結果, en: Causes converging on an effect}
+  logic: cause-effect
+  logic_ja: 因果 — いくつかの原因が一つの結果を生む
+  kind: tree (direction left)
+  build: native
+  use_when: Several causes (possibly grouped) lead to one problem, as in a simplified fishbone.
+  avoid_when: Causes act on each other in a chain (process-flow) or a loop (cycle).
+  mistakes:
+  - Arrows pointing from the effect to its causes.
+  - Mixing causes and symptoms in one column.
+  design:
+  - Causes on the left, the effect on the right in the accent; arrows converge into it.
+  keywords:
+    ja: [原因, 要因, 因果, 結果, なぜ起きた, 特性要因図, フィッシュボーン, 根本原因, 原因と結果]
+    en: [cause and effect, root cause, causes, fishbone, ishikawa, why it happened, drivers of]
+  sources: [ishikawa, minto]
+  image: img/cause-effect.png
+  spec:
+    type: figure
+    title: 三つの原因が重なって欠品になる
+    figure:
+      kind: tree
+      direction: left
+      root:
+        label: 欠品
+        tone: accent
+        children: [予測が低すぎる, 発注が遅れる, 配送が抜ける]
+    source: '出典: 説明用の例'
+
+- id: convergence
+  name: {ja: 収束, en: Convergence}
+  logic: convergence
+  logic_ja: 収束 — 複数の入力が一つにまとまる
+  kind: diagram
+  build: composed
+  use_when: Several sources feed one result (data sets into one product, departments into one decision).
+  avoid_when: The inputs cause the result rather than feed it (cause-effect), or the center connects both ways (hub-spoke).
+  mistakes:
+  - Arrows of different weights or colors for equal inputs.
+  design:
+  - Inputs in one column, equal size; arrows enter the target's side and run level where they can (`route: elbow`).
+  keywords:
+    ja: [集約, まとめる, 収束, 束ねる, 一つにする, 統合, 集める, 寄せる]
+    en: [converge, merge, consolidate, aggregate, integrate, many to one, combine]
+  sources: [duarte, smartart]
+  image: img/convergence.png
+  spec:
+    type: figure
+    title: 三つの記録が一つの在庫の見え方にまとまる
+    figure:
+      kind: diagram
+      edge_route: elbow
+      nodes:
+      - {id: a, label: 病棟の記録, col: 0, row: 0}
+      - {id: b, label: 薬剤部の記録, col: 0, row: 1}
+      - {id: c, label: 仕入先の出荷, col: 0, row: 2}
+      - {id: z, label: 一つの在庫の見え方, col: 2, row: 1, tone: accent}
+      edges:
+      - {from: a, to: z}
+      - {from: b, to: z}
+      - {from: c, to: z}
+    source: '出典: 説明用の例'
+
+- id: divergence
+  name: {ja: 発散, en: Divergence}
+  logic: divergence
+  logic_ja: 発散 — 一つのものが複数に広がる
+  kind: diagram
+  build: composed
+  use_when: One source serves several uses, or one decision branches into several actions.
+  avoid_when: The branches break the source down into its parts (logic-tree).
+  mistakes:
+  - Fanning diagonal arrows; route them square.
+  design:
+  - Source at the left in the accent, targets in one aligned column, `route: elbow`.
+  keywords:
+    ja: [展開, 広がる, 発散, 波及, 横展開, 一つから複数, 使い回す, 派生]
+    en: [diverge, fan out, one to many, spread, reuse, roll out to, branch out]
+  sources: [duarte, smartart]
+  image: img/divergence.png
+  spec:
+    type: figure
+    title: 一度そろえたデータを、三つの用途で使い回す
+    figure:
+      kind: diagram
+      edge_route: elbow
+      nodes:
+      - {id: s, label: そろえたデータ, col: 0, row: 1, tone: accent}
+      - {id: a, label: 需要の予測, col: 2, row: 0}
+      - {id: b, label: 回収の追跡, col: 2, row: 1}
+      - {id: c, label: 当局への報告, col: 2, row: 2}
+      edges:
+      - {from: s, to: a}
+      - {from: s, to: b}
+      - {from: s, to: c}
+    source: '出典: 説明用の例'
+
+- id: hub-spoke
+  name: {ja: 中心と周辺, en: Hub and spoke}
+  logic: hub-and-spoke
+  logic_ja: 中心 — 一つの中心が、周りのそれぞれとだけつながる
+  kind: hub
+  build: native
+  use_when: A platform, a policy or a role relates to four to ten parties, and the parties relate only through it.
+  avoid_when: The parties also connect to each other (diagram) or the center is a step in a sequence.
+  mistakes:
+  - Placing the parties unevenly or in a list beside the center, so some look closer than others.
+  - Arrows on every spoke when nothing flows.
+  design:
+  - The center in the accent, the parties evenly on a ring in one tone; plain lines unless direction matters (`arrows: in | out | both`).
+  keywords:
+    ja: [中心, ハブ, 中核, 取り巻く, 周辺, 関係者, 放射, 一点に, 基盤とつながる, 中央で]
+    en: [hub, hub and spoke, center, central, radial, around, ecosystem, stakeholders around]
+  sources: [smartart, duarte]
+  image: img/hub-spoke.png
+  spec:
+    type: figure
+    title: 取引所が、すべての参加者を一点でつなぐ
+    figure:
+      kind: hub
+      center: {label: 取引所}
+      items: [病棟, 薬剤部, 仕入先, 運送会社, 経理]
+    source: '出典: 説明用の例'
+
+- id: layers
+  name: {ja: 層構造, en: Layers / stack}
+  logic: layers
+  logic_ja: 層 — 下の層が上の層を支える
+  kind: bands
+  build: native
+  use_when: A reference architecture, a technology stack, or rules grouped by strength (law, standard, voluntary).
+  avoid_when: The layers are a ranking of importance or volume (pyramid) or a sequence (process-flow).
+  mistakes:
+  - Floating layer names above the rows; the name belongs in a cell at the row's left.
+  - Items in adjacent rows that almost line up; use `cols` so their edges do.
+  design:
+  - Label cells in one dark column, items on a shared grid; `arrows` only when something passes between layers.
+  keywords:
+    ja: [層, レイヤー, 階層構造, 土台, 基盤, スタック, アーキテクチャ, 参照モデル, 下支え, 上に載る]
+    en: [layers, stack, architecture, reference model, foundation, tiers, platform layers, built on]
+  sources: [smartart, duarte]
+  image: img/layers.png
+  spec:
+    type: figure
+    title: 規則は三つの強さに分かれる
+    figure:
+      kind: bands
+      cols: 3
+      bands:
+      - {label: 法律, items: [{label: EU, text: 規則}, {label: 米国, text: 連邦法}, {label: 日本, text: 食品衛生法}]}
+      - {label: 標準, items: [{label: 事象データの標準, span: 2}, 食品安全の規格]}
+      - {label: 任意, tone: light, items: [小売の取り決め, {label: 運送の約束, span: 2}]}
+    source: '出典: 説明用の例'
+
+- id: part-whole
+  name: {ja: 全体と内訳, en: Part to whole}
+  logic: part-whole
+  logic_ja: 構成 — 全体のうち、それぞれが占める割合
+  kind: stacked_bar (or type chart)
+  build: native
+  use_when: Shares of one total (cost split, time spent), two to five parts.
+  avoid_when: Comparing totals across groups (chart with bars), or the parts are not additive.
+  mistakes:
+  - A pie with many thin slices; a single bar is easier to compare.
+  - Every segment saturated; the share the slide is about takes the accent.
+  design:
+  - One bar across the width, labels inside, the point in the accent and the rest light.
+  keywords:
+    ja: [内訳, 割合, 構成比, シェア, 占める, 全体のうち, 配分, 比率]
+    en: [part to whole, share, breakdown of total, composition, proportion, split of, percent of]
+  sources: [zelazny, ftvv]
+  image: img/part-whole.png
+  spec:
+    type: figure
+    title: 費用の半分はデータを整える作業
+    figure:
+      kind: stacked_bar
+      height: 0.6
+      segments:
+      - {label: 整える 50%, value: 0.5, tone: accent}
+      - {label: 集める 30%, value: 0.3, tone: light}
+      - {label: 分析 20%, value: 0.2, tone: light}
+    source: '出典: 説明用の例'
+
+- id: matrix-2x2
+  name: {ja: 2×2 の位置づけ, en: 2×2 matrix}
+  logic: 2x2 matrix
+  logic_ja: 位置づけ — 二つの軸で四つに分ける
+  kind: matrix (slide type)
+  build: composed
+  use_when: Two independent criteria, each with a low and a high end, sort items into four meaningfully different groups.
+  avoid_when: One of the axes is not really an axis, or a quadrant would be empty.
+  mistakes:
+  - Unnamed axes or axes that are the same thing twice.
+  - An empty quadrant; four boxes are not a matrix.
+  design:
+  - Both axes named at their ends; one quadrant emphasised (`emphasis`) — the one the slide recommends.
+  keywords:
+    ja: [2軸, 2×2, 4象限, 象限, マトリクス, ポジショニング, 優先順位づけ, 縦軸と横軸, 位置づけ]
+    en: [2x2, two by two, quadrant, positioning, prioritize, matrix, two axes, portfolio]
+  sources: [bcg, abela]
+  image: img/matrix-2x2.png
+  spec:
+    type: matrix
+    title: 並列承認は、早く始められて効果も大きい
+    x_axis: [着手が遅い, 着手が早い]
+    y_axis: [効果が小さい, 効果が大きい]
+    quadrants:
+    - {label: 制度改正, text: 効果は大きいが半年かかる}
+    - {label: 並列承認, text: 規程の変更だけで来月から}
+    - {label: 帳票の統合, text: 効果は限定的で手間が大きい}
+    - {label: テンプレートの整備, text: すぐ効くが効果は小さい}
+    emphasis: 2
+
+- id: venn
+  name: {ja: 重なり, en: Overlap / Venn}
+  logic: overlap
+  logic_ja: 重なり — 二つか三つの集まりが共有する部分
+  kind: venn
+  build: native
+  use_when: Two or three groups, needs or capabilities, and the point is what they share (the intersection).
+  avoid_when: Four or more sets (compare-matrix), or the sets do not actually overlap.
+  mistakes:
+  - Opaque circles that hide the overlap.
+  - Long sentences inside the circles.
+  design:
+  - Translucent light circles with a hairline; the overlap is named in the accent; one set in the accent only if the slide is about it.
+  keywords:
+    ja: [重なり, 共通部分, 交わる, ベン図, 両方, 重なる, 接点, 共有する部分, 交差]
+    en: [overlap, venn, intersection, common ground, shared, both, sweet spot, where they meet]
+  sources: [venn, smartart]
+  image: img/venn.png
+  spec:
+    type: figure
+    title: 共有の記録は、三者の必要が重なるところにある
+    figure:
+      kind: venn
+      height: 3.8
+      sets:
+      - {label: 病棟, text: 棚にあるもの}
+      - {label: 薬剤部, text: 払い出したもの}
+      - {label: 仕入先, text: 届く途中のもの}
+      overlap: 共有の記録
+
+- id: funnel
+  name: {ja: 絞り込み, en: Funnel}
+  logic: funnel
+  logic_ja: 絞り込み — 段を経るごとに数が減る
+  kind: funnel
+  build: native
+  use_when: A count shrinks through ordered stages (leads to deals, requests to approvals) and the drop between stages is the point.
+  avoid_when: The stages do not shrink, or exact proportions matter (a bar chart shows them truly).
+  mistakes:
+  - Widths that pretend to be to scale when they are not; state the numbers.
+  - A different color per stage.
+  design:
+  - Light stages, the stage the slide is about in the accent, the count as the second line.
+  keywords:
+    ja: [ファネル, 絞り込み, 歩留まり, 減っていく, 段階ごとの数, 離脱, 転換率, 選別]
+    en: [funnel, conversion, drop off, pipeline stages, attrition, narrowing, filter down]
+  sources: [abela, smartart]
+  image: img/funnel.png
+  spec:
+    type: figure
+    title: 申請の三分の二は、承認の前に消える
+    figure:
+      kind: funnel
+      items:
+      - {label: 申請, value: '1,200件'}
+      - {label: 審査, value: 700件}
+      - {label: 承認, value: 410件, tone: accent}
+    source: '出典: 説明用の例'
+
+- id: pyramid
+  name: {ja: ピラミッド, en: Pyramid}
+  logic: pyramid
+  logic_ja: 積み上がり — 広い土台の上に、少ないが上位のものが載る
+  kind: pyramid
+  build: native
+  use_when: Levels where each rests on the one below and the upper ones are fewer or rarer (data–information–insight, a needs hierarchy).
+  avoid_when: The levels are peers (layers) or a sequence (staircase / process-flow).
+  mistakes:
+  - Long words inside the narrow top; put the explanation beside it (`text`).
+  - A rainbow of level colors.
+  design:
+  - Short labels inside, explanations in an aligned column to the right joined by hairlines; the level the slide is about in the accent.
+  keywords:
+    ja: [ピラミッド, 積み上げ, 土台, 上位, 下位, 階層, 頂点, 基礎から, 段階的に上がる, DIKW]
+    en: [pyramid, hierarchy of needs, foundation, top of, base, dikw, levels build on]
+  sources: [ackoff, smartart]
+  image: img/pyramid.png
+  spec:
+    type: figure
+    title: 判断に使えるのは、下の二段がそろったときだけ
+    figure:
+      kind: pyramid
+      items:
+      - {label: 洞察, text: なぜ欠品したか, tone: accent}
+      - {label: 情報, text: 病棟別・日別の在庫}
+      - {label: データ, text: 棚ごとの読み取りの記録}
+    source: '出典: 説明用の例'
+
+- id: swimlane
+  name: {ja: 誰が何をするか（スイムレーン）, en: Swimlane — who does what}
+  logic: swimlane
+  logic_ja: 役割分担 — 流れの各段を、どの担い手が受け持つか
+  kind: swimlane
+  build: native
+  use_when: A process crosses two to five actors and the handoffs between them are the point.
+  avoid_when: One actor does everything (process-flow), or there is no order (a responsibility grid — compare-matrix).
+  mistakes:
+  - Steps placed freely, so the lane a step belongs to is unclear.
+  - Diagonal arrows across lanes.
+  design:
+  - One lane per actor, named at the left, light fill; steps on a shared column grid; arrows change lanes with one square turn.
+  - Put the step where it goes wrong in the accent.
+  keywords:
+    ja: [スイムレーン, 誰が何を, 役割分担, 担当, 受け渡し, 部門をまたぐ, 業務フロー, 責任分担, 手渡し]
+    en: [swimlane, who does what, responsibilities, handoff, cross functional, roles in a process, lanes, raci flow]
+  sources: [bpmn, duarte]
+  image: img/swimlane.png
+  spec:
+    type: figure
+    title: 発注は出荷までに三つの部署を渡る
+    figure:
+      kind: swimlane
+      lanes:
+      - {id: w, label: 病棟}
+      - {id: s, label: 調達課}
+      - {id: v, label: 仕入先}
+      steps:
+      - {id: r, lane: w, col: 0, label: 依頼}
+      - {id: a, lane: s, col: 1, label: 承認, tone: accent}
+      - {id: o, lane: s, col: 2, label: 発注}
+      - {id: p, lane: v, col: 3, label: 出荷}
+      edges:
+      - {from: r, to: a}
+      - {from: a, to: o}
+      - {from: o, to: p, label: 電子発注}
+    source: '出典: 説明用の例'
+
+- id: timeline
+  name: {ja: 時系列, en: Timeline}
+  logic: timeline
+  logic_ja: 時系列 — いつ何が起きたか、今どこにいるか
+  kind: timeline
+  build: native
+  use_when: Dated milestones on one track, and where "today" is matters.
+  avoid_when: Several workstreams run in parallel (roadmap) or the dates are not the point (process-flow).
+  mistakes:
+  - Unequal spacing that suggests a time scale it does not have.
+  - A paragraph under every milestone.
+  design:
+  - One hairline, markers muted, today in the accent; dates above, names below, all left-aligned from the marker.
+  keywords:
+    ja: [時系列, 時間の流れ, 時間軸, 年表, いつ, マイルストーン, 予定, スケジュール, 経緯, 沿革, 今どこ]
+    en: [timeline, milestones, schedule, history, chronology, when, dates, where we are]
+  sources: [tufte, duarte]
+  image: img/timeline.png
+  spec:
+    type: figure
+    title: 試行は予定どおり進み、次は 9 月の判断
+    figure:
+      kind: timeline
+      today: 7月
+      items:
+      - {date: 4月, label: 開始}
+      - {date: 5月, label: 三者の合意}
+      - {date: 7月, label: 試行, text: いまここ}
+      - {date: 9月, label: 継続の判断}
+    source: '出典: 説明用の例'
+
+- id: roadmap
+  name: {ja: ロードマップ, en: Roadmap}
+  logic: roadmap (parallel workstreams over time)
+  logic_ja: 計画 — 並行する取り組みを、期間の上に並べる
+  kind: bands (cols as periods, span as duration)
+  build: composed
+  use_when: Two to five workstreams each run over several periods and their overlap in time matters.
+  avoid_when: A single track of dates (timeline).
+  mistakes:
+  - Bars that do not line up with the period grid.
+  - Different colors per workstream with no legend.
+  design:
+  - One band per workstream named at its left; `cols` = number of periods so every item edge sits on the grid; a period header row as the first band with `tone: none`.
+  keywords:
+    ja: [ロードマップ, 計画, 工程表, 並行, 期間, ガントチャート, いつまでに, 段取り, 年度計画]
+    en: [roadmap, plan, gantt, workstreams, phases over time, parallel tracks, schedule by quarter]
+  sources: [duarte, tufte]
+  image: img/roadmap.png
+  spec:
+    type: figure
+    title: 三つの取り組みを重ね、後半に一つにする
+    figure:
+      kind: bands
+      cols: 4
+      label_width: 1.6
+      band_height: 0.55
+      bands:
+      - {label: 期間, tone: none, items: [{label: 上期前半, tone: none}, {label: 上期後半, tone: none}, {label: 下期前半, tone: none}, {label: 下期後半, tone: none}]}
+      - {label: 合意, items: [{label: 三者で合意, span: 2}]}
+      - {label: 仕組み, items: [{label: '', tone: none}, {label: 記録の共有, span: 2}]}
+      - {label: 運用, items: [{label: '', tone: none, span: 2}, {label: 全病棟へ, span: 2, tone: accent}]}
+    source: '出典: 説明用の例'
+
+- id: maturity-staircase
+  name: {ja: 段階的な成熟, en: Maturity staircase}
+  logic: staged growth
+  logic_ja: 段階 — 一段ずつ上がる成熟度・水準
+  kind: staircase
+  build: native
+  use_when: Ordered levels of capability or ambition where each builds on the last, and the target is the top.
+  avoid_when: Levels are not cumulative (layers) or are counts (funnel).
+  mistakes:
+  - Steps of equal height that hide the rise.
+  design:
+  - Rising steps left to right, the target step in the accent.
+  keywords:
+    ja: [成熟度, 段階, レベル, ステージ, 発展段階, 一段ずつ, 水準, 高度化]
+    en: [maturity, maturity model, levels, stages of growth, staircase, step up, capability levels]
+  sources: [smartart, duarte]
+  image: img/maturity-staircase.png
+  spec:
+    type: figure
+    title: 三段目の「組織の間で使う」が目標
+    figure:
+      kind: staircase
+      height: 1.8
+      items:
+      - {label: 集める, text: 部署ごと}
+      - {label: そろえる, text: 社内で}
+      - {label: 組織の間で使う, text: 相手と}
+    source: '出典: 説明用の例'
+
+- id: value-chain
+  name: {ja: 価値の連鎖, en: Value chain}
+  logic: value chain
+  logic_ja: 価値の連鎖 — 主な活動の連なりと、それを支える活動
+  kind: diagram (primary row + support row)
+  build: composed
+  use_when: Showing where in a chain of primary activities a change creates or captures value, with the support functions beneath.
+  avoid_when: Only the sequence matters (process-flow).
+  mistakes:
+  - Support activities drawn as steps in the chain.
+  design:
+  - Primary activities in one row with arrows; support activities as wide boxes below without arrows; the activity the slide is about in the accent.
+  keywords:
+    ja: [バリューチェーン, 価値の連鎖, 主活動, 支援活動, どこで価値, サプライチェーン, 上流から下流]
+    en: [value chain, primary activities, support activities, upstream downstream, where value is created, supply chain]
+  sources: [porter]
+  image: img/value-chain.png
+  spec:
+    type: figure
+    title: 価値は出荷の後の使われ方から生まれる
+    figure:
+      kind: diagram
+      cols: 4
+      nodes:
+      - {id: a, label: 調達, col: 0, row: 0}
+      - {id: b, label: 製造, col: 1, row: 0}
+      - {id: c, label: 出荷, col: 2, row: 0}
+      - {id: d, label: 使われ方を知る, col: 3, row: 0, tone: accent}
+      - {id: s1, label: 人と組織, col: 0, row: 1, colspan: 4, tone: light}
+      - {id: s2, label: データの基盤, col: 0, row: 2, colspan: 4, tone: light}
+      edges:
+      - {from: a, to: b}
+      - {from: b, to: c}
+      - {from: c, to: d}
+    source: '出典: 説明用の例'
+
+- id: kpi-tiles
+  name: {ja: 主要な数字, en: Key numbers}
+  logic: key figures
+  logic_ja: 数字 — 状態を表す少数の数
+  kind: tiles
+  build: native
+  use_when: Two to six numbers summarise the state, each with a label and a change.
+  avoid_when: A trend over time is the point (chart).
+  mistakes:
+  - Every tile in the accent; one headline number at most.
+  design:
+  - Equal tiles on the column grid, the number large, label and delta below.
+  keywords:
+    ja: [KPI, 数字, 指標, 実績, 主要な数, ダッシュボード, 達成度, 数値で]
+    en: [kpi, key numbers, metrics, dashboard, figures, stats, scorecard numbers]
+  sources: [knaflic, tufte]
+  image: img/kpi-tiles.png
+  spec:
+    type: figure
+    title: 欠品は半分になり、在庫は増えていない
+    figure:
+      kind: tiles
+      items:
+      - {number: '-48%', label: 欠品, delta: 前年同期比, tone: accent}
+      - {number: '+2%', label: 在庫金額, delta: 前年同期比}
+      - {number: '3日', label: 発注から納品, delta: 5日から}
+    source: '出典: 説明用の例'
+
+- id: system-context
+  name: {ja: 関係者と流れの全体像, en: Context / system overview}
+  logic: relationships
+  logic_ja: 関係 — 誰と何が、何を受け渡してつながっているか
+  kind: diagram (groups)
+  build: composed
+  use_when: Actors and systems exchange things and the layout carries meaning (inside vs outside, our side vs theirs).
+  avoid_when: A standard pattern fits (hub, swimlane, tree); use it instead — a free diagram is the last resort.
+  mistakes:
+  - Arrows without labels where what flows is not obvious.
+  - Every box a different tone.
+  design:
+  - Groups for organisational boundaries, boxes aligned on the grid, edges labelled on the line (`edge_label_pos: line`).
+  keywords:
+    ja: [全体像, 構成図, 関係図, つながり, 登場人物, システム構成, 相関図, やり取り, 組織の間, 会社の間, データの受け渡し, 境界]
+    en: [overview, context diagram, system diagram, architecture overview, relationships, actors, landscape, between companies, between organizations, data flows between, boundary]
+  sources: [duarte, ware]
+  image: img/system-context.png
+  spec:
+    type: figure
+    title: 記録は取り決めた範囲だけ外と共有する
+    figure:
+      kind: diagram
+      edge_label_pos: line
+      gap_x: 1.3
+      groups:
+      - {label: 病院の中, col: 0, row: 0, colspan: 2}
+      nodes:
+      - {id: w, label: 病棟, col: 0, row: 0}
+      - {id: r, label: 共有の記録, col: 1, row: 0, tone: accent}
+      - {id: v, label: 仕入先, col: 2, row: 0}
+      edges:
+      - {from: w, to: r, label: 読み取り}
+      - {from: r, to: v, label: 合意の項目}
+    source: '出典: 説明用の例'
+
+- id: loop-on-layers
+  name: {ja: 土台の上で回るループ, en: Loop on its foundations}
+  logic: cycle on layers
+  logic_ja: 循環と層 — 回る仕組みと、それを支える土台
+  kind: stack (cycle + bands)
+  build: composed
+  use_when: An operating loop depends on shared foundations and the slide argues for both.
+  avoid_when: Either half would carry the message alone.
+  mistakes:
+  - Two figures side by side with no stated relation.
+  design:
+  - The loop above, the layers below, each with a short title; the same tones mean the same thing in both (add a `legend`).
+  keywords:
+    ja: [ループと土台, 仕組みの上で回る, 支える基盤, 運用と基盤, 回る仕組み]
+    en: [loop on a platform, operating model and foundation, cycle and layers]
+  sources: [deming, smartart]
+  image: img/loop-on-layers.png
+  spec:
+    type: figure
+    title: 判断と合意のループは、二つの土台の上で回る
+    figure:
+      kind: stack
+      parts:
+      - {kind: cycle, title: 回る仕組み, height: 1.9, items: [分析, 判断, 合意, 実行]}
+      - kind: bands
+        title: 支える土台
+        label_width: 1.6
+        bands:
+        - {label: 共通の言葉, items: [品目コード, ロット番号, 単位]}
+        - {label: 信頼, tone: accent, items: [{label: 誰が何をしてよいかと、その記録, span: 3}]}
+    source: '出典: 説明用の例'
+
+- id: problem-solution
+  name: {ja: 課題・仕組み・ねらい, en: Problem → mechanism → aim}
+  logic: problem-solution mapping
+  logic_ja: 対応 — 課題ごとに、効く仕組みとねらいを並べる
+  kind: matrix (flow true)
+  build: native
+  use_when: Each of two to four problems maps to one mechanism and one aim, and the rows should read left to right.
+  avoid_when: Mechanisms serve several problems (diagram) or the mapping is a single row (process-flow).
+  mistakes:
+  - Rows whose cells do not answer each other.
+  design:
+  - Column heads name the three roles; arrows between cells in each row; the aim column in the accent.
+  keywords:
+    ja: [課題と対策, 課題・解決, 打ち手, 対応関係, 問題と仕組み, ねらい, 施策]
+    en: [problem solution, issue and remedy, mechanism, countermeasure, maps to, aim]
+  sources: [minto, abela]
+  image: img/problem-solution.png
+  spec:
+    type: figure
+    title: 課題ごとに、効く仕組みが一つずつある
+    figure:
+      kind: matrix
+      flow: true
+      label_width: 0
+      columns: [課題, 仕組み, ねらい]
+      rows:
+      - cells: [傷みに気づくのが遅い, 一時間ごとに温度を送る, {text: 捨てる量を減らす, tone: accent}]
+      - cells: [回収に何週間もかかる, ロット番号を荷と一緒に渡す, {text: 一日で回収する, tone: accent}]
+    source: '出典: 説明用の例'
+
+- id: parallel-set
+  name: {ja: 並列の要素, en: Parallel set}
+  logic: list of equals
+  logic_ja: 並列 — 同じ種類で順序のない二〜四つ
+  kind: cards (slide type)
+  build: composed
+  use_when: Two to four items of the same kind with no order, each with a short explanation (reasons, principles, pillars).
+  avoid_when: They have an order (steps) or one outweighs the rest (lead).
+  mistakes:
+  - Mixing kinds of items in one row.
+  - Making one card bigger without meaning it.
+  design:
+  - Equal cards, same height, label and one line; `emphasis` only when one really matters more.
+  keywords:
+    ja: [並列, 要素, 柱, 原則, 理由, 特徴, ポイント, 3つの, 構成要素]
+    en: [pillars, principles, reasons, list of, key points, features, three things]
+  sources: [williams, minto]
+  image: img/parallel-set.png
+  spec:
+    type: cards
+    title: 公平性は三つの柱で支える
+    cards:
+    - {label: 開かれた参加, text: 小さな事業者も入れる}
+    - {label: 透明な運営, text: ルールの決め方を見せる}
+    - {label: 開かれた標準, text: 特定の製品に縛られない}

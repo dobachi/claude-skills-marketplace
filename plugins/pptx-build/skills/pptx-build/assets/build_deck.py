@@ -1469,8 +1469,10 @@ def _shape_label(sp, theme, text, size, bold=True, color="ink", align=PP_ALIGN.L
 
 
 FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline",
-                "cycle", "matrix", "bands", "stack")
-SCALABLE_KINDS = ("diagram", "staircase", "cycle", "matrix", "bands")
+                "cycle", "matrix", "bands", "stack", "pyramid", "funnel", "venn", "tree", "hub",
+                "swimlane", "before_after")
+SCALABLE_KINDS = ("diagram", "staircase", "cycle", "matrix", "bands", "pyramid", "funnel", "venn",
+                  "tree", "hub", "swimlane", "before_after")
 
 
 def _figure_height(theme, fig, w):
@@ -1491,6 +1493,18 @@ def _figure_height(theme, fig, w):
         parts = _stack_parts(fig)
         return (sum(_figure_height(theme, p, w) + (0.3 if p.get("title") else 0.0) for p in parts)
                 + float(fig.get("gap", 0.18)) * max(0, len(parts) - 1))
+    if kind in ("pyramid", "funnel"):
+        return _tapered_geom(fig, w)["h"]
+    if kind == "venn":
+        return _venn_geom(fig, w)["h"]
+    if kind == "tree":
+        return _tree_geom(fig, w)["h"]
+    if kind == "hub":
+        return _hub_geom(fig, w)["h"]
+    if kind == "swimlane":
+        return _swimlane_geom(fig, w)["h"]
+    if kind == "before_after":
+        return _ba_geom(fig, w)["h"]
     if kind == "stacked_bar":
         return float(fig.get("height", 0.30))
     if kind == "staircase":
@@ -2107,6 +2121,560 @@ def _stack(slide, theme, fig, x, y, w):
             cy += gap
     return cy - y
 
+# ---------------------------------------------------------------------------
+# Figure patterns added in 2.16: pyramid, funnel, venn, tree, hub, swimlane,
+# before_after. Each is opt-in (a spec that does not name them draws as before),
+# every part is a native shape with its words as slide text, and each one
+# exists because a pattern in references/figure-patterns/ needs it.
+
+def _style_shape(sp, kind, theme, fill=None, line=None, alpha=None):
+    """The styling _part gives a rectangle, for any other native shape: the
+    deck's line weight, no shadow, the part name, padded text."""
+    sp.name = "part/%s" % kind
+    for ref in sp._element.findall(".//" + qn("a:effectRef")):
+        ref.set("idx", "0")
+    if fill:
+        sp.fill.solid()
+        sp.fill.fore_color.rgb = RGBColor.from_string(fill)
+        if alpha is not None:
+            clr = sp._element.find(".//" + qn("p:spPr") + "/" + qn("a:solidFill") + "/" + qn("a:srgbClr"))
+            if clr is not None:
+                a = clr.makeelement(qn("a:alpha"), {"val": str(int(alpha * 100000))})
+                clr.append(a)
+    else:
+        sp.fill.background()
+    if line:
+        sp.line.color.rgb = RGBColor.from_string(line)
+        sp.line.width = Pt(theme["shape"]["line"])
+    else:
+        sp.line.fill.background()
+    try:
+        sp.shadow.inherit = False
+    except Exception:
+        pass
+    tf = sp.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.margin_left = tf.margin_right = Inches(0.06)
+    tf.margin_top = tf.margin_bottom = Inches(0.03)
+    return sp
+
+
+def _poly(slide, kind, pts, theme, fill=None, line=None):
+    """A closed polygon part (a pyramid level, a funnel stage): a freeform, so
+    it stays a shape the audience can recolor, with a text frame of its own."""
+    fb = slide.shapes.build_freeform(Inches(pts[0][0]), Inches(pts[0][1]), scale=1.0)
+    fb.add_line_segments([(Inches(px), Inches(py)) for px, py in pts[1:]], close=True)
+    return _style_shape(fb.convert_to_shape(), kind, theme, fill, line)
+
+
+def _tone_colors(theme, tone):
+    c = theme["color"]
+    return {"outline": ("FFFFFF", c["border"], c["ink"]),
+            "light": (c["surface_hi"], None, c["ink"]),
+            "accent": (c["accent"], None, "FFFFFF"),
+            "dark": (c["ink"], None, "FFFFFF"),
+            "none": (None, None, c["ink"])}.get(tone or "light", (c["surface_hi"], None, c["ink"]))
+
+
+def _label_runs(sp, theme, label, text=None, color=None, align=PP_ALIGN.CENTER, size=None):
+    """Bold label and an optional second line, inside any shape."""
+    c = theme["color"]
+    tf = sp.text_frame
+    tf.clear()
+    p = tf.paragraphs[0]
+    p.alignment = align
+    _no_bullet(p)
+    r = p.add_run()
+    r.text = str(label or "")
+    _set_run_font(r, name=theme["font"]["heading"],
+                  size=size or _panel_size(theme, "panel_fig_label", 14), bold=True,
+                  color=color or c["ink"])
+    if text:
+        p2 = tf.add_paragraph()
+        p2.alignment = align
+        _no_bullet(p2)
+        r2 = p2.add_run()
+        r2.text = str(text)
+        _set_run_font(r2, name=theme["font"]["body"], size=_panel_size(theme, "panel_fig_sub", 12),
+                      color=color or c["ink"])
+
+
+def _items_of(fig, key="items"):
+    return [it if isinstance(it, dict) else {"label": str(it)} for it in fig.get(key) or []]
+
+
+def _side_note(slide, theme, it, x, y, w, h):
+    """The explanation beside a level / stage: bold label then text, left-aligned,
+    vertically centered on the level it explains."""
+    tf = add_textbox(slide, x, y, w, h, anchor=MSO_ANCHOR.MIDDLE, name="part/fig-text")
+    c = theme["color"]
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.LEFT
+    _no_bullet(p)
+    first = True
+    if it.get("note_label"):
+        r = p.add_run()
+        r.text = str(it["note_label"])
+        _set_run_font(r, name=theme["font"]["heading"], size=_panel_size(theme, "panel_fig_label", 14),
+                      bold=True, color=c["ink"])
+        first = False
+    if it.get("text"):
+        p2 = p if first else tf.add_paragraph()
+        p2.alignment = PP_ALIGN.LEFT
+        _no_bullet(p2)
+        for seg, emph in _rich_runs(str(it["text"])):
+            r2 = p2.add_run()
+            r2.text = seg
+            _set_run_font(r2, name=theme["font"]["body"], size=_panel_size(theme, "panel_fig_sub", 12),
+                          bold=emph or None, color=c["accent"] if emph else c["ink"])
+
+
+def _tapered_geom(fig, w, per=0.78, floor=2.3):
+    items = _items_of(fig)
+    n = max(1, len(items))
+    h = float(fig.get("height") or max(floor, n * per))
+    side = any(it.get("text") for it in items)
+    sw = float(fig.get("shape_width") or (min(w * 0.46, h * 1.9) if side else min(w, h * 2.0)))
+    return {"n": n, "h": h, "sw": sw, "side": side, "gap": float(fig.get("gap", 0.06))}
+
+
+def _tapered(slide, theme, fig, x, y, w, kind):
+    """Pyramid (narrow at the top, items[0] is the apex) or funnel (wide at the
+    top, each stage narrower). Labels sit inside; an item's `text` goes in a
+    column to the right, on the level it explains, joined by a hairline."""
+    c = theme["color"]
+    items = _items_of(fig)
+    G = _tapered_geom(fig, w)
+    n, h, sw, gap = G["n"], G["h"], G["sw"], G["gap"]
+    lh = (h - (n - 1) * gap) / n
+    cx = x + sw / 2 if G["side"] else x + w / 2
+    neck = float(fig.get("neck", 0.34))
+    for k, it in enumerate(items):
+        t0 = k * (lh + gap)
+        t1 = t0 + lh
+        if kind == "pyramid":
+            w0, w1 = sw * t0 / h, sw * t1 / h
+        else:
+            w0 = sw * (1 - (1 - neck) * k / n)
+            w1 = sw * (1 - (1 - neck) * (k + 1) / n)
+        pts = [(cx - w0 / 2, y + t0), (cx + w0 / 2, y + t0), (cx + w1 / 2, y + t1), (cx - w1 / 2, y + t1)]
+        if w0 < 1e-3:
+            pts = [(cx, y + t0), (cx + w1 / 2, y + t1), (cx - w1 / 2, y + t1)]
+        fill, line, ink = _tone_colors(theme, it.get("tone", fig.get("tone", "light")))
+        sp = _poly(slide, "node", pts, theme, fill, line)
+        lab = it.get("label", "")
+        sub = it.get("value") if kind == "funnel" else None
+        _label_runs(sp, theme, lab, sub, ink)
+        if kind == "pyramid" and k == 0 and n > 1:
+            sp.text_frame.vertical_anchor = MSO_ANCHOR.BOTTOM
+        size = _panel_size(theme, "panel_fig_label", 14)
+        room = (w0 + w1) / 2 if kind == "funnel" or k else w1 * 0.55
+        if _disp_width(lab) * size / 72.0 + 0.12 > room:
+            _warn("%s: level %r is wider than its shape (%.2f in); shorten it or move the "
+                  "words to `text`" % (kind, lab, room))
+        if G["side"] and it.get("text"):
+            tx = x + sw + 0.35
+            _seg(slide, cx + (w0 + w1) / 4 + 0.06, y + (t0 + t1) / 2, tx - 0.08, y + (t0 + t1) / 2,
+                 c["border"], 0.75, descr="leader")
+            _side_note(slide, theme, it, tx, y + t0, x + w - tx, lh)
+    return h
+
+
+def _venn_geom(fig, w):
+    sets = _items_of(fig, "sets")
+    n = 3 if len(sets) >= 3 else 2
+    h = float(fig.get("height", 3.2))
+    if n == 2:
+        D = min(h, w / 1.62)
+        d = D * 0.62
+        return {"n": n, "h": D, "D": D, "d": d}
+    D = min(h / (1 + 0.6 * 0.866), w / 1.62)
+    d = D * 0.6
+    return {"n": n, "h": D + d * 0.866, "D": D, "d": d}
+
+
+def _venn(slide, theme, fig, x, y, w):
+    """Two or three overlapping circles: each set's name in its own part of
+    its circle, the overlap's name in the middle. Circles are translucent so
+    the overlap shows; `tone: accent` marks the set the slide is about."""
+    c = theme["color"]
+    sets = _items_of(fig, "sets")
+    G = _venn_geom(fig, w)
+    D, d, n = G["D"], G["d"], G["n"]
+    cx = x + w / 2
+    if n == 2:
+        centers = [(cx - d / 2, y + D / 2), (cx + d / 2, y + D / 2)]
+        mid = (cx, y + D / 2)
+    else:
+        centers = [(cx - d / 2, y + D / 2), (cx + d / 2, y + D / 2), (cx, y + D / 2 + d * 0.866)]
+        mid = (cx, y + D / 2 + d * 0.866 / 3)
+    for k, (sx, sy) in enumerate(centers):
+        it = sets[k] if k < len(sets) else {"label": ""}
+        accent = it.get("tone") == "accent"
+        sp = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(sx - D / 2), Inches(sy - D / 2),
+                                    Inches(D), Inches(D))
+        _style_shape(sp, "node", theme, fill=c["accent"] if accent else c["surface_hi"],
+                     line=c["accent"] if accent else c["border"], alpha=0.18 if accent else 0.55)
+        sp.text_frame.text = ""
+    for k, (sx, sy) in enumerate(centers):
+        it = sets[k] if k < len(sets) else {"label": ""}
+        ox, oy = sx - mid[0], sy - mid[1]
+        on = math.hypot(ox, oy) or 1.0
+        lx, ly = sx + ox / on * D * 0.2, sy + oy / on * D * 0.2
+        bw = D * (0.55 if n == 2 else 0.6)
+        tf = add_textbox(slide, lx - bw / 2, ly - 0.4, bw, 0.8, anchor=MSO_ANCHOR.MIDDLE,
+                         name="part/fig-text")
+        p = tf.paragraphs[0]
+        p.alignment = PP_ALIGN.CENTER
+        _no_bullet(p)
+        r = p.add_run()
+        r.text = str(it.get("label", ""))
+        _set_run_font(r, name=theme["font"]["heading"], size=_panel_size(theme, "panel_fig_label", 14),
+                      bold=True, color=c["accent"] if it.get("tone") == "accent" else c["ink"])
+        if it.get("text"):
+            p2 = tf.add_paragraph()
+            p2.alignment = PP_ALIGN.CENTER
+            _no_bullet(p2)
+            r2 = p2.add_run()
+            r2.text = str(it["text"])
+            _set_run_font(r2, name=theme["font"]["body"], size=_panel_size(theme, "panel_fig_sub", 12),
+                          color=c["ink"])
+    ov = fig.get("overlap")
+    if ov:
+        ov = ov if isinstance(ov, dict) else {"label": str(ov)}
+        ow = max(1.3, (D - d) * 1.1)
+        tf = add_textbox(slide, mid[0] - ow / 2, mid[1] - 0.3, ow, 0.6, anchor=MSO_ANCHOR.MIDDLE,
+                         name="part/fig-text")
+        p = tf.paragraphs[0]
+        p.alignment = PP_ALIGN.CENTER
+        _no_bullet(p)
+        r = p.add_run()
+        r.text = str(ov.get("label", ""))
+        _set_run_font(r, name=theme["font"]["heading"], size=_panel_size(theme, "panel_fig_label", 14),
+                      bold=True, color=c["accent"])
+        size = _panel_size(theme, "panel_fig_label", 14)
+        if _disp_width(ov.get("label", "")) * size / 72.0 > ow + 0.05:
+            _warn("venn: overlap label %r is wider than the overlap (%.2f in); shorten it"
+                  % (ov.get("label"), ow))
+    return G["h"]
+
+
+def _tree_layout(fig):
+    root = fig.get("root") or {}
+    nodes = []          # dicts: node, depth, parent, b (breadth center in leaf units)
+
+    def walk(nd, depth, parent):
+        nd = nd if isinstance(nd, dict) else {"label": str(nd)}
+        idx = len(nodes)
+        nodes.append({"node": nd, "depth": depth, "parent": parent, "kids": []})
+        if parent is not None:
+            nodes[parent]["kids"].append(idx)
+        for ch in nd.get("children") or []:
+            walk(ch, depth + 1, idx)
+        return idx
+
+    if root:
+        walk(root, 0, None)
+    leaf = [0]
+
+    def place(i):
+        e = nodes[i]
+        if not e["kids"]:
+            e["b"] = float(leaf[0])
+            leaf[0] += 1
+        else:
+            for k in e["kids"]:
+                place(k)
+            e["b"] = (nodes[e["kids"][0]]["b"] + nodes[e["kids"][-1]]["b"]) / 2
+    if nodes:
+        place(0)
+    levels = 1 + max([e["depth"] for e in nodes] or [0])
+    return nodes, max(1, leaf[0]), levels
+
+
+def _tree_geom(fig, w):
+    nodes, nleaf, levels = _tree_layout(fig)
+    down = fig.get("direction", "right") == "down"
+    gd = float(fig.get("gap_depth", 0.5 if not down else 0.42))
+    gb = float(fig.get("gap", 0.14 if not down else 0.16))
+    nh = float(fig.get("node_height", 0.5))
+    if down:
+        h = float(fig.get("height") or levels * nh + (levels - 1) * gd)
+        dlen, blen = h, w
+    else:
+        h = float(fig.get("height") or nleaf * nh + (nleaf - 1) * gb)
+        dlen, blen = w, h
+    widths = fig.get("level_widths")
+    if widths and not down and len(widths) == levels:
+        unit = (dlen - (levels - 1) * gd) / max(1e-6, sum(float(v) for v in widths))
+        dext = [float(v) * unit for v in widths]
+    else:
+        dext = [(dlen - (levels - 1) * gd) / levels] * levels
+    sb = (blen - (nleaf - 1) * gb) / nleaf
+    return {"nodes": nodes, "nleaf": nleaf, "levels": levels, "h": h, "gd": gd, "gb": gb,
+            "dext": dext, "sb": sb, "down": down}
+
+
+def _tree(slide, theme, fig, x, y, w):
+    """A hierarchy drawn as boxes joined by square brackets: an issue tree or a
+    MECE breakdown growing to the right, an organization growing down, or causes
+    converging on an effect (`direction: left`, the root on the right).
+    `arrows: none | out | in` (default none; `in` for direction left)."""
+    c = theme["color"]
+    G = _tree_geom(fig, w)
+    direction = fig.get("direction", "right")
+    arrows = fig.get("arrows", "in" if direction == "left" else "none")
+    nodes, gd, gb, sb, dext = G["nodes"], G["gd"], G["gb"], G["sb"], G["dext"]
+    dstart = [sum(dext[:l]) + l * gd for l in range(G["levels"])]
+
+    def rect(e):
+        d0, de = dstart[e["depth"]], dext[e["depth"]]
+        b0 = e["b"] * (sb + gb)
+        if G["down"]:
+            return (x + b0, y + d0, sb, de)
+        if direction == "left":
+            return (x + w - d0 - de, y + b0, de, sb)
+        return (x + d0, y + b0, de, sb)
+
+    def pt(d, b):
+        if G["down"]:
+            return (x + b, y + d)
+        if direction == "left":
+            return (x + w - d, y + b)
+        return (x + d, y + b)
+
+    base = {"align": fig.get("align"), "text_anchor": fig.get("text_anchor", "middle"),
+            "label_color": fig.get("label_color")}
+    for k, e in enumerate(nodes):
+        nd = dict(e["node"])
+        nd.pop("children", None)
+        if "tone" not in nd:
+            nd["tone"] = fig.get("root_tone", "dark") if e["depth"] == 0 else \
+                fig.get("leaf_tone", "outline") if not e["kids"] else fig.get("branch_tone", "light")
+        rx, ry, rw, rh = rect(e)
+        _fig_node(slide, theme, base, nd, nd.get("id", k), rx, ry, rw, rh)
+    color = c["accent"] if fig.get("edge_tone") == "accent" else c["muted"]
+    for e in nodes:
+        if not e["kids"]:
+            continue
+        d1 = dstart[e["depth"]] + dext[e["depth"]]
+        dc = dstart[e["depth"] + 1]
+        dm = (d1 + dc) / 2
+        bp = e["b"] * (sb + gb) + sb / 2
+        bs = [nodes[k]["b"] * (sb + gb) + sb / 2 for k in e["kids"]]
+        if len(bs) == 1 and abs(bs[0] - bp) < 1e-6:
+            a, b = (pt(d1, bp), pt(dc, bp))
+            if arrows == "in":
+                a, b = b, a
+            _seg(slide, a[0], a[1], b[0], b[1], color, 1.25, head=arrows in ("in", "out"))
+            continue
+        # trunk from the parent to the bracket, the bracket, a branch to each child
+        a, b = pt(d1, bp), pt(dm, bp)
+        if arrows == "in":
+            _seg(slide, b[0], b[1], a[0], a[1], color, 1.25, head=True)
+        else:
+            _seg(slide, a[0], a[1], b[0], b[1], color, 1.25)
+        lo, hi = pt(dm, min(bs)), pt(dm, max(bs))
+        _seg(slide, lo[0], lo[1], hi[0], hi[1], color, 1.25)
+        for bc in bs:
+            a, b = pt(dm, bc), pt(dc, bc)
+            _seg(slide, a[0], a[1], b[0], b[1], color, 1.25, head=arrows == "out")
+    return G["h"]
+
+
+def _hub_geom(fig, w):
+    h = float(fig.get("height", 3.2))
+    rw = min(w, float(fig.get("ring_width") or max(4.8, h * 2.5)))
+    nw = float(fig.get("node_width") or min(2.2, rw * 0.26))
+    nh = float(fig.get("node_height") or min(0.6, h * 0.2))
+    return {"h": h, "rw": rw, "nw": nw, "nh": nh}
+
+
+def _hub(slide, theme, fig, x, y, w):
+    """One center and the parts around it, each joined only to the center: a
+    platform and its participants, a policy and the bodies it binds.
+    `arrows: none | out | in | both` (default none)."""
+    c = theme["color"]
+    G = _hub_geom(fig, w)
+    items = _items_of(fig)
+    n = max(1, len(items))
+    nw, nh, h = G["nw"], G["nh"], G["h"]
+    cx, cy = x + w / 2, y + h / 2
+    rx, ry = (G["rw"] - nw) / 2, (h - nh) / 2
+    start = math.radians(float(fig.get("start", -90)))
+    ctr = fig.get("center") or {}
+    ctr = dict(ctr) if isinstance(ctr, dict) else {"label": str(ctr)}
+    ctr.setdefault("tone", "accent")
+    cw = float(fig.get("center_width") or nw * 1.05)
+    ch = float(fig.get("center_height") or nh * 1.1)
+    ctr_round = ctr.get("shape") in ("ellipse", "pill")
+    _fig_node(slide, theme, {"align": "center"}, ctr, "center", cx - cw / 2, cy - ch / 2, cw, ch)
+    arrows = fig.get("arrows", "none")
+    color = c["accent"] if fig.get("edge_tone") == "accent" else c["muted"]
+    for k, it in enumerate(items):
+        th = start + 2 * math.pi * k / n
+        bx, by = cx + rx * math.cos(th) - nw / 2, cy + ry * math.sin(th) - nh / 2
+        node = dict(it)
+        node.setdefault("tone", fig.get("node_tone", "outline"))
+        node.setdefault("align", "center")
+        _fig_node(slide, theme, fig, node, k, bx, by, nw, nh)
+        sx, sy = bx + nw / 2, by + nh / 2
+        dx, dy = sx - cx, sy - cy
+        x1, y1 = _ring_exit(cx, cy, cw, ch, dx, dy, ctr_round)
+        x2, y2 = _ring_exit(sx, sy, nw, nh, -dx, -dy, node.get("shape") in ("ellipse", "pill"))
+        d = math.hypot(x2 - x1, y2 - y1) or 1.0
+        g = min(0.05, d / 4)
+        x1, y1, x2, y2 = (x1 + (x2 - x1) * g / d, y1 + (y2 - y1) * g / d,
+                          x2 - (x2 - x1) * g / d, y2 - (y2 - y1) * g / d)
+        if arrows == "in":
+            x1, y1, x2, y2 = x2, y2, x1, y1
+        _seg(slide, x1, y1, x2, y2, color, 1.25, dash=bool(it.get("edge_dashed")),
+             head=arrows in ("in", "out", "both"))
+        if arrows == "both":
+            _seg(slide, x2, y2, x1, y1, color, 1.25, head=True)
+        if it.get("edge"):
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            size = _panel_size(theme, "panel_note", 12)
+            lw = max(0.8, _disp_width(it["edge"]) * size / 72.0 + 0.2)
+            al = PP_ALIGN.LEFT if dx > 0.2 else PP_ALIGN.RIGHT if dx < -0.2 else PP_ALIGN.CENTER
+            lx = mx + 0.08 if al == PP_ALIGN.LEFT else mx - lw - 0.08 if al == PP_ALIGN.RIGHT \
+                else mx + 0.08
+            _edge_label(slide, theme, it["edge"], lx, my - 0.12, lw,
+                        PP_ALIGN.LEFT if al == PP_ALIGN.CENTER else al)
+    return h
+
+
+def _swimlane_parts(fig):
+    lanes = _items_of(fig, "lanes")
+    index = {}
+    for k, ln in enumerate(lanes):
+        index[str(ln.get("id", ln.get("label", k)))] = k
+        index[str(k)] = k
+    return lanes, index
+
+
+def _swimlane_geom(fig, w):
+    lanes, _ = _swimlane_parts(fig)
+    nl = max(1, len(lanes))
+    lane_h = float(fig.get("lane_height", 0.86))
+    gap = float(fig.get("lane_gap", 0.06))
+    h = float(fig.get("height") or nl * lane_h + (nl - 1) * gap)
+    lane_h = (h - (nl - 1) * gap) / nl
+    return {"h": h, "lane_h": lane_h, "gap": gap, "n": nl,
+            "lw": float(fig.get("label_width", 1.8))}
+
+
+def _swimlane(slide, theme, fig, x, y, w):
+    """Who does what, in what order: one horizontal lane per actor, named at its
+    left, the steps placed in their actor's lane by `col`, arrows between steps.
+    An arrow that changes lanes turns once (across, then into the next lane)."""
+    c = theme["color"]
+    G = _swimlane_geom(fig, w)
+    lanes, index = _swimlane_parts(fig)
+    pad = 0.1
+    lw = G["lw"]
+    for k, ln in enumerate(lanes):
+        ly = y + k * (G["lane_h"] + G["gap"])
+        _part(slide, "group", x, ly, w, G["lane_h"], theme,
+              fill=c["surface"] if fig.get("fill", True) else None,
+              line=None if fig.get("fill", True) else c["border"])
+        node = {"label": ln.get("label", ""), "text": ln.get("text"),
+                "tone": ln.get("tone", fig.get("label_tone", "none"))}
+        _fig_node(slide, theme, {"align": "left", "text_anchor": "middle"}, node, "lane%d" % k,
+                  x + 0.04, ly + 0.04, lw - 0.08, G["lane_h"] - 0.08, kind="node")
+    nodes = []
+    for k, st in enumerate(_items_of(fig, "steps")):
+        lane = index.get(str(st.get("lane", 0)))
+        if lane is None:
+            _warn("swimlane: step %r names unknown lane %r" % (st.get("id", k), st.get("lane")))
+            continue
+        nd = dict(st)
+        nd["row"] = lane
+        nd.setdefault("col", k)
+        nd.setdefault("tone", "outline")
+        nodes.append(nd)
+    cols = int(fig.get("cols") or max([int(n.get("col", 0)) + 1 for n in nodes] or [1]))
+    edges = []
+    for e in fig.get("edges") or []:
+        e = dict(e)
+        a = next((n for n in nodes if str(n.get("id")) == str(e.get("from"))), None)
+        b = next((n for n in nodes if str(n.get("id")) == str(e.get("to"))), None)
+        if a and b and "route" not in e and a["row"] != b["row"] and a.get("col") != b.get("col"):
+            e["route"] = "hv"
+        edges.append(e)
+    inner = {"kind": "diagram", "nodes": nodes, "edges": edges, "cols": cols, "rows": G["n"],
+             "gap_x": float(fig.get("gap_x", 0.42)), "gap_y": G["gap"] + 2 * pad,
+             "height": G["h"] - 2 * pad, "align": fig.get("align"),
+             "text_anchor": fig.get("text_anchor", "middle"),
+             "edge_label_pos": fig.get("edge_label_pos", "line")}
+    _diagram(slide, theme, inner, x + lw + 0.1, y + pad, w - lw - 0.1 - pad)
+    return G["h"]
+
+
+def _ba_geom(fig, w):
+    before, after = fig.get("before") or {}, fig.get("after") or {}
+    nb = len(before.get("items") or [])
+    na = len(after.get("items") or [])
+    rows = max(1, nb, na)
+    hh = float(fig.get("header_height", 0.42))
+    rh = float(fig.get("row_height", 0.56))
+    gy = float(fig.get("gap_y", 0.1))
+    h = fig.get("height")
+    if h:
+        rh = (float(h) - hh - gy - (rows - 1) * gy) / rows
+    return {"rows": rows, "hh": hh, "rh": rh, "gy": gy,
+            "h": hh + gy + rows * rh + (rows - 1) * gy,
+            "aw": float(fig.get("arrow_width", 1.3 if fig.get("change") else 0.8))}
+
+
+def _before_after(slide, theme, fig, x, y, w):
+    """Two columns, the state before and the state after, with one arrow between
+    (or `pairs: true`: an arrow per row, item k becomes item k). The before side
+    is quiet (light, muted heading); the after side carries the accent.
+    `arrow: false` turns it into a plain A-versus-B comparison."""
+    c = theme["color"]
+    G = _ba_geom(fig, w)
+    cw = (w - G["aw"]) / 2
+    sides = (("before", fig.get("before") or {}, x, "light", "muted"),
+             ("after", fig.get("after") or {}, x + cw + G["aw"], "outline", "accent"))
+    for name, side, sx, tone, head in sides:
+        tone = side.get("tone", tone)
+        head = side.get("label_color", head) if fig.get("arrow", True) else side.get("label_color", "ink")
+        tf = add_textbox(slide, sx, y, cw, G["hh"], anchor=MSO_ANCHOR.BOTTOM, name="part/fig-text")
+        set_simple(tf, str(side.get("label", name.capitalize())), theme, font="heading",
+                   size=_panel_size(theme, "panel_fig_label", 14) + 2, bold=True,
+                   color=head, align=PP_ALIGN.LEFT)
+        _seg(slide, sx, y + G["hh"] + G["gy"] / 2, sx + cw, y + G["hh"] + G["gy"] / 2,
+             c["accent"] if head == "accent" else c["border"], 0.75, descr="rule")
+        for k, it in enumerate(_items_of(side)):
+            ry = y + G["hh"] + G["gy"] + k * (G["rh"] + G["gy"])
+            node = dict(it)
+            node.setdefault("tone", tone)
+            node.setdefault("align", "left")
+            _fig_node(slide, theme, {"text_anchor": "middle"}, node, "%s%d" % (name, k),
+                      sx, ry, cw, G["rh"])
+    if fig.get("arrow", True):
+        ax1, ax2 = x + cw + 0.12, x + cw + G["aw"] - 0.12
+        color = c["accent"]
+        if fig.get("pairs"):
+            for k in range(G["rows"]):
+                ry = y + G["hh"] + G["gy"] + k * (G["rh"] + G["gy"]) + G["rh"] / 2
+                _seg(slide, ax1, ry, ax2, ry, color, 1.25, head=True)
+        else:
+            my = y + G["hh"] + G["gy"] + (G["h"] - G["hh"] - G["gy"]) / 2
+            arr = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, Inches(ax1), Inches(my - 0.22),
+                                         Inches(ax2 - ax1), Inches(0.44))
+            _style_shape(arr, "arrow", theme, fill=c["accent"])
+            if fig.get("change"):
+                tf = add_textbox(slide, ax1 - 0.06, my + 0.28, ax2 - ax1 + 0.12, 0.5,
+                                 name="part/fig-text")
+                set_simple(tf, str(fig["change"]), theme, font="body",
+                           size=_panel_size(theme, "panel_note", 12), color="muted",
+                           align=PP_ALIGN.CENTER)
+    return G["h"]
+
+
 def _tiles(slide, theme, fig, x, y, w):
     """KPI tiles in a row: the number large, its label under it, an optional
     delta line. 2-6 tiles; `tone: accent` fills one as the headline figure."""
@@ -2369,6 +2937,18 @@ def _panel_figure(slide, theme, fig, x, y, w):
         return _bands(slide, theme, fig, x, y, w)
     if kind == "stack":
         return _stack(slide, theme, fig, x, y, w)
+    if kind in ("pyramid", "funnel"):
+        return _tapered(slide, theme, fig, x, y, w, kind)
+    if kind == "venn":
+        return _venn(slide, theme, fig, x, y, w)
+    if kind == "tree":
+        return _tree(slide, theme, fig, x, y, w)
+    if kind == "hub":
+        return _hub(slide, theme, fig, x, y, w)
+    if kind == "swimlane":
+        return _swimlane(slide, theme, fig, x, y, w)
+    if kind == "before_after":
+        return _before_after(slide, theme, fig, x, y, w)
     if kind == "tiles":
         return _tiles(slide, theme, fig, x, y, w)
     if kind == "timeline":
