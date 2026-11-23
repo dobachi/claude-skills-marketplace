@@ -301,7 +301,11 @@ figure:
 - `nodes[].tone`: `outline` (default: white, hairline border), `light` (surface fill), `accent`
   (accent fill, white text), `dark` (ink fill, white text). `text` adds a second, smaller line
   and left-aligns the box; a label alone is centered. `text_anchor: middle` on the figure keeps
-  the text vertically centered even when boxes carry a `text` line. Arrows between side-by-side
+  the text vertically centered even when boxes carry a `text` line.
+- `nodes[].shape`: `box` (default), `ellipse` or `pill`. Give a different outline to parts
+  that are a different kind of thing from their neighbours, e.g. the steps of a cycle as
+  ellipses beside the actors as boxes. Rounded parts center their label and text. Use it to
+  carry meaning, never for variety. Arrows between side-by-side
   boxes run level, at the middle of the height the two boxes share.
 - `edges` leave by the side that faces the target (right/left for mostly-horizontal, bottom/top
   for mostly-vertical) and carry an arrowhead unless `head: false`. `dashed: true`, `tone:

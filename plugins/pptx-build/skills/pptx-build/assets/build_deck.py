@@ -1069,11 +1069,18 @@ def _region(slide, theme, g, i, drop=True):
     return r
 
 
-def _part(slide, kind, x, y, w, h, theme, fill=None, line=None):
+def _part(slide, kind, x, y, w, h, theme, fill=None, line=None, shape=None):
     """One part of the vocabulary: a rectangle with the deck's single radius, its
-    single line weight, no shadow, and a name that records what it is."""
+    single line weight, no shadow, and a name that records what it is.
+    `shape` changes the outline for a part whose kind differs from its neighbours:
+    "ellipse" (a step in a cycle, an action) or "pill" (fully rounded ends)."""
     radius = theme["shape"]["radius"]
-    shape_kind = MSO_SHAPE.ROUNDED_RECTANGLE if radius > 0 else MSO_SHAPE.RECTANGLE
+    if shape == "ellipse":
+        shape_kind, radius = MSO_SHAPE.OVAL, 0
+    elif shape == "pill":
+        shape_kind, radius = MSO_SHAPE.ROUNDED_RECTANGLE, min(w, h) / 2.0
+    else:
+        shape_kind = MSO_SHAPE.ROUNDED_RECTANGLE if radius > 0 else MSO_SHAPE.RECTANGLE
     sp = slide.shapes.add_shape(shape_kind, Inches(x), Inches(y), Inches(w), Inches(h))
     sp.name = "part/%s" % kind
     # The theme style's effect reference adds a soft shadow in some renderers;
@@ -1606,16 +1613,22 @@ def _diagram(slide, theme, fig, x, y, w):
         if fig.get("label_color") and color == "ink":
             color = fig["label_color"]        # e.g. "accent": the key phrase in the deck's hue
         _node_fit(theme, n, k, nw, nh)
-        sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line)
+        shape = n.get("shape")
+        if shape not in (None, "box", "ellipse", "pill"):
+            _warn("diagram: node %r has unknown shape %r (box, ellipse, pill)" % (n.get("id", k), shape))
+            shape = None
+        round_ = shape in ("ellipse", "pill")    # a rounded part reads best centered
+        sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line,
+                   shape=None if shape == "box" else shape)
         sub = n.get("text")
         _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 14),
-                     True, color, PP_ALIGN.LEFT if sub else PP_ALIGN.CENTER,
-                     MSO_ANCHOR.MIDDLE if (not sub or fig.get("text_anchor") == "middle")
+                     True, color, PP_ALIGN.LEFT if (sub and not round_) else PP_ALIGN.CENTER,
+                     MSO_ANCHOR.MIDDLE if (not sub or round_ or fig.get("text_anchor") == "middle")
                      else MSO_ANCHOR.TOP)
         if sub:
             p2 = sp.text_frame.add_paragraph()
             _no_bullet(p2)
-            p2.alignment = PP_ALIGN.LEFT
+            p2.alignment = PP_ALIGN.CENTER if round_ else PP_ALIGN.LEFT
             base = color if color == "FFFFFF" else c["ink"]
             # `**…**` marks the key phrase: bold, in the accent (bold white on a filled box)
             for seg, emph in _rich_runs(str(sub)):
