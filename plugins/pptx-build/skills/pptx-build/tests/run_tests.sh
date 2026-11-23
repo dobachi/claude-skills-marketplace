@@ -243,6 +243,39 @@ CASES=(
   "2|bash $A/preview_web.sh $f/does-not-exist.pptx -o $TMP/ph"
   "2|bash $A/preview_web.sh $f/clean-deck.pptx -q 0 -o $TMP/ph"
 
+  # ---- レビュー欄（--comments）: 既定では何も変わらず、付けると枚ごとの欄と保存の両経路が入る ----
+  # 付けないときは 2.17.0 の出力とバイト単位で同じ (0)。付けると欄・絞り込み・書き出し・db と
+  # localStorage の両経路・入力中のキー無視 (0)。spec の id を文書の id に使い、使えない id と
+  # 重複は pN に落とす (0)。付けたページを 2.17.0 と比べると違う、つまり比較が効いている (1)。
+  "0|python3 web_preview_check.py --spec $f/clean-deck.yaml --golden $f/web-preview-2.17.0.html"
+  "1|python3 web_preview_check.py --spec $f/clean-deck.yaml --comments --golden $f/web-preview-2.17.0.html"
+  "0|python3 web_preview_check.py --spec $f/review-deck.yaml --comments --expect-keys cover,intro,p3,p4,p5,p6"
+  "0|python3 web_preview_check.py --pptx $f/clean-deck.pptx --comments --expect-sections 現状"
+  "has:<button type=\"button\" id=\"rvx\">Export</button>|mkdir -p $TMP/en2/img; for i in 1 2 3 4; do cp $f/web-slide.jpg $TMP/en2/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/en2 --pptx $f/messy-deck.pptx --lang en --comments >/dev/null; cat $TMP/en2/index.html"
+  "has:data-s=\"差し戻し\"|mkdir -p $TMP/lb/img; for i in 1 2 3 4; do cp $f/web-slide.jpg $TMP/lb/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/lb --pptx $f/messy-deck.pptx --comments --review-labels '了承,差し戻し' >/dev/null; cat $TMP/lb/index.html"
+  "2|python3 $A/preview_web.py $TMP/lb --pptx $f/messy-deck.pptx --comments --review-labels 'a:b'"
+  "2|python3 $A/preview_web.py $TMP/lb --pptx $f/messy-deck.pptx --review-labels 'OK,NG'"
+
+  # ---- 集まったコメントを戻す（preview_comments.py）: 書き出しの Markdown と db の JSON ----
+  # spec の id で今のページに付け直す (0、moved を出す)。spec に無い id は指摘して残す (1)。
+  # シートには箇所ごとに入り、OK だけの枚は入れず、二度流しても増えない。入力なし (2)。
+  "0|python3 $A/preview_comments.py $f/review-export.md --spec $f/review-deck.yaml"
+  "has:moved: [intro] p1 -> p2|python3 $A/preview_comments.py $f/review-export.md --spec $f/review-deck.yaml"
+  "has:p5 質問: この 7 割は件数か金額か|python3 $A/preview_comments.py $f/review-export.md"
+  "has:p3 数字の出典を入れる|python3 $A/preview_comments.py $f/review-db"
+  "lacks:p4|python3 $A/preview_comments.py $f/review-db"
+  "1|python3 $A/preview_comments.py $f/review-db --spec $f/review-deck.yaml"
+  "has:[gone] (p9) is not in|python3 $A/preview_comments.py $f/review-db --spec $f/review-deck.yaml"
+  "has:\"slide\": \"intro\"|python3 $A/preview_comments.py $f/review-db/reviews/intro.json --json"
+  "has:- [ ] 要修正: 矢印の向きが逆|cp $f/review-sheet.md $TMP/sh.md; python3 $A/preview_comments.py $f/review-export.md --spec $f/review-deck.yaml --sheet $TMP/sh.md; cat $TMP/sh.md"
+  "has:2 comment(s) added|cp $f/review-sheet.md $TMP/sh2.md; python3 $A/preview_comments.py $f/review-export.md --spec $f/review-deck.yaml --sheet $TMP/sh2.md"
+  "has:0 comment(s) added|python3 $A/preview_comments.py $f/review-export.md --spec $f/review-deck.yaml --sheet $TMP/sh2.md"
+  "lacks:- [ ] OK|cat $TMP/sh2.md"
+  "1|cp $f/review-sheet.md $TMP/sh3.md; python3 $A/preview_comments.py $f/review-db --sheet $TMP/sh3.md"
+  "has:no location in the sheet for: p9 [gone]|cp $f/review-sheet.md $TMP/sh4.md; python3 $A/preview_comments.py $f/review-db --sheet $TMP/sh4.md"
+  "2|python3 $A/preview_comments.py $f/does-not-exist.md"
+  "2|python3 $A/preview_comments.py $f/review-export.md --sheet $f/clean-deck.yaml"
+
   # ---- 前提なし ----
   "2|python3 $A/extract_deck.py $f/not-a-deck.txt -o $TMP/x.yaml"
   "2|python3 $A/extract_deck.py $f/does-not-exist.pptx -o $TMP/x.yaml"
@@ -255,9 +288,23 @@ if command -v soffice >/dev/null 2>&1 && command -v pdftoppm >/dev/null 2>&1; th
     "has:8 slide(s), 1 section(s)|bash $A/preview_web.sh $f/clean-deck.pptx -s $f/clean-deck.yaml -o $TMP/web -r 20"
     "0|test \$(ls $TMP/web/img/s-*.jpg | wc -l) -eq 8"
     "has:8 slide(s)|bash $A/preview_web.sh $f/clean-deck.pptx -o $TMP/web -r 20"
+    "has:8 slide(s), 1 section(s), review bar on|bash $A/preview_web.sh $f/clean-deck.pptx -s $f/clean-deck.yaml -o $TMP/webc -r 20 --comments --review-labels 'OK,要修正'"
   )
 else
   echo "SKIP  LibreOffice / pdftoppm が無いため、preview_web.sh の一続きの変換は見ていない"
+fi
+
+# レビュー欄をヘッドレスの Chrome で動かす（puppeteer があるときだけ）。ローカルでは書いて再読み込み
+# しても残る・入力中の j/k でページが動かない・絞り込み・書き出しの Markdown、Artifact の db（偽の
+# window.claude）では reviews/<spec の id> に書き、既存の文書が欄に出る。
+if command -v node >/dev/null 2>&1; then
+  mkdir -p "$TMP/br/img"; for i in 1 2 3 4 5 6; do cp "$f/web-slide.jpg" "$TMP/br/img/s-00$i.jpg"; done
+  python3 "$A/preview_web.py" "$TMP/br" --spec "$f/review-deck.yaml" --rev test --comments >/dev/null
+  timeout 180 node web_preview_browser.cjs "$TMP/br" >"$TMP/brout" 2>&1; code=$?
+  if [[ $code -eq 2 ]]; then echo "SKIP  ブラウザでの確認（$(head -1 "$TMP/brout")）"
+  else CASES+=("has:OK browser:|cat $TMP/brout"); fi
+else
+  echo "SKIP  node が無いため、レビュー欄をブラウザで動かす確認はしていない"
 fi
 
 pass=0; fail=0

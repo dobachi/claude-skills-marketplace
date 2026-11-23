@@ -7,11 +7,11 @@ description: >-
   picked from the content's shape; (2) template-fill — write into a corporate .pptx/.potx's own
   layouts and placeholders; (3) refactor — `extract_deck.py` reads an EXISTING deck back into a
   spec. Figures are native and editable, never a pasted PNG, from 29 figure patterns
-  (cycle, tree, venn, swimlane …) that `find_pattern.py` searches by intent. Five one-pager
+  (cycle, tree, venn …) that `find_pattern.py` searches by intent. Five one-pager
   shapes (brief, dashboard, timeline, decision, event report). A `lead:` line makes claim,
   support and evidence three visible levels; the validator flags buried claims,
   filler slides and AI tells and exports text for ai-tell-reducer. `preview_web.sh`
-  makes a browser preview. Use for
+  makes a browser preview you can comment on. Use for
   "simple white deck", "テンプレに沿ったパワポ", "この資料を作り直して", "1 枚にまとめて",
   "図の文字が編集できない", "どの図にすればいい", "AIっぽい資料を直して", "ブラウザで見たい".
 ---
@@ -265,6 +265,17 @@ Two ways to hand it over, in `references/web-preview.md`:
 Reviewers write comments as "p37 …"; the page-number box and `#pN` links are what make those
 numbers cheap to follow, so keep the page numbers in step with the deck.
 
+**Comments on the page (`--comments`, opt-in).** Each slide gets status buttons (`OK / 要修正 /
+質問`, or `--review-labels`) and a comment box; the header a filter, a counter and Export.
+Published as an Artifact with `capabilities: {db: {}, downloads: {}}`, comments save live to the
+artifact's db (collection `reviews`, one document per slide keyed by the spec's slide `id`, else
+`pN`) and everyone the artifact is shared with sees them; anywhere else they stay in that
+browser's localStorage, and the page says so. Export copies or downloads them as
+`p12 [slide-id] 要修正: …` lines from any environment. Read them back with ArtifactData `list`
+(collection `reviews`, `out_dir`) and `assets/preview_comments.py`, which re-maps slide ids to the
+current pages (`--spec`) and writes them into a review-roundtrip sheet (`--sheet`). Without the
+flag the page is byte-for-byte what it was. Details in `references/web-preview.md`.
+
 ## One-pagers: five shapes, all native
 
 A one-pager carries the whole argument on one slide, and its shape follows from what the reader
@@ -438,6 +449,7 @@ Apply the **information test** before adding any shape: if deleting it changes n
 - `assets/validate_deck.py` — spec linter (structure, logic, table/chart sanity) and narrative-spine printer; run before rendering
 - `assets/audit_pptx.py` — artifact auditor: fails a deck whose content is not in layout placeholders; run after rendering
 - `assets/extract_deck.py` — reads an existing `.pptx` back into a spec (+ its images) and reports what it could not represent; the entry point for refactoring
-- `references/web-preview.md` — the browser preview (PC or phone): what it shows, publishing it as an Artifact (which images to send after an insertion), serving it on a local URL, and stopping the server
-- `assets/preview_web.sh` / `assets/preview_web.py` — `.pptx` → browser preview in one command; the `.py` alone writes `index.html` for JPEGs already rendered
+- `references/web-preview.md` — the browser preview (PC or phone): what it shows, publishing it as an Artifact (which images to send after an insertion), serving it on a local URL, stopping the server, and `--comments` (where comments are saved, publishing with `db`, reading them back)
+- `assets/preview_web.sh` / `assets/preview_web.py` — `.pptx` → browser preview in one command; the `.py` alone writes `index.html` for JPEGs already rendered; `--comments` adds the review bar (`assets/preview_review.py`)
+- `assets/preview_comments.py` — exported comments or the Artifact's `reviews` collection → `pN [id] status: comment` lines, or into a review-roundtrip sheet
 - `tests/run_tests.sh` — three-directional check of the extractor and the round-trip comparator (clean → 0, defect-injected → 1, not a deck → 2)

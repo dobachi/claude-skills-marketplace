@@ -55,7 +55,10 @@ reads on a PC (centred column, j/k keys) and on a phone. Hand over the folder `O
   Stopping rules below apply unchanged: bind the one address the user needs (default `127.0.0.1`),
   fetch `index.html` and an image before handing over, stop it by PID.
 
-Link straight to a page with `#pN` (`…/index.html#p37`); reviewers answer as "p37 …". Details:
+Link straight to a page with `#pN` (`…/index.html#p37`); reviewers answer as "p37 …". When the
+reviewer should comment on the page itself, add `--comments` and publish with
+`capabilities: {db: {}, downloads: {}}`: the comments are then shared with everyone who can open
+the artifact (say so). On a local URL they stay in the reviewer's browser until Export. Details:
 pptx-build's `references/web-preview.md`.
 
 If two answers are plausible and they differ in cost (a rebuild of several minutes versus a link

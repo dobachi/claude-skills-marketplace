@@ -12,9 +12,14 @@ Titles, page labels and sections come from the spec when given (`slides[].title`
 `type: section`, `type: title`), otherwise from the .pptx itself (title placeholder,
 section-like layout names). The deck is never hard-coded.
 
+With --comments each slide also gets a review bar (status buttons and a comment box), the
+header a filter, a counter and an Export button; comments go to the Claude Artifact `db`
+(collection "reviews") when the page is published with it, else to this browser's
+localStorage. See preview_review.py and references/web-preview.md.
+
 Usage:
   preview_web.py OUT_DIR (--spec deck.yaml | --pptx deck.pptx) [--title T] [--subtitle S]
-                   [--lang auto|ja|en] [--rev TEXT]
+                   [--lang auto|ja|en] [--rev TEXT] [--comments [--review-labels "OK,要修正,質問"]]
 
 Exit: 0 written / 1 image count does not match the slide count / 2 usage or input error.
 """
@@ -69,7 +74,7 @@ def from_spec(path):
         if s.get("hidden"):
             continue
         kind = s.get("type", "")
-        slides.append({"title": one_line(s.get("title")),
+        slides.append({"title": one_line(s.get("title")), "id": one_line(s.get("id")),
                        "section": kind == "section", "cover": kind == "title"})
         if kind == "title" and not title:
             title = one_line(s.get("title"))
@@ -215,7 +220,13 @@ def main():
     ap.add_argument("--lang", choices=("auto", "ja", "en"), default="auto",
                     help="UI words (default: ja if the titles contain Japanese)")
     ap.add_argument("--rev", help="revision text in the header (default: git log of the input's folder)")
+    ap.add_argument("--comments", action="store_true",
+                    help="add a review bar per slide (status + comment), a filter and Export")
+    ap.add_argument("--review-labels",
+                    help='status buttons, comma-separated (default: "OK,要修正,質問" / "OK,Fix,Question")')
     a = ap.parse_args()
+    if a.review_labels is not None and not a.comments:
+        die(2, "--review-labels only applies with --comments")
 
     if not os.path.isdir(a.out_dir):
         die(2, f"no such folder: {a.out_dir}")
@@ -247,6 +258,17 @@ def main():
     L = LABELS[lang]
     rev = a.rev if a.rev is not None else git_rev(os.path.dirname(os.path.abspath(a.spec or a.pptx)))
     n = len(slides)
+    js, rv_css, rv_head, rv_tail, keys = JS % n, "", "", "", [""] * n
+    if a.comments:
+        import preview_review as rv
+        try:
+            labels = rv.parse_labels(a.review_labels, lang)
+        except ValueError as e:
+            die(2, str(e))
+        keys = rv.doc_keys(slides)
+        js, rv_css = rv.patch_js(js), rv.CSS
+        rv_head = rv.header_html(labels, lang)
+        rv_tail = rv.tail_html(slides, keys, labels, lang, title)
 
     nav, items = [], []
     for i, (s, p) in enumerate(zip(slides, imgs), 1):
@@ -263,7 +285,7 @@ def main():
             f'<figure id="s{i}"{cls}>'
             f'<figcaption><span class="n">p.{i}</span> {html.escape(t)}</figcaption>'
             f'<img src="img/{os.path.basename(p)}" alt="{html.escape(cap)}"'
-            f'{lazy}{dims}></figure>')
+            f'{lazy}{dims}>{rv.bar_html(keys[i - 1], i, labels, lang) if a.comments else ""}</figure>')
 
     meta_line = " ・ ".join(x for x in (subtitle, rev, L["count"].format(n=n)) if x)
     page = f"""<!doctype html>
@@ -273,22 +295,23 @@ def main():
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>{html.escape(title)}</title>
-<style>{CSS}</style>
+<style>{CSS}{rv_css}</style>
 </head>
 <body>
 <header><div class="bar"><div class="meta"><h1>{html.escape(title)}</h1><p>{html.escape(meta_line)}</p></div>
 <span id="keys">{L['keys']}</span><span id="cur"></span>
 <form id="go" action="#"><input id="pn" type="number" inputmode="numeric" min="1" max="{n}" placeholder="p." aria-label="{L['page']}"><button type="submit">{L['go']}</button></form></div>
-<nav>{''.join(nav)}</nav></header>
+<nav>{''.join(nav)}</nav>{rv_head}</header>
 <main>{''.join(items)}</main>
-<script>{JS % n}</script>
-</body>
+<script>{js}</script>
+{rv_tail}</body>
 </html>
 """
     with open(os.path.join(a.out_dir, "index.html"), "w", encoding="utf-8") as f:
         f.write(page)
     secs = sum(1 for s in slides if s["section"])
-    print(f"{n} slide(s), {secs} section(s) -> {os.path.join(a.out_dir, 'index.html')}")
+    extra = ", review bar on" if a.comments else ""
+    print(f"{n} slide(s), {secs} section(s){extra} -> {os.path.join(a.out_dir, 'index.html')}")
 
 
 if __name__ == "__main__":

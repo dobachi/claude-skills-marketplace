@@ -50,6 +50,11 @@ review_sheet.py new output/summary.pptx output/report.docx \
   The front matter records host, round, and a hash of each artifact.
 - Do not hand-write the sheet. A hand-written one has no anchors, and the next round cannot
   carry anything.
+- **A deck can also be commented in the browser.** pptx-build's `preview_web.sh … --comments`
+  gives each slide status buttons and a comment box (saved to the Artifact's db, or the
+  reviewer's browser with an Export to `p12 [slide-id] 要修正: …` lines). pptx-build's
+  `assets/preview_comments.py <export.md | reviews dump> --spec deck.yaml --sheet <this sheet>`
+  puts those comments under their slides here; then `ingest` as usual.
 
 ## 2. Hand over
 

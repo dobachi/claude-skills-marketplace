@@ -20,6 +20,12 @@
 #       --title TEXT       page title (default: the title slide's title)
 #       --subtitle TEXT    line under the title (default: the title slide's date)
 #       --lang auto|ja|en  UI words (default auto)
+#       --comments         add a review bar under each slide (status buttons + comment box), a
+#                          filter, a counter and Export. Comments go to the Artifact db (publish
+#                          with capabilities {db: {}}) or, anywhere else, to this browser's
+#                          localStorage. Off by default; without it the page is unchanged.
+#       --review-labels L  status buttons with --comments, comma-separated
+#                          (default "OK,要修正,質問", in English "OK,Fix,Question")
 #       --serve [ADDR:]PORT  after building, serve OUT over HTTP in the background.
 #                          ADDR defaults to 127.0.0.1 (this machine only).
 #       --serve-only [ADDR:]PORT  serve OUT without rebuilding
@@ -37,6 +43,7 @@ usage() { sed -n '2,/^set -euo/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'; }
 die() { echo "preview_web.sh: $2" >&2; exit "$1"; }
 
 DECK="" SPEC="" OUT="" RES=110 QUAL=78 TITLE="" SUB="" LANGUI=auto SERVE="" BUILD=1
+COMMENTS=0 LABELS="" HAVE_LABELS=0
 HAVE_TITLE=0 HAVE_SUB=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -47,6 +54,8 @@ while [[ $# -gt 0 ]]; do
     --title) TITLE="${2?}"; HAVE_TITLE=1; shift 2 ;;
     --subtitle) SUB="${2?}"; HAVE_SUB=1; shift 2 ;;
     --lang) LANGUI="${2:?}"; shift 2 ;;
+    --comments) COMMENTS=1; shift ;;
+    --review-labels) LABELS="${2:?}"; HAVE_LABELS=1; shift 2 ;;
     --serve) SERVE="${2:?--serve needs [ADDR:]PORT}"; shift 2 ;;
     --serve-only) SERVE="${2:?--serve-only needs [ADDR:]PORT}"; BUILD=0; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -55,6 +64,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 [[ "$RES" =~ ^[0-9]+$ ]] || die 2 "--resolution must be a number"
+[[ $HAVE_LABELS -eq 0 || $COMMENTS -eq 1 ]] || die 2 "--review-labels only applies with --comments"
 [[ "$QUAL" =~ ^[0-9]+$ && "$QUAL" -ge 1 && "$QUAL" -le 100 ]] || die 2 "--quality must be 1-100"
 
 # ---------------------------------------------------------------- build
@@ -87,6 +97,8 @@ if [[ $BUILD -eq 1 ]]; then
   if [[ -n "$SPEC" ]]; then args+=(--spec "$SPEC"); else args+=(--pptx "$DECK"); fi
   [[ $HAVE_TITLE -eq 1 ]] && args+=(--title "$TITLE")
   [[ $HAVE_SUB -eq 1 ]] && args+=(--subtitle "$SUB")
+  [[ $COMMENTS -eq 1 ]] && args+=(--comments)
+  [[ $HAVE_LABELS -eq 1 ]] && args+=(--review-labels "$LABELS")
   # shellcheck disable=SC2086  # PYTHON may be a command with arguments
   $PY "$HERE/preview_web.py" "${args[@]}"
 fi

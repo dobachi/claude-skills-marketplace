@@ -1,0 +1,19 @@
+# preview_web.py --comments のための小さな spec。slides[].id がある枚・無い枚・
+# db の id に使えない文字を含む枚・重複する id を混ぜてある（画像は固定の JPEG を写す）。
+meta:
+  title: レビュー用の小さなデッキ
+slides:
+  - type: title
+    id: cover
+    title: レビュー用の小さなデッキ
+    date: 2026-11-23
+  - id: intro
+    title: 背景と問い
+  - title: id の無い枚
+  - type: section
+    id: "章 2"
+    title: 打ち手
+  - id: dup
+    title: 重複 1
+  - id: dup
+    title: 重複 2

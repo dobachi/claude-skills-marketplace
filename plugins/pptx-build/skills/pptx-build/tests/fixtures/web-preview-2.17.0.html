@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>在庫回転率の改善計画</title>
+<style>
+:root { --bg:#f3f4f6; --fg:#16202e; --muted:#5b6575; --line:#d5d9e0; --accent:#0b5cad; --card:#ffffff;
+  --sans:"Noto Sans JP","Hiragino Sans",system-ui,sans-serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#11161d; --fg:#e6eaf0; --muted:#9aa4b2; --line:#2a323d; --accent:#6aa9ec; --card:#1a212b; color-scheme:dark } }
+:root[data-theme="dark"] { --bg:#11161d; --fg:#e6eaf0; --muted:#9aa4b2; --line:#2a323d; --accent:#6aa9ec; --card:#1a212b; color-scheme:dark }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans); -webkit-text-size-adjust:100%; }
+body::before { content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:10; background:var(--card); }
+header { position:sticky; top:env(safe-area-inset-top,0px); z-index:5; background:var(--card); border-bottom:1px solid var(--line);
+  padding-block:8px; padding-left:max(16px,env(safe-area-inset-left,0px),calc((100% - 1068px) / 2)); padding-right:max(16px,env(safe-area-inset-right,0px),calc((100% - 1068px) / 2)); }
+header h1 { margin:0 0 2px; font-size:15px; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+header p { margin:0; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bar { display:flex; align-items:center; gap:8px; margin:0 0 6px; }
+.bar .meta { flex:1; min-width:0; }
+nav { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+nav a { flex:none; font-size:12px; color:var(--accent); text-decoration:none; border:1px solid var(--line); border-radius:999px; padding:3px 10px; white-space:nowrap; }
+#go { display:flex; gap:4px; align-items:center; flex:none; margin:0; }
+#go input { width:64px; font:inherit; font-size:16px; padding:3px 6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); }
+#go button { font:inherit; font-size:13px; padding:4px 10px; border:1px solid var(--accent); border-radius:6px; background:var(--accent); color:#fff; }
+#keys { display:none; font-size:11px; color:var(--muted); flex:none; white-space:nowrap; }
+@media (min-width:900px) { #keys { display:inline; } }
+#cur { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; flex:none; }
+main { display:grid; gap:20px; max-width:1100px; margin:0 auto; padding-block:16px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); }
+figure { margin:0; scroll-margin-top:110px; min-width:0; }
+figcaption { font-size:13px; color:var(--muted); margin-bottom:6px; }
+figcaption .n { font-variant-numeric:tabular-nums; font-weight:700; color:var(--fg); margin-right:4px; }
+figure.sec figcaption .n { color:var(--accent); }
+img { display:block; width:100%; height:auto; border:1px solid var(--line); background:#fff; }
+</style>
+</head>
+<body>
+<header><div class="bar"><div class="meta"><h1>在庫回転率の改善計画</h1><p>2026年度 上期レビュー ・ test ・ 8 枚</p></div>
+<span id="keys">j/→ 次 ・ k/← 前 ・ g ページ番号</span><span id="cur"></span>
+<form id="go" action="#"><input id="pn" type="number" inputmode="numeric" min="1" max="8" placeholder="p." aria-label="ページ番号"><button type="submit">移動</button></form></div>
+<nav><a href="#s1">表紙</a><a href="#s2">現状</a></nav></header>
+<main><figure id="s1"><figcaption><span class="n">p.1</span> 在庫回転率の改善計画</figcaption><img src="img/s-001.jpg" alt="p.1 在庫回転率の改善計画" width="214" height="120"></figure><figure id="s2" class="sec"><figcaption><span class="n">p.2</span> 現状</figcaption><img src="img/s-002.jpg" alt="p.2 現状" width="214" height="120"></figure><figure id="s3"><figcaption><span class="n">p.3</span> 在庫回転率は改善したが、欠品率が悪化している</figcaption><img src="img/s-003.jpg" alt="p.3 在庫回転率は改善したが、欠品率が悪化している" loading="lazy" width="214" height="120"></figure><figure id="s4"><figcaption><span class="n">p.4</span> 効いた施策と効かなかった施策が分かれた</figcaption><img src="img/s-004.jpg" alt="p.4 効いた施策と効かなかった施策が分かれた" loading="lazy" width="214" height="120"></figure><figure id="s5"><figcaption><span class="n">p.5</span> 主力品目の欠品は全体の7割を占める</figcaption><img src="img/s-005.jpg" alt="p.5 主力品目の欠品は全体の7割を占める" loading="lazy" width="214" height="120"></figure><figure id="s6"><figcaption><span class="n">p.6</span> </figcaption><img src="img/s-006.jpg" alt="p.6" loading="lazy" width="214" height="120"></figure><figure id="s7"><figcaption><span class="n">p.7</span> 品目別に見ると悪化は主力3品目に集中している</figcaption><img src="img/s-007.jpg" alt="p.7 品目別に見ると悪化は主力3品目に集中している" loading="lazy" width="214" height="120"></figure><figure id="s8"><figcaption><span class="n">p.8</span> 欠品率は第2四半期から悪化に転じた</figcaption><img src="img/s-008.jpg" alt="p.8 欠品率は第2四半期から悪化に転じた" loading="lazy" width="214" height="120"></figure></main>
+<script>
+(function(){
+  var N=8;
+  var want=0;  // last jump target: near the end the page cannot scroll that slide to the top
+  function go(n){ n=Math.max(1,Math.min(N,parseInt(n,10)||0)); if(!n) return; want=n;
+    var el=document.getElementById('s'+n); if(el){ var hb=document.querySelector('header').getBoundingClientRect().bottom;
+      window.scrollTo(0, el.getBoundingClientRect().top+scrollY-hb-8); try{history.replaceState(null,'','#p'+n);}catch(e){} } }
+  document.getElementById('go').addEventListener('submit',function(e){ e.preventDefault(); var i=document.getElementById('pn'); go(i.value); i.blur(); });
+  document.getElementById('pn').addEventListener('keydown',function(e){ if(e.key==='Escape') this.blur(); });
+  document.querySelector('nav').addEventListener('click',function(e){ var a=e.target.closest('a'); if(!a) return; e.preventDefault(); go(a.getAttribute('href').slice(2)); });
+  function fromHash(){ var m=location.hash.match(/^#(?:p|s)(\d+)$/); if(m) go(m[1]); }
+  window.addEventListener('hashchange',fromHash);
+  if(document.readyState==='complete') fromHash(); else window.addEventListener('load',fromHash);
+  // Current page = the slide whose caption sits just under the sticky header, i.e. the one a
+  // reviewer is reading at the top of the screen (they quote it as "pN" in comments).
+  var cur=document.getElementById('cur'), head=document.querySelector('header'),
+      figs=document.querySelectorAll('main figure'), busy=false, now=1;
+  function mark(){ busy=false; var edge=head.getBoundingClientRect().bottom+24, k=1;
+    for(var i=0;i<figs.length;i++){ if(figs[i].getBoundingClientRect().top<=edge) k=i+1; else break; }
+    if(want>k && innerHeight+scrollY>=document.documentElement.scrollHeight-4) k=want;
+    now=k; cur.textContent='p.'+k+' / '+N; }
+  window.addEventListener('scroll',function(){ if(!busy){ busy=true; requestAnimationFrame(mark); } },{passive:true});
+  window.addEventListener('resize',mark); mark();
+  // Keys on a PC. Ignored while typing in a field and with a modifier held, so the page box,
+  // browser shortcuts and screen readers keep their keys.
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing) return;
+    var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) return;
+    if(e.key==='j'||e.key==='ArrowRight'){ e.preventDefault(); go(now+1); }
+    else if(e.key==='k'||e.key==='ArrowLeft'){ e.preventDefault(); go(now-1); }
+    else if(e.key==='g'){ e.preventDefault(); var i=document.getElementById('pn'); i.focus(); i.select(); }
+  });
+})();
+</script>
+</body>
+</html>
