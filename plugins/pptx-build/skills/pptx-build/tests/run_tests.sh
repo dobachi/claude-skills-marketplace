@@ -96,6 +96,21 @@ CASES=(
   "1|python3 $A/extract_deck.py $TMP/figure.pptx -o $TMP/figure-back.yaml"
   "has:native figure parts|python3 $A/extract_deck.py $TMP/figure.pptx -o $TMP/figure-back2.yaml"
 
+  # ---- 図の語彙（2.15）: cycle / matrix / bands / stack / legend と diagram の align・route・label_pos ----
+  # 新しい図を含む版をその場でビルドして監査を通し (0)、図形そのものを見て約束どおりに
+  # 描けているかと、新しい指定を使わない diagram の描き方が変わっていないかを確かめる (0)。
+  # 2 段の輪、セルの数が合わない行、1 本だけの帯、知らない route は検証で止める (1)。
+  "0|python3 $A/validate_deck.py $f/vocab-deck.yaml"
+  "0|python3 $A/build_deck.py $f/vocab-deck.yaml -o $TMP/vocab.pptx"
+  "0|python3 $A/audit_pptx.py $TMP/vocab.pptx --quiet"
+  "0|python3 vocab_check.py"
+  "1|python3 $A/validate_deck.py $f/bad-vocab.yaml"
+  "has:cycle has 2 step(s)|python3 $A/validate_deck.py $f/bad-vocab.yaml"
+  "has:has 2 cell(s) for 3 column(s)|python3 $A/validate_deck.py $f/bad-vocab.yaml"
+  "has:cell mark 'Maybe' is not in \`marks\`|python3 $A/validate_deck.py $f/bad-vocab.yaml"
+  "has:bands has 1 band(s)|python3 $A/validate_deck.py $f/bad-vocab.yaml"
+  "has:edge route 'curvy'|python3 $A/validate_deck.py $f/bad-vocab.yaml"
+
   # ---- 1 枚物の型と lead: 行 ----
   # 報告ブリーフ（N 列 panels + 矢印）、進捗ダッシュボード（tiles）、計画タイムライン、
   # 意思決定メモ、イベント報告、lead: つきの箇条書き・表・2 列をビルドして監査を通す (0)。

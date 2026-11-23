@@ -1,0 +1,34 @@
+# Defects the validator must stop in the 2.15 figure vocabulary.
+meta:
+  aspect: '16:9'
+slides:
+- type: figure
+  title: A two-step loop is a back-and-forth
+  figure:
+    kind: cycle
+    items: [Ask, Answer]
+- type: figure
+  title: A row that lost a cell
+  figure:
+    kind: matrix
+    columns: [A, B, C]
+    marks:
+    - {mark: Must, tone: accent, label: Must}
+    rows:
+    - {label: First, cells: [{mark: Must}, {mark: Maybe}, x]}
+    - {label: Second, cells: [x, y]}
+- type: figure
+  title: One band is not a stack
+  figure:
+    kind: bands
+    bands:
+    - {label: Only, items: [a, b]}
+- type: figure
+  title: A route that does not exist
+  figure:
+    kind: diagram
+    nodes:
+    - {id: a, label: A, col: 0, row: 0}
+    - {id: b, label: B, col: 1, row: 1}
+    edges:
+    - {from: a, to: b, route: curvy}

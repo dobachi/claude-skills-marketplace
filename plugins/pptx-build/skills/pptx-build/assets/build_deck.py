@@ -1468,13 +1468,29 @@ def _shape_label(sp, theme, text, size, bold=True, color="ink", align=PP_ALIGN.L
                   bold=bold, color=rgb)
 
 
-FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline")
+FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline",
+                "cycle", "matrix", "bands", "stack")
+SCALABLE_KINDS = ("diagram", "staircase", "cycle", "matrix", "bands")
 
 
 def _figure_height(theme, fig, w):
     """The height _panel_figure will use for `fig` at width w, without drawing it.
     `split` and `figure` need it to center the figure in its region."""
     kind = fig.get("kind")
+    if fig.get("legend") and _legend_items(fig):
+        inner = dict(fig)
+        inner.pop("legend")
+        return _figure_height(theme, inner, w) + LEGEND_H
+    if kind == "cycle":
+        return _cycle_geom(fig, w)["h"]
+    if kind == "matrix":
+        return _matrix_geom(fig, w)["h"]
+    if kind == "bands":
+        return _bands_geom(fig, w)["h"]
+    if kind == "stack":
+        parts = _stack_parts(fig)
+        return (sum(_figure_height(theme, p, w) + (0.3 if p.get("title") else 0.0) for p in parts)
+                + float(fig.get("gap", 0.18)) * max(0, len(parts) - 1))
     if kind == "stacked_bar":
         return float(fig.get("height", 0.30))
     if kind == "staircase":
@@ -1497,7 +1513,27 @@ def _fit_figure(theme, fig, w, avail_h):
     """A copy of `fig` whose height is CAPPED at avail_h — never stretched to it.
     Only the kinds that scale cleanly (diagram / staircase) are capped; the rest
     keep their height and the caller warns if they do not fit."""
-    if fig.get("kind") not in ("diagram", "staircase"):
+    if fig.get("legend") and _legend_items(fig):
+        inner = dict(fig)
+        inner.pop("legend")
+        out = _fit_figure(theme, inner, w, avail_h - LEGEND_H)
+        out = dict(out)
+        out["legend"] = fig["legend"]
+        return out
+    if fig.get("kind") == "stack":
+        need = _figure_height(theme, fig, w)
+        if need <= avail_h:
+            return fig
+        parts = _stack_parts(fig)
+        fixed = (sum(0.3 for p in parts if p.get("title"))
+                 + float(fig.get("gap", 0.18)) * max(0, len(parts) - 1))
+        flex = need - fixed
+        scale = max(0.1, (avail_h - fixed) / flex) if flex > 0 else 1.0
+        out = dict(fig)
+        out["parts"] = [_fit_figure(theme, p, w, _figure_height(theme, p, w) * scale)
+                        for p in parts]
+        return out
+    if fig.get("kind") not in SCALABLE_KINDS:
         return fig
     if _figure_height(theme, fig, w) <= avail_h:
         return fig
@@ -1585,10 +1621,6 @@ def _diagram(slide, theme, fig, x, y, w):
             # An edge may join whole groups (stage → stage) rather than single boxes.
             rects[str(gp["id"])] = (gx_ - pad, gy_ - top, gw + 2 * pad, gh + top + pad)
 
-    tones = {"outline": ("FFFFFF", c["border"], "ink"),
-             "light": (c["surface_hi"], None, "ink"),
-             "accent": (c["accent"], None, "FFFFFF"),
-             "dark": (c["ink"], None, "FFFFFF")}
     for k, n in enumerate(fig.get("nodes") or []):
         nx, ny, nw, nh = cell(int(n.get("col", 0)), int(n.get("row", 0)),
                               int(n.get("colspan", 1)), int(n.get("rowspan", 1)))
@@ -1609,35 +1641,7 @@ def _diagram(slide, theme, fig, x, y, w):
             continue
         elif n.get("image"):
             _warn("diagram: node %r image not found: %s" % (n.get("id", k), n.get("image")))
-        fill, line, color = tones.get(n.get("tone", "outline"), tones["outline"])
-        if fig.get("label_color") and color == "ink":
-            color = fig["label_color"]        # e.g. "accent": the key phrase in the deck's hue
-        _node_fit(theme, n, k, nw, nh)
-        shape = n.get("shape")
-        if shape not in (None, "box", "ellipse", "pill"):
-            _warn("diagram: node %r has unknown shape %r (box, ellipse, pill)" % (n.get("id", k), shape))
-            shape = None
-        round_ = shape in ("ellipse", "pill")    # a rounded part reads best centered
-        sp = _part(slide, "node", nx, ny, nw, nh, theme, fill=fill, line=line,
-                   shape=None if shape == "box" else shape)
-        sub = n.get("text")
-        _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 14),
-                     True, color, PP_ALIGN.LEFT if (sub and not round_) else PP_ALIGN.CENTER,
-                     MSO_ANCHOR.MIDDLE if (not sub or round_ or fig.get("text_anchor") == "middle")
-                     else MSO_ANCHOR.TOP)
-        if sub:
-            p2 = sp.text_frame.add_paragraph()
-            _no_bullet(p2)
-            p2.alignment = PP_ALIGN.CENTER if round_ else PP_ALIGN.LEFT
-            base = color if color == "FFFFFF" else c["ink"]
-            # `**…**` marks the key phrase: bold, in the accent (bold white on a filled box)
-            for seg, emph in _rich_runs(str(sub)):
-                r2 = p2.add_run()
-                r2.text = seg
-                _set_run_font(r2, name=theme["font"]["body"],
-                              size=_panel_size(theme, "panel_fig_sub", 12),
-                              bold=emph or None,
-                              color=(base if base == "FFFFFF" else c["accent"]) if emph else base)
+        _fig_node(slide, theme, fig, n, k, nx, ny, nw, nh)
         rects[str(n.get("id", k))] = (nx, ny, nw, nh)
 
     for e in fig.get("edges") or []:
@@ -1645,37 +1649,463 @@ def _diagram(slide, theme, fig, x, y, w):
         if not a or not b:
             _warn("diagram: edge %r -> %r names an unknown node" % (e.get("from"), e.get("to")))
             continue
-        ax, ay, aw, ah = a
-        bx, by, bw, bh = b
-        acx, acy, bcx, bcy = ax + aw / 2, ay + ah / 2, bx + bw / 2, by + bh / 2
-        if abs(bcx - acx) >= abs(bcy - acy):      # leave by a side edge
-            x1, x2 = (ax + aw, bx) if bcx > acx else (ax, bx + bw)
-            y1, y2 = acy, bcy
-            lo, hi = max(ay, by), min(ay + ah, by + bh)
-            if hi > lo:                           # side by side: keep the arrow level
-                y1 = y2 = (lo + hi) / 2
-        else:                                     # leave by top / bottom
-            y1, y2 = (ay + ah, by) if bcy > acy else (ay, by + bh)
-            x1, x2 = acx, bcx
-        color = c["accent"] if e.get("tone") == "accent" else c["muted"]
-        _seg(slide, x1, y1, x2, y2, color, 1.25, dash=bool(e.get("dashed")),
-             head=e.get("head", True))
-        if e.get("label"):
-            size = _panel_size(theme, "panel_note", 12)
-            if abs(bcx - acx) >= abs(bcy - acy):
-                # above the nodes, centered on the gap — never on top of a box
-                lw = max(0.9, _disp_width(e["label"]) * size / 72.0 + 0.2)
-                tf = add_textbox(slide, (x1 + x2) / 2 - lw / 2, min(ay, by) - 0.26, lw, 0.24,
-                                 name="part/fig-text")
-                set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
-                           align=PP_ALIGN.CENTER)
-            else:
-                tf = add_textbox(slide, (x1 + x2) / 2 + 0.06, (y1 + y2) / 2 - 0.12, 1.4, 0.24,
-                                 name="part/fig-text")
-                set_simple(tf, e["label"], theme, font="body", size=size, color="muted",
-                           align=PP_ALIGN.LEFT)
+        _fig_edge(slide, theme, fig, e, a, b)
     return G["h"]
 
+
+_NODE_TONES = ("outline", "light", "accent", "dark", "none")
+
+
+def _fig_node(slide, theme, fig, n, k, nx, ny, nw, nh, kind="node", fit=True):
+    """One labelled box of a native figure (diagram / cycle / matrix / bands):
+    `label` bold, an optional smaller `text` line, the tone's fill and ink.
+    `align` (on the node, else on the figure) forces left or center for BOTH
+    lines, so a column of boxes reads with one alignment whether or not a box
+    carries a `text` line. Without it the long-standing rule applies: a label
+    alone is centered, a box with `text` is left-aligned."""
+    c = theme["color"]
+    tones = {"outline": ("FFFFFF", c["border"], "ink"),
+             "light": (c["surface_hi"], None, "ink"),
+             "accent": (c["accent"], None, "FFFFFF"),
+             "dark": (c["ink"], None, "FFFFFF"),
+             "none": (None, None, "ink")}
+    fill, line, color = tones.get(n.get("tone", "outline"), tones["outline"])
+    if fig.get("label_color") and color == "ink":
+        color = fig["label_color"]        # e.g. "accent": the key phrase in the deck's hue
+    if n.get("label_color") and color == "ink":
+        color = n["label_color"]          # a matrix mark in its own hue (accent / muted)
+    if fit:
+        _node_fit(theme, n, k, nw, nh)
+    shape = n.get("shape")
+    if shape not in (None, "box", "ellipse", "pill"):
+        _warn("diagram: node %r has unknown shape %r (box, ellipse, pill)" % (n.get("id", k), shape))
+        shape = None
+    round_ = shape in ("ellipse", "pill")    # a rounded part reads best centered
+    sp = _part(slide, kind, nx, ny, nw, nh, theme, fill=fill, line=line,
+               shape=None if shape == "box" else shape)
+    sub = n.get("text")
+    align = n.get("align") or fig.get("align")
+    if align == "left":
+        a1 = a2 = PP_ALIGN.LEFT
+    elif align == "center":
+        a1 = a2 = PP_ALIGN.CENTER
+    else:
+        a1 = PP_ALIGN.LEFT if (sub and not round_) else PP_ALIGN.CENTER
+        a2 = PP_ALIGN.CENTER if round_ else PP_ALIGN.LEFT
+    anchor = n.get("anchor") or fig.get("text_anchor")
+    _shape_label(sp, theme, n.get("label", ""), _panel_size(theme, "panel_fig_label", 14),
+                 n.get("bold", True), color, a1,
+                 MSO_ANCHOR.MIDDLE if (not sub or round_ or anchor == "middle")
+                 else MSO_ANCHOR.TOP)
+    if sub:
+        p2 = sp.text_frame.add_paragraph()
+        _no_bullet(p2)
+        p2.alignment = a2
+        base = color if color == "FFFFFF" else c["ink"]
+        # `**…**` marks the key phrase: bold, in the accent (bold white on a filled box)
+        for seg, emph in _rich_runs(str(sub)):
+            r2 = p2.add_run()
+            r2.text = seg
+            _set_run_font(r2, name=theme["font"]["body"],
+                          size=_panel_size(theme, "panel_fig_sub", 12),
+                          bold=emph or None,
+                          color=(base if base == "FFFFFF" else c["accent"]) if emph else base)
+    return sp
+
+
+def _edge_label(slide, theme, text, x, y, w, align=PP_ALIGN.CENTER):
+    tf = add_textbox(slide, x, y, w, 0.24, name="part/fig-text")
+    set_simple(tf, text, theme, font="body", size=_panel_size(theme, "panel_note", 12),
+               color="muted", align=align)
+
+
+def _fig_edge(slide, theme, fig, e, a, b):
+    """A connector between two boxes (x, y, w, h). The straight default leaves by
+    the side that faces the target. `route` draws it orthogonally instead:
+    `elbow` (out, across, in — three segments), `hv` (across, then down/up into
+    the target's top/bottom) or `vh` (down/up, then across into its side).
+    `label_pos: line` (on the edge, else `edge_label_pos` on the figure) sets a
+    horizontal edge's label just above the line instead of above the boxes."""
+    c = theme["color"]
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    acx, acy, bcx, bcy = ax + aw / 2, ay + ah / 2, bx + bw / 2, by + bh / 2
+    color = c["accent"] if e.get("tone") == "accent" else c["muted"]
+    dash, head = bool(e.get("dashed")), e.get("head", True)
+    route = e.get("route") or fig.get("edge_route")
+    label_pos = e.get("label_pos") or fig.get("edge_label_pos")
+    size = _panel_size(theme, "panel_note", 12)
+    horiz = abs(bcx - acx) >= abs(bcy - acy)
+    if route in ("elbow", "hv", "vh"):
+        if route == "hv":
+            x1 = ax + aw if bcx > acx else ax
+            y1 = acy
+            y2 = by if bcy > acy else by + bh
+            pts = [(x1, y1), (bcx, y1), (bcx, y2)]
+        elif route == "vh":
+            y1 = ay + ah if bcy > acy else ay
+            x2 = bx if bcx > acx else bx + bw
+            pts = [(acx, y1), (acx, bcy), (x2, bcy)]
+        elif horiz:
+            x1, x2 = (ax + aw, bx) if bcx > acx else (ax, bx + bw)
+            xm = (x1 + x2) / 2
+            pts = [(x1, acy), (xm, acy), (xm, bcy), (x2, bcy)]
+        else:
+            y1, y2 = (ay + ah, by) if bcy > acy else (ay, by + bh)
+            ym = (y1 + y2) / 2
+            pts = [(acx, y1), (acx, ym), (bcx, ym), (bcx, y2)]
+        pts = [p for k, p in enumerate(pts)
+               if k == 0 or abs(p[0] - pts[k - 1][0]) + abs(p[1] - pts[k - 1][1]) > 1e-6]
+        for k in range(len(pts) - 1):
+            last = k == len(pts) - 2
+            _seg(slide, pts[k][0], pts[k][1], pts[k + 1][0], pts[k + 1][1], color, 1.25,
+                 dash=dash, head=head if last else False)
+        if e.get("label"):
+            # on the longest segment: above it when level, beside it when upright
+            k = max(range(len(pts) - 1), key=lambda j: abs(pts[j + 1][0] - pts[j][0])
+                    + abs(pts[j + 1][1] - pts[j][1]))
+            (p1x, p1y), (p2x, p2y) = pts[k], pts[k + 1]
+            if abs(p2y - p1y) < 1e-6:
+                lw = max(0.9, _disp_width(e["label"]) * size / 72.0 + 0.2)
+                _edge_label(slide, theme, e["label"], (p1x + p2x) / 2 - lw / 2, p1y - 0.26, lw)
+            else:
+                _edge_label(slide, theme, e["label"], p1x + 0.06, (p1y + p2y) / 2 - 0.12, 1.4,
+                            PP_ALIGN.LEFT)
+        return
+    if horiz:                                 # leave by a side edge
+        x1, x2 = (ax + aw, bx) if bcx > acx else (ax, bx + bw)
+        y1, y2 = acy, bcy
+        lo, hi = max(ay, by), min(ay + ah, by + bh)
+        if hi > lo:                           # side by side: keep the arrow level
+            y1 = y2 = (lo + hi) / 2
+    else:                                     # leave by top / bottom
+        y1, y2 = (ay + ah, by) if bcy > acy else (ay, by + bh)
+        x1, x2 = acx, bcx
+    _seg(slide, x1, y1, x2, y2, color, 1.25, dash=dash, head=head)
+    if e.get("label"):
+        if horiz:
+            lw = max(0.9, _disp_width(e["label"]) * size / 72.0 + 0.2)
+            if label_pos == "line":
+                # just above the line itself, so the label reads as the arrow's
+                if lw > abs(x2 - x1) + 0.1:
+                    _warn("diagram: edge label %r is wider than its gap (%.2f in) and runs "
+                          "over the boxes; widen gap_x or shorten it" % (e["label"], abs(x2 - x1)))
+                _edge_label(slide, theme, e["label"], (x1 + x2) / 2 - lw / 2,
+                            min(y1, y2) - 0.27, lw)
+            else:
+                # above the nodes, centered on the gap — never on top of a box
+                _edge_label(slide, theme, e["label"], (x1 + x2) / 2 - lw / 2,
+                            min(ay, by) - 0.26, lw)
+        else:
+            _edge_label(slide, theme, e["label"], (x1 + x2) / 2 + 0.06, (y1 + y2) / 2 - 0.12,
+                        1.4, PP_ALIGN.LEFT)
+
+
+# ---------------------------------------------------------------------------
+# Figure vocabulary added in 2.15: cycle, matrix, bands, stack, and a legend
+# for any kind. Each is opt-in: a spec that does not name them draws as before.
+
+LEGEND_H = 0.34
+
+
+def _legend_items(fig):
+    """The legend rows of a figure: an explicit list, or `legend: true` on a
+    matrix, which lists its `marks` that carry a `label`."""
+    lg = fig.get("legend")
+    if isinstance(lg, list):
+        return [it for it in lg if isinstance(it, dict)]
+    if lg is True and fig.get("kind") == "matrix":
+        return [{"label": m.get("label") or m.get("mark"), "tone": m.get("tone", "outline"),
+                 "mark": m.get("mark"), "label_color": m.get("color")}
+                for m in _matrix_marks(fig).values() if m.get("label")]
+    return []
+
+
+def _legend(slide, theme, items, x, y, w):
+    """A row of keys under a figure: a small swatch in the item's tone / shape
+    (or a short line for `line: solid | dashed`, accent with `tone: accent`)
+    and its label. Says what a color or an outline means, so neither is decoration."""
+    c = theme["color"]
+    size = _panel_size(theme, "panel_note", 12)
+    cx, top = x, y + 0.08
+    sh = 0.22
+    for k, it in enumerate(items):
+        sw = 0.42
+        if it.get("line"):
+            color = c["accent"] if it.get("tone") == "accent" else c["muted"]
+            _seg(slide, cx, top + sh / 2, cx + sw, top + sh / 2, color, 1.25,
+                 dash=it.get("line") == "dashed", head=bool(it.get("head", True)))
+        else:
+            n = {"tone": it.get("tone", "outline"), "shape": it.get("shape"),
+                 "label": it.get("mark") or "", "label_color": it.get("label_color")}
+            sw = max(0.42, _disp_width(n["label"]) * max(8, size - 3) / 72.0 + 0.2)
+            sp = _fig_node(slide, theme, {"align": "center"}, n, "legend%d" % k, cx, top, sw, sh,
+                           kind="legend", fit=False)
+            for p in sp.text_frame.paragraphs:      # a mark in the key reads smaller
+                for r in p.runs:
+                    r.font.size = Pt(max(8, size - 3))
+            sp.text_frame.margin_top = sp.text_frame.margin_bottom = 0
+            sp.text_frame.word_wrap = False
+        lw = _disp_width(it.get("label", "")) * size / 72.0 + 0.15
+        tf = add_textbox(slide, cx + sw + 0.08, top - 0.01, lw, sh + 0.02,
+                         anchor=MSO_ANCHOR.MIDDLE, name="part/legend-text")
+        set_simple(tf, str(it.get("label", "")), theme, font="body", size=size, color="muted")
+        cx += sw + 0.08 + lw + 0.3
+    if cx - 0.3 > x + w + 0.05:
+        _warn("figure legend is wider than the figure (%.2f in > %.2f in); shorten its labels"
+              % (cx - 0.3 - x, w))
+    return LEGEND_H
+
+
+def _cycle_geom(fig, w):
+    items = fig.get("items") or []
+    h = float(fig.get("height", 2.4))
+    rw = min(w, float(fig.get("ring_width") or max(4.5, h * 2.4)))
+    nw = float(fig.get("node_width") or min(2.4, rw * 0.32))
+    nh = float(fig.get("node_height") or min(0.8, h * 0.32))
+    return {"n": len(items), "h": h, "rw": rw, "nw": nw, "nh": nh}
+
+
+def _ring_exit(cx, cy, w, h, dx, dy, round_):
+    """Where the ray from a box's center toward (dx, dy) leaves the box (or the
+    ellipse inscribed in it)."""
+    if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+        return cx, cy
+    if round_:
+        t = 1.0 / math.sqrt((dx / (w / 2)) ** 2 + (dy / (h / 2)) ** 2)
+    else:
+        t = min((w / 2) / abs(dx) if abs(dx) > 1e-9 else 1e9,
+                (h / 2) / abs(dy) if abs(dy) > 1e-9 else 1e9)
+    return cx + dx * t, cy + dy * t
+
+
+def _cycle(slide, theme, fig, x, y, w):
+    """Steps placed on a ring, each arrow running to the next and the last back
+    to the first: a loop that reads as a loop. Steps default to ellipses (an
+    action), tone light; `center` puts a label in the middle of the ring."""
+    c = theme["color"]
+    G = _cycle_geom(fig, w)
+    items = fig.get("items") or []
+    n = max(1, G["n"])
+    nw, nh, h = G["nw"], G["nh"], G["h"]
+    cx, cy = x + w / 2, y + h / 2
+    rx, ry = (G["rw"] - nw) / 2, (h - nh) / 2
+    start = math.radians(float(fig.get("start", -90)))
+    step = 2 * math.pi / n * (-1 if fig.get("direction") == "ccw" else 1)
+    shape0 = fig.get("node_shape", "ellipse")
+    boxes = []
+    for k, it in enumerate(items):
+        it = it if isinstance(it, dict) else {"label": str(it)}
+        th = start + step * k
+        bx, by = cx + rx * math.cos(th) - nw / 2, cy + ry * math.sin(th) - nh / 2
+        node = dict(it)
+        node.setdefault("tone", "light")
+        node.setdefault("shape", shape0)
+        _fig_node(slide, theme, fig, node, k, bx, by, nw, nh)
+        boxes.append((bx + nw / 2, by + nh / 2, node.get("shape") in ("ellipse", "pill")))
+    closed = fig.get("closed", True)
+    for k in range(len(boxes) if closed else len(boxes) - 1):
+        (ax_, ay_, ra), (bx_, by_, rb) = boxes[k], boxes[(k + 1) % len(boxes)]
+        dx, dy = bx_ - ax_, by_ - ay_
+        x1, y1 = _ring_exit(ax_, ay_, nw, nh, dx, dy, ra)
+        x2, y2 = _ring_exit(bx_, by_, nw, nh, -dx, -dy, rb)
+        d = math.hypot(x2 - x1, y2 - y1) or 1.0
+        gap = min(0.06, d / 4)
+        x1, y1 = x1 + (x2 - x1) * gap / d, y1 + (y2 - y1) * gap / d
+        x2, y2 = x2 - (x2 - x1) * gap / d, y2 - (y2 - y1) * gap / d
+        it = items[k] if isinstance(items[k], dict) else {}
+        tone = it.get("edge_tone") or fig.get("edge_tone", "accent")
+        _seg(slide, x1, y1, x2, y2, c["accent"] if tone == "accent" else c["muted"], 1.25,
+             dash=bool(it.get("edge_dashed")), head=True)
+        if it.get("edge"):
+            # outside the ring, beside the arrow's middle
+            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            ox, oy = mx - cx, my - cy
+            on = math.hypot(ox, oy) or 1.0
+            size = _panel_size(theme, "panel_note", 12)
+            lw = max(0.8, _disp_width(it["edge"]) * size / 72.0 + 0.2)
+            lx, ly = mx + ox / on * 0.22, my + oy / on * 0.16
+            al = PP_ALIGN.LEFT if ox > 0.2 else PP_ALIGN.RIGHT if ox < -0.2 else PP_ALIGN.CENTER
+            left = lx if al == PP_ALIGN.LEFT else lx - lw if al == PP_ALIGN.RIGHT else lx - lw / 2
+            _edge_label(slide, theme, it["edge"], left, ly - 0.12, lw, al)
+    ctr = fig.get("center")
+    if ctr:
+        ctr = ctr if isinstance(ctr, dict) else {"label": str(ctr)}
+        node = dict(ctr)
+        node.setdefault("tone", "none")
+        cw = min(nw * 1.1, max(0.6, 2 * rx - nw - 0.2))
+        ch = min(nh * 1.2, max(0.4, 2 * ry - nh + 0.1))
+        _fig_node(slide, theme, {"align": "center"}, node, "center", cx - cw / 2, cy - ch / 2,
+                  cw, ch)
+    return h
+
+
+def _matrix_marks(fig):
+    marks = {}
+    for m in fig.get("marks") or []:
+        if isinstance(m, dict) and m.get("mark") is not None:
+            marks[str(m["mark"])] = m
+    return marks
+
+
+def _matrix_geom(fig, w):
+    cols = fig.get("columns") or []
+    rows = fig.get("rows") or []
+    gx = float(fig.get("gap_x", 0.32 if fig.get("flow") else 0.08))
+    gy = float(fig.get("gap_y", 0.08))
+    lw = float(fig.get("label_width") or max(1.4, w * 0.2))
+    if fig.get("label_width") == 0:
+        lw = 0.0
+    hh = float(fig.get("header_height", 0.45)) if cols else 0.0
+    nr = max(1, len(rows))
+    h = fig.get("height")
+    rh = float(fig.get("row_height", 0.55))
+    if h:
+        rh = (float(h) - hh - (gy if cols else 0) - (nr - 1) * gy) / nr
+    total = hh + (gy if cols else 0) + nr * rh + (nr - 1) * gy
+    weights = [float(v) for v in (fig.get("col_widths") or [1] * max(1, len(cols)))]
+    inner = w - lw - (gx if lw else 0) - (len(weights) - 1) * gx
+    unit = inner / max(1e-6, sum(weights))
+    xs, cx = [], lw + (gx if lw else 0)
+    for wt in weights:
+        xs.append((cx, wt * unit))
+        cx += wt * unit + gx
+    return {"h": total, "rh": rh, "hh": hh, "gx": gx, "gy": gy, "lw": lw, "xs": xs}
+
+
+def _matrix(slide, theme, fig, x, y, w):
+    """A comparison grid: a header row of `columns`, a label at the head of each
+    row, and cells. A cell's `mark` (e.g. 義務 / 任意 / —) takes its tone and
+    color from `marks`, so the same value looks the same everywhere and
+    `legend: true` can say what each look means. Every cell is aligned the same
+    way (left, middle by default) whether or not it has a second line."""
+    G = _matrix_geom(fig, w)
+    marks = _matrix_marks(fig)
+    cols, rows = fig.get("columns") or [], fig.get("rows") or []
+    base = {"align": fig.get("align", "left"), "text_anchor": fig.get("text_anchor", "middle"),
+            "label_color": fig.get("label_color")}
+    hdr = dict(base, align=fig.get("header_align", "center"))
+    if fig.get("corner"):
+        _fig_node(slide, theme, base, {"label": fig["corner"], "tone": "none",
+                                       "label_color": "muted"},
+                  "corner", x, y, G["lw"], G["hh"], kind="cell")
+    for j, col in enumerate(cols):
+        col = col if isinstance(col, dict) else {"label": str(col)}
+        node = dict(col)
+        node.setdefault("tone", fig.get("header_tone", "dark"))
+        cx, cw = G["xs"][j]
+        _fig_node(slide, theme, hdr, node, "h%d" % j, x + cx, y, cw, G["hh"], kind="cell")
+    top = y + G["hh"] + (G["gy"] if cols else 0)
+    for r, row in enumerate(rows):
+        row = row if isinstance(row, dict) else {"label": str(row)}
+        ry = top + r * (G["rh"] + G["gy"])
+        if G["lw"]:
+            node = {"label": row.get("label", ""), "text": row.get("text"),
+                    "tone": row.get("tone", fig.get("row_tone", "light"))}
+            _fig_node(slide, theme, base, node, "r%d" % r, x, ry, G["lw"], G["rh"], kind="cell")
+        cells = row.get("cells") or []
+        if cols and len(cells) != len(cols):
+            _warn("matrix: row %r has %d cell(s) for %d column(s)"
+                  % (row.get("label", r), len(cells), len(cols)))
+        for j, cell in enumerate(cells[:len(G["xs"])]):
+            cell = cell if isinstance(cell, dict) else {"text": str(cell)}
+            m = marks.get(str(cell.get("mark"))) if cell.get("mark") is not None else None
+            node = {"label": cell.get("label") or (str(cell["mark"]) if cell.get("mark")
+                                                   is not None else ""),
+                    "text": cell.get("text") or None,
+                    "tone": cell.get("tone") or (m or {}).get("tone", "outline"),
+                    "label_color": cell.get("color") or (m or {}).get("color")}
+            if not node["label"] and node["text"]:
+                node["label"], node["text"] = node["text"], None
+                node["bold"] = False
+            cx, cw = G["xs"][j]
+            _fig_node(slide, theme, base, node, "c%d.%d" % (r, j), x + cx, ry, cw, G["rh"],
+                      kind="cell")
+            if fig.get("flow") and j < len(cells) - 1:
+                ax_ = x + cx + cw + 0.05
+                _seg(slide, ax_, ry + G["rh"] / 2, ax_ + G["gx"] - 0.1, ry + G["rh"] / 2,
+                     theme["color"]["muted"], 1.25, head=True)
+    return G["h"]
+
+
+def _bands_geom(fig, w):
+    bands = fig.get("bands") or []
+    gy = float(fig.get("gap_y", 0.34 if fig.get("arrows") in ("up", "down") else 0.14))
+    weights = [float(b.get("weight", 1)) for b in bands] or [1.0]
+    bh = float(fig.get("band_height", 0.8))
+    h = fig.get("height")
+    total = float(h) if h else bh * sum(weights) + gy * (len(weights) - 1)
+    unit = (total - gy * (len(weights) - 1)) / max(1e-6, sum(weights))
+    return {"h": total, "gy": gy, "hs": [wt * unit for wt in weights]}
+
+
+def _bands(slide, theme, fig, x, y, w):
+    """Layered rows, each headed by a label cell at its left: the stack of a
+    reference architecture, or groups of items sorted by strength (law / rule /
+    voluntary). Items in a row are spread by `span`; with `cols` the rows share
+    one grid so their edges line up. `arrows: up | down` joins the layers."""
+    c = theme["color"]
+    G = _bands_geom(fig, w)
+    bands = fig.get("bands") or []
+    lw = float(fig.get("label_width", 1.8))
+    gx = float(fig.get("gap_x", 0.12))
+    pad = 0.08
+    base = {"align": fig.get("align", "left"), "text_anchor": fig.get("text_anchor", "middle"),
+            "label_color": fig.get("label_color")}
+    cy = y
+    item_x = x + lw + gx
+    item_w = w - lw - gx
+    for b, band in enumerate(bands):
+        bh = G["hs"][b]
+        if fig.get("fill"):
+            _part(slide, "group", x - pad, cy - pad / 2, w + 2 * pad, bh + pad, theme,
+                  fill=c["surface"])
+        node = {"label": band.get("label", ""), "text": band.get("text"),
+                "tone": band.get("tone", fig.get("label_tone", "dark"))}
+        _fig_node(slide, theme, base, node, "band%d" % b, x, cy, lw, bh, kind="node")
+        items = [it if isinstance(it, dict) else {"label": str(it)} for it in band.get("items") or []]
+        spans = [float(it.get("span", 1)) for it in items]
+        ncols = float(fig.get("cols") or sum(spans) or 1)
+        unit = (item_w - gx * (ncols - 1)) / ncols
+        ix = item_x
+        for k, it in enumerate(items):
+            iw = spans[k] * unit + (spans[k] - 1) * gx
+            _fig_node(slide, theme, base, it, "b%d.%d" % (b, k), ix, cy, iw, bh)
+            ix += iw + gx
+        if b < len(bands) - 1 and fig.get("arrows") in ("up", "down"):
+            ax_ = item_x + item_w / 2
+            y1, y2 = cy + bh + 0.05, cy + bh + G["gy"] - 0.05
+            if fig["arrows"] == "up":
+                y1, y2 = y2, y1
+            _seg(slide, ax_, y1, ax_, y2, c["muted"], 1.25, head=True)
+            if band.get("arrow_label"):
+                _edge_label(slide, theme, band["arrow_label"], ax_ + 0.08,
+                            (y1 + y2) / 2 - 0.12, 2.4, PP_ALIGN.LEFT)
+        cy += bh + G["gy"]
+    return G["h"]
+
+
+def _stack_parts(fig):
+    return [p for p in fig.get("parts") or [] if isinstance(p, dict)]
+
+
+def _stack(slide, theme, fig, x, y, w):
+    """Figures one above the other, each with an optional `title` line: e.g. a
+    cycle drawn on top of the layers it runs on."""
+    gap = float(fig.get("gap", 0.18))
+    cy = y
+    parts = _stack_parts(fig)
+    for k, p in enumerate(parts):
+        if p.get("title"):
+            tf = add_textbox(slide, x, cy, w, 0.26, name="part/fig-text")
+            set_simple(tf, str(p["title"]), theme, font="heading",
+                       size=fig.get("title_size") or _panel_size(theme, "panel_label", 12),
+                       bold=True, color=fig.get("title_color", "muted"))
+            cy += 0.3
+        cy += _panel_figure(slide, theme, p, x, cy, w)
+        if k < len(parts) - 1:
+            cy += gap
+    return cy - y
 
 def _tiles(slide, theme, fig, x, y, w):
     """KPI tiles in a row: the number large, its label under it, an optional
@@ -1924,8 +2354,21 @@ def _panel_figure(slide, theme, fig, x, y, w):
     """Draw one native figure at (x, y) with width w; return its height (in)."""
     c = theme["color"]
     kind = fig.get("kind")
+    if fig.get("legend") and _legend_items(fig):
+        inner = dict(fig)
+        inner.pop("legend")
+        h = _panel_figure(slide, theme, inner, x, y, w)
+        return h + _legend(slide, theme, _legend_items(fig), x, y + h, w)
     if kind == "diagram":
         return _diagram(slide, theme, fig, x, y, w)
+    if kind == "cycle":
+        return _cycle(slide, theme, fig, x, y, w)
+    if kind == "matrix":
+        return _matrix(slide, theme, fig, x, y, w)
+    if kind == "bands":
+        return _bands(slide, theme, fig, x, y, w)
+    if kind == "stack":
+        return _stack(slide, theme, fig, x, y, w)
     if kind == "tiles":
         return _tiles(slide, theme, fig, x, y, w)
     if kind == "timeline":

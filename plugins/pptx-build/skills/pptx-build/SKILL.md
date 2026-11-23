@@ -66,6 +66,10 @@ So a figure is built from the native vocabulary, and the shape of the content pi
 | Ordered levels, maturity, escalation | `staircase` | same |
 | Shares of one whole | `stacked_bar` (or `type: chart`) | same |
 | A set of equal tags | `chips` | same |
+| Steps that repeat as a loop (plan → act → check → back) | `cycle` — steps on a ring, arrows round it | same |
+| A comparison grid: options × criteria, values like required / voluntary / — | `matrix` — header row, row labels, cells; `marks` give each value one look and `legend: true` says what it means | same |
+| Layers or strength groups, each named at its left (a reference stack; law / rule / voluntary) | `bands` — one row per layer, items spread by `span` | same |
+| Two of the above, one over the other (a loop on top of the layers it runs on) | `stack` — `parts:` of figures, each with an optional `title` | same |
 | A real 3–5 stage process with its own text per stage | `type: steps` | its own slide |
 | 2×2 with named axes | `type: matrix` | its own slide |
 
@@ -238,7 +242,7 @@ Text containers: `title`, `section`, `bullets`, `two_col`, `big_number`, `quote`
 `image`, `table`, `chart`, `blank`.
 
 `figure` is a native, editable figure on its own — `diagram` / `flow` / `staircase` /
-`stacked_bar` / `chips` / `tiles` / `timeline` at full content width, with `caption` and
+`stacked_bar` / `chips` / `tiles` / `timeline` / `cycle` / `matrix` / `bands` / `stack` at full content width, with `caption` and
 `note` in the body placeholder — the counterpart of `image` for anything that was drawn rather
 than photographed. `split` takes the same `figure:` in place of `image:`. `dashboard` (tiles
 row + columns) and `decision` (options × criteria + recommendation) are the one-pager types;

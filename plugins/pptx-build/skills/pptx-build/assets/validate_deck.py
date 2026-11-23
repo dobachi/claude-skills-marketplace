@@ -49,7 +49,10 @@ ASSERT_RE = re.compile(
 CONTENT_TYPES = {"bullets", "two_col", "big_number", "image", "table", "chart",
                  "cards", "steps", "matrix", "split", "lead", "panels", "figure",
                  "dashboard", "decision"}
-FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline")
+FIGURE_KINDS = ("stacked_bar", "staircase", "flow", "chips", "diagram", "tiles", "timeline",
+                "cycle", "matrix", "bands", "stack")
+NODE_TONES = ("outline", "light", "accent", "dark", "none")
+ROUTES = ("elbow", "hv", "vh")
 # Deck-level tells: the habits that make a generated deck recognisable as one.
 # None of them is wrong on a single slide; all of them are wrong as a pattern.
 LABEL_COLON_RE = re.compile(r"^[^:：]{1,14}[:：]\s*\S")
@@ -60,7 +63,7 @@ LEAD_WIDTH = 60
 PHOTO_EXT = {".jpg", ".jpeg", ".heic", ".heif"}
 IMAGE_KINDS = ("photo", "screenshot", "external")
 NATIVE_HINT = ("build it as a native figure instead: `type: figure` with `figure: {kind: "
-               "diagram | flow | staircase | stacked_bar | chips}`, `split` with `figure:`, "
+               "diagram | flow | staircase | stacked_bar | chips | cycle | matrix | bands | stack}`, `split` with `figure:`, "
                "or a panels figure — then every label stays editable text")
 
 
@@ -90,6 +93,9 @@ def _check_figure(fig, i, add, where):
             add(ERROR, i, "%s diagram node ids repeat: %s" % (where, ", ".join(sorted(dup))))
         ids += [str(g["id"]) for g in fig.get("groups") or [] if isinstance(g, dict) and g.get("id")]
         for e in fig.get("edges") or []:
+            if isinstance(e, dict) and e.get("route") not in (None,) + ROUTES:
+                add(ERROR, i, "%s diagram edge route %r is not one of %s"
+                    % (where, e.get("route"), " / ".join(ROUTES)))
             for end in ("from", "to"):
                 if str((e or {}).get(end)) not in ids:
                     add(ERROR, i, "%s diagram edge names unknown node %r — ids are %s"
@@ -104,6 +110,58 @@ def _check_figure(fig, i, add, where):
         _check_tiles(fig.get("items"), i, add, where)
     if fig["kind"] == "stacked_bar" and not fig.get("segments"):
         add(ERROR, i, "%s stacked_bar has no `segments`" % where)
+    if fig.get("align") not in (None, "left", "center"):
+        add(ERROR, i, "%s figure align %r is not left / center" % (where, fig.get("align")))
+    if fig["kind"] == "cycle":
+        items = fig.get("items") or []
+        if not 3 <= len(items) <= 8:
+            add(ERROR, i, "%s cycle has %d step(s) — a loop needs 3 to 8 (two steps are a "
+                "back-and-forth: use a diagram with two edges)" % (where, len(items)))
+    if fig["kind"] == "matrix":
+        cols, rows = fig.get("columns") or [], fig.get("rows") or []
+        if not rows:
+            add(ERROR, i, "%s matrix has no `rows`" % where)
+        marks = {str(m.get("mark")) for m in fig.get("marks") or [] if isinstance(m, dict)}
+        for m in fig.get("marks") or []:
+            if isinstance(m, dict) and m.get("tone", "outline") not in NODE_TONES:
+                add(ERROR, i, "%s matrix mark %r has tone %r — one of %s"
+                    % (where, m.get("mark"), m.get("tone"), " / ".join(NODE_TONES)))
+        for r, row in enumerate(rows):
+            cells = (row or {}).get("cells") or [] if isinstance(row, dict) else []
+            if cols and len(cells) != len(cols):
+                add(ERROR, i, "%s matrix row %d (%s) has %d cell(s) for %d column(s)"
+                    % (where, r + 1, (row or {}).get("label", ""), len(cells), len(cols)))
+            for cell in cells:
+                if (isinstance(cell, dict) and cell.get("mark") is not None and marks
+                        and str(cell["mark"]) not in marks):
+                    add(WARN, i, "%s matrix cell mark %r is not in `marks` — it draws plain, "
+                        "and the legend will not explain it" % (where, cell["mark"]))
+        if fig.get("legend") is True and not any(
+                isinstance(m, dict) and m.get("label") for m in fig.get("marks") or []):
+            add(WARN, i, "%s matrix `legend: true` but no mark has a `label` — nothing to show"
+                % where)
+    if fig["kind"] == "bands":
+        bands = fig.get("bands") or []
+        if len(bands) < 2:
+            add(ERROR, i, "%s bands has %d band(s) — layers need at least two" % (where, len(bands)))
+        for b, band in enumerate(bands):
+            if not isinstance(band, dict) or not band.get("label"):
+                add(WARN, i, "%s band %d has no `label` — the left cell names the layer"
+                    % (where, b + 1))
+    if fig["kind"] == "stack":
+        parts = fig.get("parts") or []
+        if len(parts) < 2:
+            add(ERROR, i, "%s stack has %d part(s) — stack two or more figures" % (where, len(parts)))
+        for k, p in enumerate(parts):
+            if isinstance(p, dict) and p.get("kind") == "stack":
+                add(ERROR, i, "%s stack part %d is itself a stack — flatten it" % (where, k + 1))
+            else:
+                _check_figure(p, i, add, "%s stack part %d" % (where, k + 1))
+    lg = fig.get("legend")
+    if isinstance(lg, list):
+        for k, it in enumerate(lg):
+            if not isinstance(it, dict) or not it.get("label"):
+                add(WARN, i, "%s legend item %d has no `label`" % (where, k + 1))
 
 
 def _check_tiles(items, i, add, where):

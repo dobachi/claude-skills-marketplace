@@ -8,7 +8,7 @@ The deck spec is YAML or JSON (detected by file extension). Two top-level keys: 
 - [meta.shape](#metashape--the-three-numbers-every-part-agrees-on) — spacing unit, corner radius, line weight
 - [slides](#slides) — every slide type and its fields
 - [The lead line](#the-lead-line) — `lead:` on any content slide: the sentence that supports the title
-- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips` / `tiles` / `timeline`)
+- [Native figures](#native-figures) — `figure` slide, `split figure:`, the figure kinds (`diagram` / `flow` / `staircase` / `stacked_bar` / `chips` / `tiles` / `timeline` / `cycle` / `matrix` / `bands` / `stack`), `legend`
 - [One-pager types](#one-pager-types) — `panels` with `columns` / `arrows` / `tiles`, `dashboard`, `decision`
 - [Composed archetypes](#composed-archetypes) — cards / steps / lead / matrix / split / statement
 - [Contrast](#contrast--the-dark-page-and-the-tonal-chart) — the dark page, the tonal chart
@@ -268,14 +268,18 @@ in their region and cap `diagram` / `staircase` to the room available (never str
 | Kind | Fields | Draws |
 |---|---|---|
 | `diagram` | `nodes`, `edges`, `groups`, `cols`, `rows`, `height`, `gap_x` (0.45), `gap_y` (0.28), `node_height` (0.62) | boxes on a grid joined by connectors — the general-purpose figure |
-
-A diagram box does not grow. The build estimates each node's label and `text` at the deck's sizes and prints `warning: slide N [id]: diagram: node … text overflows its box` when they cannot fit; raise `node_height` / `colspan` or shorten the text. A `note:` line flags a last line holding only one or two characters (a word broken mid-way). A `\n` in a label or text becomes a real line break (`<a:br/>`) in the file.
 | `flow` | `items`, `highlight` (index, default last), `feedback` (text), `height` (0.46) | boxes left to right with arrows; the optional dashed feedback arrow returns to the first |
 | `staircase` | `items` (strings or `{label, text}`), `height` (1.25), `low` (0.38) | rising levels, the last one filled accent |
 | `stacked_bar` | `segments: [{label, value, tone}]`, `height` (0.30) | shares of one bar; `tone` accent / dark / light |
 | `chips` | `items`, `height` (0.36) | a row of outlined tags |
 | `tiles` | `items: [{number, label, delta, tone}]` (2–6), `height` (1.15) | KPI tiles: the number large, its label, an optional delta line; `tone: accent` for the headline figure |
 | `timeline` | `items: [{date, label, text, tone}]`, `today` (a date / label / index), `height` (1.6) | milestones on one line, date above, name and a short line below; `today` becomes an accent ring with its date in bold |
+| `cycle` | `items` (3–8), `center`, `height` (2.4), `ring_width`, `node_width`, `node_height` | steps on a ring, arrows round it; the last returns to the first |
+| `matrix` | `columns`, `rows: [{label, cells}]`, `marks`, `legend`, `label_width`, `row_height`, `flow` | a comparison grid: header row, row labels, cells whose `mark` sets one look per value |
+| `bands` | `bands: [{label, text, tone, items}]`, `cols`, `label_width` (1.8), `arrows`, `band_height` (0.8) | layers, each named in a cell at its left |
+| `stack` | `parts` (figures, each with an optional `title`), `gap` (0.18) | figures one above the other |
+
+A diagram box does not grow. The build estimates each node's label and `text` at the deck's sizes and prints `warning: slide N [id]: diagram: node … text overflows its box` when they cannot fit; raise `node_height` / `colspan` or shorten the text. A `note:` line flags a last line holding only one or two characters (a word broken mid-way). A `\n` in a label or text becomes a real line break (`<a:br/>`) in the file.
 
 ### diagram
 ```yaml
@@ -319,6 +323,114 @@ figure:
 Parts are named `part/node`, `part/group`, `part/connector`, `part/text`, so `audit_pptx.py`
 counts them as composed structure. `extract_deck.py` cannot read a figure back into its spec
 and reports a LOSS naming the parts; keep the spec that drew it.
+
+#### diagram options for alignment and connectors (opt-in)
+
+```yaml
+figure:
+  kind: diagram
+  align: left                  # every box: label and text both left (or center); also nodes[].align
+  edge_label_pos: line         # horizontal edge labels sit just above the line, not above the boxes
+  edges:
+    - {from: hub, to: a, route: hv}          # across, then down into a's top
+    - {from: hub, to: c, route: elbow}       # out, across, in: three square segments
+    - {from: c, to: d, label: 毎日, label_pos: line}
+```
+
+- `align` fixes the mixed column a diagram otherwise draws (a label-only box centered next to a
+  box with `text` left-aligned). Without it nothing changes.
+- `route`: `elbow` (H-V-H or V-H-V by the main direction), `hv`, `vh`; `edge_route` on the
+  figure sets it for all edges. A label on a routed edge goes on its longest segment.
+- `label_pos: line` (or `edge_label_pos` on the figure) warns when the label is wider than the
+  gap it sits in.
+- `nodes[].tone: none` draws text with no fill and no border; `nodes[].label_color` colors the
+  label (`accent` / `muted` / a hex).
+
+### cycle
+```yaml
+figure:
+  kind: cycle
+  height: 2.4                  # ring_width (default ≈ 2.4 × height), node_width, node_height
+  center: {label: 毎週}         # optional label in the middle
+  items:                       # 3–8 steps, clockwise from the top (start: -90, direction: ccw)
+    - {label: 分析, text: つないだデータで}
+    - {label: 判断, text: 根拠を示す}
+    - {label: 合意, text: 組織どうしで}
+    - {label: 実行, text: 業務に反映する, edge: 結果が戻る}   # edge = label on the arrow to the next step
+```
+Steps default to `shape: ellipse`, `tone: light` (`node_shape` changes the default); arrows are
+accent (`edge_tone: muted`), and the last returns to the first unless `closed: false`.
+
+### matrix
+```yaml
+figure:
+  kind: matrix
+  corner: 項目                  # optional top-left label
+  columns: [EU, 米国, 日本]      # header cells, tone `header_tone` (dark)
+  marks:                       # one look per value, everywhere in the grid
+    - {mark: 義務, tone: outline, color: accent, label: 法律・規則で求める}
+    - {mark: 任意, tone: light, color: muted, label: 指針・任意}
+    - {mark: —, tone: none, color: muted, label: 定めなし}
+  legend: true                 # list the marks that have a label, under the grid
+  rows:
+    - label: 出どころ
+      cells: [{mark: 義務, text: 記録と要約}, {mark: 義務}, {mark: 任意, text: 説明}]
+    - label: 前処理
+      cells: [{mark: 義務}, {mark: —}, {label: 個別の説明, tone: accent}]
+```
+- A cell is `{mark, label, text, tone, color}` or a plain string. Tone comes from the cell, then
+  its mark, then `outline`. Every cell is left-aligned and vertically centered (`align`,
+  `text_anchor` override); header cells are centered (`header_align`).
+- `label_width` (0 drops the label column), `row_height` / `height`, `header_height`,
+  `col_widths` (weights), `row_tone` (light), `gap_x` / `gap_y`.
+- `flow: true` draws an arrow between neighbouring cells of a row (problem → mechanism → aim).
+- `validate_deck.py` errors when a row's cell count differs from `columns`, and warns on a cell
+  mark missing from `marks`.
+
+### bands
+```yaml
+figure:
+  kind: bands
+  cols: 4                      # optional shared grid so the rows line up
+  label_width: 1.8
+  arrows: up                   # optional arrow between layers (up / down); bands[].arrow_label
+  fill: false                  # true paints a panel behind each band
+  bands:
+    - {label: 法律, items: [{label: EU, text: AI 法}, {label: 韓国, text: AI 基本法}]}
+    - {label: 規則と標準, text: 当局の審査に向けて, items: [{label: 中国, span: 2}]}
+    - {label: 任意, tone: light, items: [日本, 英国]}
+```
+The left cell names the band (`tone`, default `label_tone` dark). Items are figure boxes
+(`label`, `text`, `tone`, `shape`, `span`); `band_height` or `height`, `weight` per band.
+
+### stack
+```yaml
+figure:
+  kind: stack
+  gap: 0.18
+  parts:                       # two or more figures, top to bottom; each may have a `title`
+    - {kind: cycle, title: 判断と合意のループ, height: 2.0, items: [分析, 判断, 合意, 実行]}
+    - kind: bands
+      title: ループを支える土台
+      bands:
+        - {label: 意味, tone: accent, items: [業界の共通の言葉]}
+        - {label: 信頼, tone: dark, items: [身元・利用条件・記録]}
+```
+When the slide is short, every part is scaled by the same factor (titles and gaps keep their size).
+
+### legend (any figure kind)
+```yaml
+figure:
+  kind: diagram
+  ...
+  legend:
+    - {label: 回す行い, tone: light, shape: ellipse}
+    - {label: 組織, tone: outline}
+    - {label: 合意の前の流れ, line: dashed}
+```
+A row of keys under the figure (0.34 in, counted in the figure's height): a swatch in the tone
+and shape, or a short line for `line: solid | dashed`. Use it when a color or an outline carries
+meaning the reader would otherwise have to guess; `matrix` builds it from `marks` with `legend: true`.
 
 ### table
 ```yaml

@@ -1,0 +1,104 @@
+# The figure vocabulary added in 2.15: cycle, matrix (marks + legend), bands,
+# stack, and the diagram options align / route / label_pos. Shaped unlike the
+# lecture deck it was written for: English, a cold-chain logistics story.
+meta:
+  aspect: '16:9'
+slides:
+- type: figure
+  title: The replenishment loop closes only when the store reports back
+  figure:
+    kind: cycle
+    height: 2.6
+    center: {label: Weekly loop}
+    items:
+    - {label: Forecast, text: from last week's sales, edge: plan}
+    - {label: Order, text: to the supplier}
+    - {label: Ship, text: cold chain kept}
+    - {label: Sell, text: store reports, tone: accent, edge: actuals feed back}
+  caption: 'Figure 1: four steps on a ring'
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: Only the EU requires a temperature log at every handoff
+  figure:
+    kind: matrix
+    corner: Requirement
+    columns: [EU, US, Japan]
+    marks:
+    - {mark: Required, tone: outline, color: accent, label: Required by rule}
+    - {mark: Voluntary, tone: light, label: Voluntary or guidance}
+    - {mark: '—', tone: none, color: muted, label: Not covered}
+    rows:
+    - label: Temperature log
+      cells: [{mark: Required, text: every handoff}, {mark: Voluntary, text: FDA guidance}, {mark: Voluntary}]
+    - label: Recall trace
+      cells: [{mark: Required, text: one step up and down}, {mark: Required, text: FSMA 204}, {mark: '—'}]
+    - label: Packaging data
+      cells: [{mark: Voluntary}, {mark: '—'}, {mark: Required, text: labelling law}]
+    legend: true
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: Each problem has one mechanism and one aim
+  figure:
+    kind: matrix
+    flow: true
+    label_width: 0
+    columns: [Problem, Mechanism, Aim]
+    rows:
+    - cells: ['Spoilage is found too late', 'Sensors report each hour', {text: 'Throw away less', tone: accent}]
+    - cells: ['Recalls take weeks', 'Lot numbers travel with the pallet', {text: 'Recall in a day', tone: accent}]
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: Rules come in three strengths
+  figure:
+    kind: bands
+    cols: 4
+    arrows: down
+    fill: true
+    bands:
+    - label: Law
+      items: [{label: EU, text: Regulation 2025/40}, {label: US, text: FSMA 204}, {label: Japan, text: Food Sanitation Act}]
+      arrow_label: guided by
+    - label: Standard
+      items: [{label: GS1 EPCIS, text: event data, span: 2}, {label: ISO 22000, span: 2}]
+    - label: Voluntary
+      tone: light
+      items: [Retailer codes, Carrier SLAs]
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: The loop runs on two layers below it
+  figure:
+    kind: stack
+    parts:
+    - kind: cycle
+      title: The loop (people and software)
+      height: 1.9
+      items: [Sense, Decide, Agree, Act]
+    - kind: bands
+      title: What it runs on
+      label_width: 1.6
+      bands:
+      - {label: Shared words, items: [Product codes, Lot numbers, Units]}
+      - {label: Trust, tone: accent, items: [{label: 'Who is asking, what they may do, and a record', span: 3}]}
+    legend:
+    - {label: an action, tone: light, shape: ellipse}
+    - {label: a layer, tone: dark}
+  source: 'Source: illustrative fixture'
+- type: figure
+  title: The hub fans out to three sites
+  figure:
+    kind: diagram
+    align: left
+    edge_label_pos: line
+    gap_x: 1.0
+    nodes:
+    - {id: hub, label: Hub, col: 1, row: 0}
+    - {id: a, label: Site A, text: chilled, col: 0, row: 1}
+    - {id: b, label: Site B, col: 1, row: 1}
+    - {id: c, label: Site C, text: frozen, col: 2, row: 1}
+    - {id: d, label: Depot, col: 3, row: 1}
+    edges:
+    - {from: hub, to: a, route: hv}
+    - {from: hub, to: b}
+    - {from: hub, to: c, route: elbow}
+    - {from: c, to: d, label: daily}
+  source: 'Source: illustrative fixture'
