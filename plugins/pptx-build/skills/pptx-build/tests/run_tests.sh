@@ -225,11 +225,40 @@ CASES=(
   "has:grouped drawing|python3 $A/extract_deck.py $f/messy-deck.pptx -o $TMP/messy2.yaml"
   "has:exploded pie|python3 $A/extract_deck.py $f/messy-deck.pptx -o $TMP/messy3.yaml"
 
+  # ---- ブラウザで見るページ（preview_web.py、PC とスマホ）: 図の数・跳び先・ハッシュ・キー・章のチップ ----
+  # 画像は固定の小さな JPEG を枚数ぶん写して使う（LibreOffice 不要）。spec から (0)、
+  # spec のない .pptx から (0)、題の置き場のない乱雑なデッキから (0)。画像の枚数が
+  # 合わないときは、黙って短いページを書かずに理由を言って止める (1)。入力なし (2)。
+  "0|python3 web_preview_check.py --spec $f/clean-deck.yaml --expect-sections 現状"
+  "0|python3 web_preview_check.py --pptx $f/clean-deck.pptx --expect-sections 現状"
+  "0|python3 web_preview_check.py --spec $f/archetype-deck.yaml --expect-sections 打ち手"
+  "0|python3 web_preview_check.py --pptx $f/messy-deck.pptx --expect-sections ''"
+  "has:<button type=\"submit\">Go</button>|mkdir -p $TMP/en/img; for i in 1 2 3 4; do cp $f/web-slide.jpg $TMP/en/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/en --pptx $f/messy-deck.pptx --lang en >/dev/null; cat $TMP/en/index.html"
+  "1|python3 web_preview_check.py --spec $f/clean-deck.yaml --images 7"
+  "has:7 image(s) in|python3 web_preview_check.py --spec $f/clean-deck.yaml --images 7"
+  "has:but 8 slide(s) in|python3 web_preview_check.py --spec $f/clean-deck.yaml --images 9"
+  "2|python3 $A/preview_web.py $TMP"
+  "2|python3 $A/preview_web.py $TMP --pptx $f/not-a-deck.txt"
+  "2|python3 $A/preview_web.py $TMP/no-such-dir --spec $f/clean-deck.yaml"
+  "2|bash $A/preview_web.sh $f/does-not-exist.pptx -o $TMP/ph"
+  "2|bash $A/preview_web.sh $f/clean-deck.pptx -q 0 -o $TMP/ph"
+
   # ---- 前提なし ----
   "2|python3 $A/extract_deck.py $f/not-a-deck.txt -o $TMP/x.yaml"
   "2|python3 $A/extract_deck.py $f/does-not-exist.pptx -o $TMP/x.yaml"
   "2|python3 roundtrip_check.py $f/clean-deck.yaml"
 )
+
+# 一続きの変換（.pptx → PDF → JPEG → index.html）は LibreOffice があるときだけ見る。
+if command -v soffice >/dev/null 2>&1 && command -v pdftoppm >/dev/null 2>&1; then
+  CASES+=(
+    "has:8 slide(s), 1 section(s)|bash $A/preview_web.sh $f/clean-deck.pptx -s $f/clean-deck.yaml -o $TMP/web -r 20"
+    "0|test \$(ls $TMP/web/img/s-*.jpg | wc -l) -eq 8"
+    "has:8 slide(s)|bash $A/preview_web.sh $f/clean-deck.pptx -o $TMP/web -r 20"
+  )
+else
+  echo "SKIP  LibreOffice / pdftoppm が無いため、preview_web.sh の一続きの変換は見ていない"
+fi
 
 pass=0; fail=0
 run() { eval "$1" >"$TMP/out" 2>&1; echo $?; }

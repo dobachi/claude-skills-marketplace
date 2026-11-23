@@ -9,7 +9,7 @@ description: >-
   "restart the preview", "give me the URL again", "I am on another PC / my phone",
   "where can I see this", 「プレビュー」「プレビュー再起動」「URL を示して」「再度 URL」
   「他の PC から見たい」「どこで見られる？」, and proactively at the end of any change the user
-  will want to look at. Hands off launching and driving an app for verification to run, and
+  will want to look at. For a slide deck, points to pptx-build's browser preview. Hands off launching and driving an app for verification to run, and
   build failures to auto-build.
 ---
 
@@ -41,6 +41,22 @@ Do not assume a tool. Decide from the project and the conversation, in this orde
 | A single file (PDF, image, deck) | The file, sent or served. A path on this machine is useless on another one |
 | Something already published | Its real URL (release, PR, deployed page, artifact) |
 | Nothing viewable (a library, a refactor) | Say so. Point at the diff or the test output instead |
+
+**A slide deck (`.pptx`).** Do not hand over the `.pptx` to download. Turn it into a browser
+preview with pptx-build's `assets/preview_web.sh DECK.pptx [-s deck.yaml] -o OUT`: one page that
+reads on a PC (centred column, j/k keys) and on a phone. Hand over the folder `OUT`
+(`index.html` + `img/`) in one of two ways:
+
+- Publish it as a Claude Artifact (`file_path` `OUT/index.html`, `root` `OUT`, `files` the
+  changed `img/s-NNN.jpg`). Inserting or deleting a slide shifts every later page number, so
+  publish every image from that point on, not only the new slide.
+- Where Artifacts are not reachable, serve it: `--serve ADDR:PORT` on the same command (or
+  `--serve-only ADDR:PORT -o OUT`) starts a static server in the background. The Reach, Prove and
+  Stopping rules below apply unchanged: bind the one address the user needs (default `127.0.0.1`),
+  fetch `index.html` and an image before handing over, stop it by PID.
+
+Link straight to a page with `#pN` (`…/index.html#p37`); reviewers answer as "p37 …". Details:
+pptx-build's `references/web-preview.md`.
 
 If two answers are plausible and they differ in cost (a rebuild of several minutes versus a link
 that already exists), give the cheap one first and offer the other.

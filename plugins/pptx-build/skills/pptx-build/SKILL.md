@@ -2,18 +2,18 @@
 name: pptx-build
 description: >-
   Generate clean, white-based .pptx decks that don't look AI-made, and rebuild decks that
-  already exist — built on python-pptx. Three modes, one spec: (1) default — grid-anchored
-  layout, no drifting bands, composed archetypes (cards / steps / matrix / split / statement)
+  already exist (python-pptx). Three modes, one spec: (1) default — grid-anchored
+  layout, no bands, composed archetypes (cards / steps / matrix / split / statement)
   picked from the content's shape; (2) template-fill — write into a corporate .pptx/.potx's own
   layouts and placeholders; (3) refactor — `extract_deck.py` reads an EXISTING deck back into a
-  spec. Figures are native and editable, never a pasted PNG, picked from 29 figure patterns
-  (comparison, cycle, tree, venn, swimlane …) that `find_pattern.py` searches by
-  intent. Five one-pager
-  shapes (brief, dashboard, timeline, decision, event report). A `lead:` line makes title,
-  supporting sentence and evidence three visible levels; the validator flags buried claims,
-  filler slides and deck-level AI tells, and exports the text for ai-tell-reducer. Use for
+  spec. Figures are native and editable, never a pasted PNG, from 29 figure patterns
+  (cycle, tree, venn, swimlane …) that `find_pattern.py` searches by intent. Five one-pager
+  shapes (brief, dashboard, timeline, decision, event report). A `lead:` line makes claim,
+  support and evidence three visible levels; the validator flags buried claims,
+  filler slides and AI tells and exports text for ai-tell-reducer. `preview_web.sh`
+  makes a browser preview. Use for
   "simple white deck", "テンプレに沿ったパワポ", "この資料を作り直して", "1 枚にまとめて",
-  "図の文字が編集できない", "どの図にすればいい", "AIっぽい資料を直して".
+  "図の文字が編集できない", "どの図にすればいい", "AIっぽい資料を直して", "ブラウザで見たい".
 ---
 
 > **Language:** Respond in the user's language. If unclear, default to the language of the user's message.
@@ -232,6 +232,39 @@ landed on the wrong layout. It also warns on placeholders that pin their own geo
 
 Read the PNGs back and run the checklist below. LibreOffice may substitute fonts, but it faithfully shows alignment, placeholder fills, and the no-drift property.
 
+### 5. Preview in a browser (PC or phone)
+
+```bash
+assets/preview_web.sh out.pptx -s deck.yaml -o preview-web      # pptx -> PDF -> JPEG -> index.html
+assets/preview_web.sh out.pptx -o preview-web --serve 8765      # ... and serve it on 127.0.0.1:8765
+```
+
+The deck as one web page, so nobody has to download and open the `.pptx`. On a PC, open the local
+URL or the Artifact and read the whole deck in a browser tab; on a phone, review from anywhere.
+
+One self-contained folder (`index.html` + `img/s-NNN.jpg`, inline CSS/JS, no external requests): one
+column of slides with `p.N` and the title (centred, at most ~1070 px wide on a PC, full width on a
+phone), a sticky header with section chips, a page-number box, the current page, `index.html#p37`
+links, and on a PC the keys j/→ next, k/← previous, g for the page box. Titles and sections come
+from the spec (`type: section`) or, without `-s`, from the deck itself. Options: `-r` DPI (110),
+`-q` JPEG quality (78), `--title`, `--subtitle`, `--lang`, `--serve [ADDR:]PORT`,
+`--serve-only [ADDR:]PORT`. A count mismatch between images and slides stops with exit 1 instead
+of writing a shorter page.
+
+Two ways to hand it over, in `references/web-preview.md`:
+
+- **Artifact**: publish `index.html` with the folder as `root` and the changed `img/s-NNN.jpg` as
+  `files`. **Inserting or deleting a slide shifts every later page number**: publish every image
+  from that point on, not only the new one. A text fix needs only its own image.
+- **Local URL** (where Artifacts are not reachable): `--serve` starts `python3 -m http.server` in
+  the background, bound to `127.0.0.1` by default (this PC only). For another PC or a phone, bind
+  an address it can reach (`--serve "$(tailscale ip -4):8765"` or a LAN address), never `0.0.0.0`
+  by default: the deck may be unpublished. Stop it by the PID from `ss -ltnp | grep ':8765 '`,
+  never `pkill -f`.
+
+Reviewers write comments as "p37 …"; the page-number box and `#pN` links are what make those
+numbers cheap to follow, so keep the page numbers in step with the deck.
+
 ## One-pagers: five shapes, all native
 
 A one-pager carries the whole argument on one slide, and its shape follows from what the reader
@@ -405,4 +438,6 @@ Apply the **information test** before adding any shape: if deleting it changes n
 - `assets/validate_deck.py` — spec linter (structure, logic, table/chart sanity) and narrative-spine printer; run before rendering
 - `assets/audit_pptx.py` — artifact auditor: fails a deck whose content is not in layout placeholders; run after rendering
 - `assets/extract_deck.py` — reads an existing `.pptx` back into a spec (+ its images) and reports what it could not represent; the entry point for refactoring
+- `references/web-preview.md` — the browser preview (PC or phone): what it shows, publishing it as an Artifact (which images to send after an insertion), serving it on a local URL, and stopping the server
+- `assets/preview_web.sh` / `assets/preview_web.py` — `.pptx` → browser preview in one command; the `.py` alone writes `index.html` for JPEGs already rendered
 - `tests/run_tests.sh` — three-directional check of the extractor and the round-trip comparator (clean → 0, defect-injected → 1, not a deck → 2)
