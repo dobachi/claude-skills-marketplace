@@ -7,13 +7,18 @@ header a filter, a counter, a storage notice and an Export button.
 Storage, decided in the browser at load time:
   * Claude Artifact published with `capabilities: {db: {}}` → `claude.use("db")` resolves,
     and each slide is one document in collection "reviews" (doc id = the spec's slide id,
-    else "p<N>"), body {status, comment, updated, page, slide, title}, live via onSnapshot.
-  * anything else (local URL, file, an Artifact without db) → localStorage, one key per slide
+    else a key made from the slide title, else "p<N>"; see doc_keys), body {status, comment,
+    updated, page, slide, title}, live via onSnapshot.
+  * served by preview_server.py (`preview_web.sh --serve`) → the same documents as JSON files in
+    OUT/reviews/<doc id>.json, through GET _reviews / PUT and DELETE _reviews/<id>, polled every
+    5 s so every reader sees the others' comments.
+  * anything else (file, a plain static server, an Artifact without db) → localStorage, one key per slide
     ("pptx-preview-review:<deck title>|<doc id>"), with a notice that it stays in this browser.
 Export (both cases): Markdown in the review-roundtrip comment style, one line per slide
 ("p12 [slide-id] 要修正: …"), copied to the clipboard and offered as a download.
 assets/preview_comments.py reads that Markdown, or a JSON dump of the collection, back.
 """
+import hashlib
 import html
 import json
 import re
@@ -32,6 +37,7 @@ UI = {
         "local": "コメントはこのブラウザの中だけに保存されます。ほかの人や端末には届かないので、渡すときは「書き出し」を使ってください",
         "memory": "このブラウザでは保存できません。閉じる前に「書き出し」で渡してください",
         "dbon": "コメントは自動で保存され、この Artifact を開ける人全員に見えます",
+        "srvon": "コメントはプレビューのサーバに自動で保存され、このページを開ける人全員に見えます",
         "dbslow": "保存先に届いていません。書いた分は「書き出し」で控えてください",
         "saving": "保存しています…", "dbsaved": "保存しました",
         "dberr": "保存できませんでした（{e}）。このブラウザに控えたので「書き出し」で渡してください",
@@ -41,6 +47,7 @@ UI = {
         "dlfail": "ダウンロードできませんでした（{e}）。コピーを使ってください",
         "exp_title": "レビューコメント", "none": "（コメントはまだありません）",
         "unmatched": "いまのデッキに無いスライドへのコメント",
+        "orph": "（どのスライドにも付けられないコメント {n} 件は、書き出しの末尾に入ります）",
     },
     "en": {
         "f_all": "All", "f_has": "Commented", "f_none": "Not reviewed", "f_label": "Filter",
@@ -50,6 +57,7 @@ UI = {
         "local": "Comments are saved in this browser only; nobody else sees them. Use Export to hand them over",
         "memory": "This browser cannot save. Use Export before closing the page",
         "dbon": "Comments save automatically and are visible to everyone who can open this artifact",
+        "srvon": "Comments save automatically on the preview server and are visible to everyone who can open this page",
         "dbslow": "The store is not answering yet. Use Export to keep what you wrote",
         "saving": "Saving…", "dbsaved": "Saved",
         "dberr": "Could not save ({e}). Kept in this browser; use Export to hand it over",
@@ -59,6 +67,7 @@ UI = {
         "dlfail": "Download failed ({e}); use Copy",
         "exp_title": "Review comments", "none": "(no comments yet)",
         "unmatched": "Comments on slides that are not in this deck",
+        "orph": " ({n} comment(s) match no slide in this deck; Export lists them at the end)",
     },
 }
 
@@ -78,14 +87,29 @@ def parse_labels(text, lang):
     return labels
 
 
+def title_key(title, nth):
+    """"t-<10 hex>" from the slide title; the second slide with the same title gets ".2"."""
+    h = "t-" + hashlib.sha1(title.encode("utf-8")).hexdigest()[:10]
+    return h if nth == 1 else f"{h}.{nth}"
+
+
 def doc_keys(slides):
-    """One stable document id per slide: the spec's `id` when it is a valid, unique db segment,
-    else "p<N>". A spec id keeps a comment on its slide when slides are inserted before it."""
+    """One stable document id per slide, so a comment stays on its slide when slides are
+    inserted or deleted before it: the spec's `id` when it is a valid, unique db segment, else
+    a key made from the slide title (title_key), else — a slide with no title — "p<N>".
+    The page re-homes records saved under an older "p<N>" key by their stored id or title."""
     ids = [s.get("id") or "" for s in slides]
-    seen, keys = set(), []
+    seen, keys, nth = set(), [], {}
     good = {i for i in ids if i and DOC_ID.match(i) and ids.count(i) == 1}
-    for n, i in enumerate(ids, 1):
-        k = i if i in good else f"p{n}"
+    for n, (i, s) in enumerate(zip(ids, slides), 1):
+        t = s.get("title") or ""
+        if i in good:
+            k = i
+        elif t:
+            nth[t] = nth.get(t, 0) + 1
+            k = title_key(t, nth[t])
+        else:
+            k = f"p{n}"
         while k in seen or (k != i and k in good):
             k = "_" + k
         seen.add(k)
@@ -189,7 +213,8 @@ def tail_html(slides, keys, labels, lang, title):
 JS = r"""
 (function(){
   var C=__CFG__, U=C.ui, S=C.slides;
-  var st={}, mode='pending', db=null, dl=null, dirty={}, inflight={}, written={}, timers={}, orphans={};
+  var st={}, mode='pending', where='', db=null, dl=null, dirty={}, inflight={}, written={}, timers={}, orphans={}, locOrph={}, moving={};
+  var PAGEKEY=/^_*p\d+$/, POLL=5000;
   var PFX='pptx-preview-review:'+C.title+'|';
   var $=function(s){ return document.querySelector(s); };
   var bars={}, byKey={};
@@ -203,8 +228,10 @@ JS = r"""
     var ta=b.querySelector('textarea'); if(document.activeElement!==ta&&ta.value!==(v.comment||'')) ta.value=v.comment||'';
     b.classList.toggle('has',has(v));
     b.querySelector('.rbs').textContent=v.updated?U.saved+' '+when(v.updated):''; }
+  function lost(){ var o={}; [orphans,locOrph].forEach(function(m){ Object.keys(m).forEach(function(k){ if(has(m[k])) o[k]=m[k]; }); }); return o; }
   function count(){ var n=0; S.forEach(function(s){ if(has(st[s.k])) n++; });
-    $('#rvcount').textContent=U.count.replace('{n}',n).replace('{t}',S.length); }
+    var o=Object.keys(lost()).length;
+    $('#rvcount').textContent=U.count.replace('{n}',n).replace('{t}',S.length)+(o?U.orph.replace('{n}',o):''); }
   function filt(){ var f=$('#rvf').value;
     S.forEach(function(s){ var v=st[s.k], show=true;
       if(f==='has') show=has(v); else if(f==='none') show=!has(v); else if(f.indexOf('s:')===0) show=v.status===f.slice(2);
@@ -213,12 +240,34 @@ JS = r"""
   window.__rvShowAll=function(){ $('#rvf').value='all'; filt(); };
   function rec(k){ var s=byKey[k], v=st[k];
     return {status:v.status||'',comment:v.comment||'',updated:v.updated||'',page:s.p,slide:s.id||'',title:s.t||''}; }
+  function val(v){ return {status:v.status||'',comment:v.comment||'',updated:v.updated||''}; }
+  function newer(a,b){ return String(a.updated||'')>String(b.updated||''); }
+  // Which slide of THIS deck a stored record belongs to. A spec id or title key is trusted. A
+  // page-number key ("p3", older pages or untitled slides) is trusted only while the slide on
+  // that page still has the title the record was written on; otherwise the record follows its
+  // slide id, else its title (when exactly one slide has it). null: no slide here takes it.
+  function home(k,v){ var s=byKey[k];
+    if(s&&(!PAGEKEY.test(k)||v.title==null||String(v.title)===(s.t||''))) return k;
+    var m=S.filter(function(x){ return v.slide?x.id===v.slide:(!!v.title&&x.t===v.title); });
+    return m.length===1?m[0].k:null; }
   // ---- storage: localStorage (any browser) ----
   function keep(k){ try{ localStorage.setItem(PFX+k,JSON.stringify(rec(k))); return true; }catch(e){ return false; } }
   function local(k){ if(!keep(k)){ mode='memory'; note(U.memory,true); } }
-  function loadLocal(){ S.forEach(function(s){ var raw=null; try{ raw=localStorage.getItem(PFX+s.k); }catch(e){}
-      if(!raw||dirty[s.k]) return; try{ var v=JSON.parse(raw); st[s.k]={status:v.status||'',comment:v.comment||'',updated:v.updated||''}; paint(s.k); }catch(e){} }); }
-  // ---- storage: the Artifact db (collection C.coll, one document per slide) ----
+  function localKeys(){ var ks=[]; try{ for(var i=0;i<localStorage.length;i++){ var x=localStorage.key(i);
+      if(x&&x.indexOf(PFX)===0&&x!==PFX+'_probe') ks.push(x.slice(PFX.length)); } }catch(e){} return ks; }
+  function localGet(k){ try{ var v=JSON.parse(localStorage.getItem(PFX+k)); return v&&typeof v==='object'?v:null; }catch(e){ return null; } }
+  // Read every record of this deck, put each on its slide (records on their own key first, then
+  // re-homed ones, which never overwrite a newer record), and move re-homed ones to their key.
+  // into(h,v,k) applies one; it returns false when the record stays where it is.
+  function sweepLocal(into){ var later=[];
+    localKeys().forEach(function(k){ var v=localGet(k); if(!v) return; var h=home(k,v);
+      if(h===null){ if(has(v)) locOrph[k]=v; return; }
+      if(h===k) into(h,v,k); else later.push([k,h,v]); });
+    later.forEach(function(x){ var k=x[0],h=x[1],v=x[2];
+      if(dirty[h]||(has(st[h])&&!newer(v,st[h]))){ if(has(v)) locOrph[k]=v; return; }
+      if(into(h,v,k)!==false){ try{ localStorage.removeItem(PFX+k); }catch(e){} } }); }
+  function loadLocal(){ sweepLocal(function(h,v,k){ if(dirty[h]) return false; st[h]=val(v); paint(h); if(h!==k) keep(h); }); }
+  // ---- storage: a shared store (the Artifact db, or the preview server), one document per slide ----
   function push(k){
     if(inflight[k]){ dirty[k]=1; return; }
     delete dirty[k];
@@ -233,19 +282,57 @@ JS = r"""
   function flush(){ Object.keys(dirty).forEach(function(k){ delete dirty[k]; if(mode==='db') push(k); else if(mode==='local') local(k); }); }
   function save(k){ st[k].updated=new Date().toISOString(); paint(k); count();
     if(mode==='pending'){ dirty[k]=1; } else if(mode==='db') push(k); else if(mode==='local') local(k); }
+  // A record stored under an old key that belongs to another slide now: write it under that
+  // slide's key, then delete the old document (only after the write succeeded).
+  function rehome(k,h,v){
+    if(timers[h]||inflight[h]||dirty[h]||(has(st[h])&&!newer(v,st[h]))){ orphans[k]=v; return; }
+    st[h]=val(v); paint(h);
+    if(moving[k]||mode!=='db') return; moving[k]=1;
+    var body=rec(h); inflight[h]=true;
+    db.collection(C.coll).doc(h).set(body).then(function(){ written[h]=JSON.stringify([body.status,body.comment]);
+      return db.collection(C.coll).doc(k).delete(); }).then(null,function(){ delete moving[k]; })
+      .then(function(){ inflight[h]=false; if(dirty[h]&&mode==='db') push(h); }); }
+  // Comments this browser kept before a shared store was available (an older page, or the
+  // server not running then): hand them to the store once, unless the store has newer ones.
+  // The local copy goes once read: a failed write keeps it again (push → keep), and a copy
+  // left behind would bring back a comment someone has since cleared in the store.
+  function adoptLocal(){ sweepLocal(function(h,v,k){ try{ localStorage.removeItem(PFX+k); }catch(e){}
+      if(!has(v)||dirty[h]||inflight[h]||timers[h]||(has(st[h])&&!newer(v,st[h]))) return;
+      st[h]=val(v); paint(h); push(h); }); count(); }
   function subscribe(){
     var first=true, tm=setTimeout(function(){ note(U.dbslow,true); },10000);
     db.collection(C.coll).onSnapshot(function(snap){
-      snap.docs.forEach(function(d){ var v=d.data()||{}, k=d.id;
-        if(!byKey[k]){ orphans[k]=v; return; }
+      orphans={}; var later=[];
+      snap.docs.forEach(function(d){ var v=d.data()||{}, k=d.id, h=home(k,v);
+        if(h===null){ orphans[k]=v; return; }
+        if(h!==k){ later.push([k,h,v]); return; }
         if(timers[k]||inflight[k]||dirty[k]) return;   // this page's own edit is newer
-        st[k]={status:v.status||'',comment:v.comment||'',updated:v.updated||''};
-        written[k]=JSON.stringify([st[k].status,st[k].comment]); paint(k); });
+        st[k]=val(v); written[k]=JSON.stringify([st[k].status,st[k].comment]); paint(k); });
+      later.forEach(function(x){ rehome(x[0],x[1],x[2]); });
+      if(!snap.metadata||!snap.metadata.fromCache){ clearTimeout(tm); if(mode==='db') note(where==='server'?U.srvon:U.dbon); }
+      if(first){ first=false; adoptLocal(); filt(); }
       count();
-      if(!snap.metadata||!snap.metadata.fromCache){ clearTimeout(tm); if(mode==='db') note(U.dbon); }
-      if(first){ first=false; filt(); }
     },function(e){ clearTimeout(tm); note(U.dberr.replace('{e}',(e&&e.code)||e),true); });
   }
+  // The preview server (preview_server.py, what `preview_web.sh --serve` starts) answers
+  // GET _reviews with every document and PUT / DELETE _reviews/<id> for one. This wraps it in
+  // the same shape as the Artifact db, polling for other readers' comments every POLL ms.
+  function http(r){ if(!r.ok){ var e=new Error('HTTP '+r.status); e.code='http_'+r.status; throw e; } return r; }
+  function serverDb(base){ return {collection:function(){ return {
+    doc:function(id){ var u=base+'/'+encodeURIComponent(id); return {
+      set:function(b){ return fetch(u,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(b)}).then(http); },
+      'delete':function(){ return fetch(u,{method:'DELETE'}).then(http); } }; },
+    onSnapshot:function(next,err){ var stop=false;
+      function tick(){ if(stop) return;
+        fetch(base,{cache:'no-store'}).then(http).then(function(r){ return r.json(); }).then(function(j){
+          next({docs:(j.docs||[]).map(function(d){ return {id:d.id,data:function(){ return d.data; }}; }),metadata:{fromCache:false}}); },
+          function(e){ if(err) err(e); }).then(function(){ if(!stop) setTimeout(tick,POLL); }); }
+      tick(); return function(){ stop=true; }; } }; }}; }
+  function probeServer(){
+    if(!/^https?:$/.test(location.protocol)||typeof fetch!=='function') return toLocal();
+    fetch('_reviews',{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+      if(!j||j.store!=='pptx-preview-reviews') return toLocal();
+      db=serverDb('_reviews'); where='server'; mode='db'; note(U.connecting); subscribe(); flush(); },toLocal); }
   function toLocal(){ if(mode!=='pending') return; mode='local';
     try{ localStorage.setItem(PFX+'_probe','1'); localStorage.removeItem(PFX+'_probe'); note(U.local,true); }
     catch(e){ mode='memory'; note(U.memory,true); }
@@ -270,12 +357,12 @@ JS = r"""
     var first=head+(v.status?' '+v.status+(c[0]?': '+c[0]:''):(c[0]?' '+c[0]:''));
     return [first].concat(c.slice(1).map(function(x){ return '  '+x; })).join('\n'); }
   function md(){ var out=['# '+C.title+' — '+U.exp_title,'','<!-- review-labels: '+C.labels.join(',')+' -->',
-      '<!-- exported: '+new Date().toISOString()+' from '+(mode==='db'?'artifact db':'this browser')+' -->',''], n=0;
+      '<!-- exported: '+new Date().toISOString()+' from '+(mode==='db'?(where==='server'?'preview server':'artifact db'):'this browser')+' -->',''], n=0;
     S.forEach(function(s){ var v=st[s.k]; if(!has(v)) return; n++;
       out.push('## p.'+s.p+(s.t?' '+s.t:''),'',line(s.p,s.id,v),''); });
-    var ok=Object.keys(orphans).filter(function(k){ return has(orphans[k]); });
+    var lo=lost(), ok=Object.keys(lo);
     if(ok.length){ out.push('## '+U.unmatched,'');
-      ok.forEach(function(k){ var v=orphans[k]; out.push(line(v.page||'?',v.slide||k,v)); }); out.push(''); }
+      ok.forEach(function(k){ var v=lo[k]; out.push(line(v.page||'?',v.slide||k,v)); }); out.push(''); }
     if(!n&&!ok.length) out.push(U.none,'');
     return out.join('\n'); }
   function fname(){ return (C.title.replace(/[\\\/:*?"<>|\s]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'slides')+'-review.md'; }
@@ -301,7 +388,7 @@ JS = r"""
   var W=window.claude;
   if(W&&typeof W.use==='function'){
     W.use('downloads').then(function(x){ dl=x||null; },function(){});
-    W.use('db').then(function(d){ if(!d) return toLocal(); db=d; mode='db'; note(U.connecting); subscribe(); flush(); },toLocal);
-  } else toLocal();
+    W.use('db').then(function(d){ if(!d) return toLocal(); db=d; where='artifact'; mode='db'; note(U.connecting); subscribe(); flush(); },toLocal);
+  } else probeServer();
 })();
 """

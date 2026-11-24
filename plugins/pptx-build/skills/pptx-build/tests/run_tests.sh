@@ -246,10 +246,11 @@ CASES=(
   # ---- レビュー欄（--comments）: 既定では何も変わらず、付けると枚ごとの欄と保存の両経路が入る ----
   # 付けないときは 2.17.0 の出力とバイト単位で同じ (0)。付けると欄・絞り込み・書き出し・db と
   # localStorage の両経路・入力中のキー無視 (0)。spec の id を文書の id に使い、使えない id と
-  # 重複は pN に落とす (0)。付けたページを 2.17.0 と比べると違う、つまり比較が効いている (1)。
+  # 重複と id の無い枚はタイトルから作ったキー（t-…）に落とす。挿入でずれない (0)。付けたページを
+  # 2.17.0 と比べると違う、つまり比較が効いている (1)。
   "0|python3 web_preview_check.py --spec $f/clean-deck.yaml --golden $f/web-preview-2.17.0.html"
   "1|python3 web_preview_check.py --spec $f/clean-deck.yaml --comments --golden $f/web-preview-2.17.0.html"
-  "0|python3 web_preview_check.py --spec $f/review-deck.yaml --comments --expect-keys cover,intro,p3,p4,p5,p6"
+  "0|python3 web_preview_check.py --spec $f/review-deck.yaml --comments --expect-keys cover,intro,t-80f740bb28,t-19b0f5d416,t-e5ce8134fb,t-c662b968d4"
   "0|python3 web_preview_check.py --pptx $f/clean-deck.pptx --comments --expect-sections 現状"
   "has:<button type=\"button\" id=\"rvx\">Export</button>|mkdir -p $TMP/en2/img; for i in 1 2 3 4; do cp $f/web-slide.jpg $TMP/en2/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/en2 --pptx $f/messy-deck.pptx --lang en --comments >/dev/null; cat $TMP/en2/index.html"
   "has:data-s=\"差し戻し\"|mkdir -p $TMP/lb/img; for i in 1 2 3 4; do cp $f/web-slide.jpg $TMP/lb/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/lb --pptx $f/messy-deck.pptx --comments --review-labels '了承,差し戻し' >/dev/null; cat $TMP/lb/index.html"
@@ -263,6 +264,11 @@ CASES=(
   "has:moved: [intro] p1 -> p2|python3 $A/preview_comments.py $f/review-export.md --spec $f/review-deck.yaml"
   "has:p5 質問: この 7 割は件数か金額か|python3 $A/preview_comments.py $f/review-export.md"
   "has:p3 数字の出典を入れる|python3 $A/preview_comments.py $f/review-db"
+  # ---- ローカル URL でもコメントをサーバに置く（preview_server.py、--serve が起動する）----
+  # 静的な配信は http.server と同じ、/_reviews の GET/PUT/DELETE、知らない項目は捨てる、
+  # 不正な id・他サイトのページから・オブジェクトでない本文・大きすぎる本文は拒む (0)。index.html が無い (2)。
+  "has:OK preview_server|mkdir -p $TMP/ps/img; for i in 1 2 3 4 5 6; do cp $f/web-slide.jpg $TMP/ps/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/ps --spec $f/review-deck.yaml --comments >/dev/null; python3 preview_server_check.py $TMP/ps"
+  "2|python3 $A/preview_server.py --directory $TMP/no-such-preview --port 0"
   "lacks:p4|python3 $A/preview_comments.py $f/review-db"
   "1|python3 $A/preview_comments.py $f/review-db --spec $f/review-deck.yaml"
   "has:[gone] (p9) is not in|python3 $A/preview_comments.py $f/review-db --spec $f/review-deck.yaml"

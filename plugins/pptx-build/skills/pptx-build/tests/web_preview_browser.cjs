@@ -7,6 +7,13 @@
 //   db     : a fake window.claude whose use("db") resolves a recording store, as an Artifact
 //            published with capabilities {db:{}} would. A document already in "reviews" shows
 //            up on its slide; a new comment is written to reviews/<spec id> with page and slide.
+//            A document saved under an old page-number key ("p3" written when "id の無い枚" was
+//            p.2) is moved to that slide's title key and the old document deleted.
+//   legacy : localStorage records from before 2.18.1 (page-number keys) land on the slide
+//            whose title they carry, not on whatever slide now has that page number; a record
+//            whose slide is gone is counted and exported, not shown on a wrong slide.
+//   server : the page served by preview_server.py saves to OUT/reviews/<key>.json, a second
+//            reader sees it, and comments this browser kept locally are handed to the server.
 //
 // usage: web_preview_browser.cjs OUT_DIR      (OUT_DIR/index.html built from fixtures/review-deck.yaml)
 // exit:  0 all good / 1 a check failed / 2 cannot run (no puppeteer or no Chrome)
@@ -14,7 +21,7 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 
 function loadPuppeteer() {
   const tries = ['puppeteer', 'puppeteer-core'];
@@ -34,6 +41,7 @@ const chrome = ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromiu
 
 const bad = [];
 const check = (ok, what) => { if (!ok) bad.push(what); };
+let srv = null;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const server = http.createServer((req, res) => {
@@ -48,13 +56,17 @@ const server = http.createServer((req, res) => {
 // A stand-in for the Artifact runtime: use("db") resolves a store that records writes and
 // delivers one existing document through onSnapshot.
 function fakeClaude() {
+  try { localStorage.clear(); } catch (e) { /* the db section starts with nothing kept locally */ }
   const writes = [];
   window.__writes = writes;
-  const existing = { id: 'p3', data: () => ({ status: '質問', comment: '既にある指摘', updated: '2026-11-20T01:00:00Z', page: 3, slide: '' }) };
+  const deletes = [];
+  window.__deletes = deletes;
+  const existing = { id: 'p2', data: () => ({ status: '質問', comment: '既にある指摘', updated: '2026-11-20T01:00:00Z', page: 2, slide: '', title: 'id の無い枚' }) };
   const db = {
     collection(c) {
       return {
-        doc(id) { return { set(body) { writes.push({ c, id, body }); return Promise.resolve(); } }; },
+        doc(id) { return { set(body) { writes.push({ c, id, body }); return Promise.resolve(); },
+                           delete() { deletes.push({ c, id }); return Promise.resolve(); } }; },
         onSnapshot(next) { setTimeout(() => next({ docs: [existing], metadata: { fromCache: false } }), 50); return () => {}; },
       };
     },
@@ -142,7 +154,13 @@ function fakeClaude() {
       q: document.querySelector('#s3 .rb button[data-s="質問"]').getAttribute('aria-pressed'),
       note: document.querySelector('#rvnote').textContent,
     }));
-    check(s3.text === '既にある指摘' && s3.q === 'true', `db document p3 not shown on slide 3: ${JSON.stringify(s3)}`);
+    check(s3.text === '既にある指摘' && s3.q === 'true', `old db document p2 not re-homed to slide 3: ${JSON.stringify(s3)}`);
+    const moved = await p2.evaluate(() => ({ w: window.__writes.filter(w => w.id === 't-80f740bb28'), d: window.__deletes }));
+    check(moved.w.length === 1 && moved.w[0].body.page === 3 && moved.w[0].body.comment === '既にある指摘',
+      `re-homed document not written under t-80f740bb28: ${JSON.stringify(moved.w)}`);
+    check(JSON.stringify(moved.d) === '[{"c":"reviews","id":"p2"}]', `old document p2 not deleted: ${JSON.stringify(moved.d)}`);
+    const s2 = await p2.$eval('#s2 .rb textarea', e => e.value);
+    check(s2 === '', `old p2 document shown on today's p.2: ${JSON.stringify(s2)}`);
     check(/全員に見えます/.test(s3.note), `db notice missing (got "${s3.note}")`);
     await p2.click('#s2 .rb button[data-s="OK"]');
     await p2.click('#s2 .rb textarea');
@@ -158,11 +176,81 @@ function fakeClaude() {
     const lsKeys = await p2.evaluate(() => Object.keys(localStorage).filter(k => k.includes('|cover')));
     check(lsKeys.length === 0, 'db mode also wrote to localStorage');
     check(errs2.length === 0, `page errors (db): ${errs2.join('; ')}`);
+    await p2.close();
+
+    // ---------------- legacy localStorage records (page-number keys) ----------------
+    const PFX = 'pptx-preview-review:レビュー用の小さなデッキ|';
+    const p3 = await browser.newPage();
+    const errs3 = [];
+    p3.on('pageerror', e => errs3.push(e.message));
+    await p3.goto(url, { waitUntil: 'load' });
+    await p3.evaluate(pfx => {
+      localStorage.clear();
+      // written by an older page when "id の無い枚" was p.2 and a slide "消えた枚" was p.5
+      localStorage.setItem(pfx + 'p2', JSON.stringify({ status: '要修正', comment: '旧 p2 の指摘', updated: '2026-11-20T01:00:00Z', page: 2, slide: '', title: 'id の無い枚' }));
+      localStorage.setItem(pfx + 'p5', JSON.stringify({ status: '質問', comment: '消えた枚への質問', updated: '2026-11-20T01:00:00Z', page: 5, slide: '', title: '消えた枚' }));
+    }, PFX);
+    await p3.reload({ waitUntil: 'load' });
+    await sleep(200);
+    const lg = await p3.evaluate(pfx => ({
+      s2: document.querySelector('#s2 .rb textarea').value,
+      s3: document.querySelector('#s3 .rb textarea').value,
+      s5: document.querySelector('#s5 .rb textarea').value,
+      count: document.querySelector('#rvcount').textContent,
+      keys: Object.keys(localStorage).filter(k => k.startsWith(pfx)).map(k => k.slice(pfx.length)).sort(),
+      md: window.__rvExport(),
+    }), PFX);
+    check(lg.s2 === '' && lg.s3 === '旧 p2 の指摘' && lg.s5 === '', `legacy record not on its slide: ${JSON.stringify(lg)}`);
+    check(/1 件/.test(lg.count), `orphan not counted: ${lg.count}`);
+    check(lg.md.includes('消えた枚への質問') && lg.md.includes('いまのデッキに無いスライドへのコメント'), `orphan not exported:\n${lg.md}`);
+    check(JSON.stringify(lg.keys) === '["p5","t-80f740bb28"]', `legacy key not moved to the title key: ${lg.keys}`);
+    check(errs3.length === 0, `page errors (legacy): ${errs3.join('; ')}`);
+    await p3.close();
+
+    // ---------------- preview_server.py ----------------
+    fs.rmSync(path.join(out, 'reviews'), { recursive: true, force: true });
+    srv = spawn('python3', [path.join(__dirname, '..', 'assets', 'preview_server.py'), '--directory', out, '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const surl = await new Promise((res, rej) => {
+      let buf = '';
+      srv.stdout.on('data', d => { buf += d; const m = buf.match(/on (http:\/\/[^/]+\/)/); if (m) res(m[1] + 'index.html'); });
+      srv.on('exit', c => rej(new Error('preview_server.py exited ' + c)));
+      setTimeout(() => rej(new Error('preview_server.py did not start')), 5000);
+    });
+    const p4 = await browser.newPage();
+    const errs4 = [];
+    p4.on('pageerror', e => errs4.push(e.message));
+    await p4.goto(surl, { waitUntil: 'load' });
+    // a comment this browser kept on the server's origin before (an older page): handed over
+    await p4.evaluate(pfx => { localStorage.clear(); localStorage.setItem(pfx + 'intro', JSON.stringify({ status: '質問', comment: '手元にあった指摘', updated: '2026-11-20T01:00:00Z', page: 2, slide: 'intro', title: '背景と問い' })); }, PFX);
+    await p4.reload({ waitUntil: 'load' });
+    await sleep(600);
+    check(/サーバに自動で保存/.test(await p4.$eval('#rvnote', e => e.textContent)), 'server notice missing');
+    await p4.click('#s3 .rb button[data-s="要修正"]');
+    await p4.click('#s3 .rb textarea');
+    await p4.keyboard.type('サーバに残る');
+    await p4.click('#s1 .rb button[data-s="OK"]');
+    await sleep(900);
+    const rd = path.join(out, 'reviews');
+    const f3 = path.join(rd, 't-80f740bb28.json'), fi = path.join(rd, 'intro.json');
+    const j3 = fs.existsSync(f3) ? JSON.parse(fs.readFileSync(f3, 'utf8')) : null;
+    const ji = fs.existsSync(fi) ? JSON.parse(fs.readFileSync(fi, 'utf8')) : null;
+    check(j3 && j3.status === '要修正' && j3.comment === 'サーバに残る' && j3.page === 3, `server file for p.3 wrong: ${JSON.stringify(j3)}`);
+    check(ji && ji.comment === '手元にあった指摘', `local comment not handed to the server: ${JSON.stringify(ji)}`);
+    check((await p4.evaluate(pfx => Object.keys(localStorage).filter(k => k.startsWith(pfx)).length, PFX)) === 0, 'server mode left copies in localStorage');
+    const ctx = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
+    const p5 = await ctx.newPage();
+    await p5.goto(surl, { waitUntil: 'load' });
+    await sleep(600);
+    const other = await p5.evaluate(() => ({ s3: document.querySelector('#s3 .rb textarea').value, s1: document.querySelector('#s1 .rb button[data-s="OK"]').getAttribute('aria-pressed') }));
+    check(other.s3 === 'サーバに残る' && other.s1 === 'true', `another reader does not see the server comments: ${JSON.stringify(other)}`);
+    await ctx.close();
+    check(errs4.length === 0, `page errors (server): ${errs4.join('; ')}`);
   } finally {
+    if (srv) srv.kill();
     await browser.close();
     server.close();
   }
   for (const b of bad) console.log('NG ' + b);
-  if (!bad.length) console.log('OK browser: local save survives reload, keys ignored while typing, filter, export, db writes');
+  if (!bad.length) console.log('OK browser: local save survives reload, keys ignored while typing, filter, export, db writes, re-homing after insertion, preview server');
   process.exit(bad.length ? 1 : 0);
 })().catch(e => { console.error(e); server.close(); process.exit(2); });

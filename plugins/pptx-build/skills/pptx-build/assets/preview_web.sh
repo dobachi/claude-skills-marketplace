@@ -22,11 +22,13 @@
 #       --lang auto|ja|en  UI words (default auto)
 #       --comments         add a review bar under each slide (status buttons + comment box), a
 #                          filter, a counter and Export. Comments go to the Artifact db (publish
-#                          with capabilities {db: {}}) or, anywhere else, to this browser's
-#                          localStorage. Off by default; without it the page is unchanged.
+#                          with capabilities {db: {}}), to OUT/reviews/ on the server --serve
+#                          starts, or, anywhere else, to this browser's localStorage.
+#                          Off by default; without it the page is unchanged.
 #       --review-labels L  status buttons with --comments, comma-separated
 #                          (default "OK,要修正,質問", in English "OK,Fix,Question")
-#       --serve [ADDR:]PORT  after building, serve OUT over HTTP in the background.
+#       --serve [ADDR:]PORT  after building, serve OUT over HTTP in the background
+#                          (preview_server.py: static files, plus comment storage in OUT/reviews/).
 #                          ADDR defaults to 127.0.0.1 (this machine only).
 #       --serve-only [ADDR:]PORT  serve OUT without rebuilding
 #
@@ -114,12 +116,16 @@ if [[ -n "$SERVE" ]]; then
     # Something listens already. If it serves this folder, reuse it; never start a second one.
     if curl -s "$URL" 2>/dev/null | cmp -s - "$OUT/index.html"; then
       echo "already serving $OUT on $URL (reused)"
+      if [[ $(curl -s -o /dev/null -w '%{http_code}' "${URL}_reviews" 2>/dev/null) != 200 ]]; then
+        echo "note: that server does not store comments (an older plain http.server?); comments stay in each" \
+             "browser. To keep them on the server, stop it (ss -ltnp | grep ':$PORT ', kill <pid>) and run --serve again."
+      fi
     else
       die 2 "port $PORT is taken by something else; pick another port (ss -ltnp | grep ':$PORT ')"
     fi
   else
     LOG="${TMPDIR:-/tmp}/preview-web-$PORT.log"
-    nohup python3 -m http.server --bind "$ADDR" "$PORT" --directory "$OUT" >"$LOG" 2>&1 < /dev/null &
+    nohup python3 "$HERE/preview_server.py" --bind "$ADDR" --port "$PORT" --directory "$OUT" >"$LOG" 2>&1 < /dev/null &
     disown || true
     ok=0
     for _ in $(seq 1 30); do
@@ -133,5 +139,6 @@ if [[ -n "$SERVE" ]]; then
     echo "note: $ADDR is reachable from this machine only; for another PC or a phone use e.g. --serve \$(tailscale ip -4):$PORT"
   echo "open:   $URL"
   echo "page N: ${URL}#p12   (any page number after #p)"
+  grep -q 'id="rvx"' "$OUT/index.html" && echo "comments: saved in $OUT/reviews/  (read back: preview_comments.py $OUT [--spec deck.yaml])"
   echo "stop:   ss -ltnp | grep ':$PORT '   then   kill <pid>"
 fi

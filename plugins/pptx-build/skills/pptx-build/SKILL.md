@@ -268,11 +268,13 @@ numbers cheap to follow, so keep the page numbers in step with the deck.
 **Comments on the page (`--comments`, opt-in).** Each slide gets status buttons (`OK / 要修正 /
 質問`, or `--review-labels`) and a comment box; the header a filter, a counter and Export.
 Published as an Artifact with `capabilities: {db: {}, downloads: {}}`, comments save live to the
-artifact's db (collection `reviews`, one document per slide keyed by the spec's slide `id`, else
-`pN`) and everyone the artifact is shared with sees them; anywhere else they stay in that
-browser's localStorage, and the page says so. Export copies or downloads them as
+artifact's db (collection `reviews`, one document per slide keyed by the spec's slide `id`,
+else by its title, so inserting slides moves no comment) and everyone the artifact is shared with
+sees them. On a local URL started with `--serve` they are saved on the server as
+`OUT/reviews/<key>.json` and shared the same way (`assets/preview_server.py`); anywhere else they
+stay in that browser's localStorage, and the page says so. Export copies or downloads them as
 `p12 [slide-id] 要修正: …` lines from any environment. Read them back with ArtifactData `list`
-(collection `reviews`, `out_dir`) and `assets/preview_comments.py`, which re-maps slide ids to the
+(collection `reviews`, `out_dir`) — or, from the server, `OUT` itself — and `assets/preview_comments.py`, which re-maps slide ids to the
 current pages (`--spec`) and writes them into a review-roundtrip sheet (`--sheet`). Without the
 flag the page is byte-for-byte what it was. Details in `references/web-preview.md`.
 
@@ -451,5 +453,6 @@ Apply the **information test** before adding any shape: if deleting it changes n
 - `assets/extract_deck.py` — reads an existing `.pptx` back into a spec (+ its images) and reports what it could not represent; the entry point for refactoring
 - `references/web-preview.md` — the browser preview (PC or phone): what it shows, publishing it as an Artifact (which images to send after an insertion), serving it on a local URL, stopping the server, and `--comments` (where comments are saved, publishing with `db`, reading them back)
 - `assets/preview_web.sh` / `assets/preview_web.py` — `.pptx` → browser preview in one command; the `.py` alone writes `index.html` for JPEGs already rendered; `--comments` adds the review bar (`assets/preview_review.py`)
+- `assets/preview_server.py` — what `--serve` starts: static files plus the comments' store in `OUT/reviews/` (`GET _reviews`, `PUT` / `DELETE _reviews/<id>`)
 - `assets/preview_comments.py` — exported comments or the Artifact's `reviews` collection → `pN [id] status: comment` lines, or into a review-roundtrip sheet
 - `tests/run_tests.sh` — three-directional check of the extractor and the round-trip comparator (clean → 0, defect-injected → 1, not a deck → 2)

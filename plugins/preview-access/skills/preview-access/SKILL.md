@@ -58,7 +58,9 @@ reads on a PC (centred column, j/k keys) and on a phone. Hand over the folder `O
 Link straight to a page with `#pN` (`…/index.html#p37`); reviewers answer as "p37 …". When the
 reviewer should comment on the page itself, add `--comments` and publish with
 `capabilities: {db: {}, downloads: {}}`: the comments are then shared with everyone who can open
-the artifact (say so). On a local URL they stay in the reviewer's browser until Export. Details:
+the artifact (say so). On a local URL started with `--serve` they are saved on that server in
+`OUT/reviews/` and shared with everyone who can reach the URL (say so; keep the bind address
+private); a plain static server leaves them in the reviewer's browser until Export. Details:
 pptx-build's `references/web-preview.md`.
 
 If two answers are plausible and they differ in cost (a rebuild of several minutes versus a link
