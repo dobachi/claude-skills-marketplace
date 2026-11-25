@@ -452,7 +452,7 @@ Apply the **information test** before adding any shape: if deleting it changes n
 - `assets/audit_pptx.py` — artifact auditor: fails a deck whose content is not in layout placeholders; run after rendering
 - `assets/extract_deck.py` — reads an existing `.pptx` back into a spec (+ its images) and reports what it could not represent; the entry point for refactoring
 - `references/web-preview.md` — the browser preview (PC or phone): what it shows, publishing it as an Artifact (which images to send after an insertion), serving it on a local URL, stopping the server, and `--comments` (where comments are saved, publishing with `db`, reading them back)
-- `assets/preview_web.sh` / `assets/preview_web.py` — `.pptx` → browser preview in one command; the `.py` alone writes `index.html` for JPEGs already rendered; `--comments` adds the review bar (`assets/preview_review.py`)
+- `assets/preview_web.sh` / `assets/preview_web.py` — `.pptx` → browser preview in one command (zoom buttons, multi-column overview, tap a slide to open it full-window and zoom); the `.py` alone writes `index.html` for JPEGs already rendered; `--comments` adds the review bar (`assets/preview_review.py`)
 - `assets/preview_server.py` — what `--serve` starts: static files plus the comments' store in `OUT/reviews/` (`GET _reviews`, `PUT` / `DELETE _reviews/<id>`)
 - `assets/preview_comments.py` — exported comments or the Artifact's `reviews` collection → `pN [id] status: comment` lines, or into a review-roundtrip sheet
 - `tests/run_tests.sh` — three-directional check of the extractor and the round-trip comparator (clean → 0, defect-injected → 1, not a deck → 2)

@@ -112,6 +112,10 @@ def main():
             at = next((i for i, (x, y) in enumerate(zip(page, want)) if x != y), min(len(page), len(want)))
             bad.append(f"page differs from {os.path.basename(a.golden)} at char {at}: "
                        f"{page[max(0, at - 30):at + 30]!r}")
+    for needle, what in (('<span id="zm"', "zoom buttons in the header"), ("main.zs", "multi-column zoom-out"),
+                         ('<dialog id="lb"', "lightbox"), ("setL(li_+d)", "lightbox zoom keys")):
+        if needle not in page:
+            bad.append(f"{what} missing")
     rv = 'class="rb"' in page
     if a.comments:
         keys = re.findall(r'<div class="rb" data-k="([^"]*)">', page)
@@ -133,7 +137,8 @@ def main():
                 bad.append(f"{what} missing")
         if "window.claude.db" in page:
             bad.append("reads window.claude.db directly (use claude.use)")
-    elif rv or "localStorage" in page or "claude.use" in page or "W.use(" in page:
+    elif rv or "localStorage" in page.replace("localStorage.getItem('pv-zoom')", "").replace(
+            "localStorage.setItem('pv-zoom'", "") or "claude.use" in page or "W.use(" in page:
         bad.append("review bar or storage code present without --comments")
     for b in bad:
         print("NG", b)

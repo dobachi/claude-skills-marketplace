@@ -248,8 +248,8 @@ CASES=(
   # localStorage の両経路・入力中のキー無視 (0)。spec の id を文書の id に使い、使えない id と
   # 重複と id の無い枚はタイトルから作ったキー（t-…）に落とす。挿入でずれない (0)。付けたページを
   # 2.17.0 と比べると違う、つまり比較が効いている (1)。
-  "0|python3 web_preview_check.py --spec $f/clean-deck.yaml --golden $f/web-preview-2.17.0.html"
-  "1|python3 web_preview_check.py --spec $f/clean-deck.yaml --comments --golden $f/web-preview-2.17.0.html"
+  "0|python3 web_preview_check.py --spec $f/clean-deck.yaml --golden $f/web-preview-2.20.0.html"
+  "1|python3 web_preview_check.py --spec $f/clean-deck.yaml --comments --golden $f/web-preview-2.20.0.html"
   "0|python3 web_preview_check.py --spec $f/review-deck.yaml --comments --expect-keys cover,intro,t-80f740bb28,t-19b0f5d416,t-e5ce8134fb,t-c662b968d4"
   "0|python3 web_preview_check.py --pptx $f/clean-deck.pptx --comments --expect-sections 現状"
   "has:<button type=\"button\" id=\"rvx\">Export</button>|mkdir -p $TMP/en2/img; for i in 1 2 3 4; do cp $f/web-slide.jpg $TMP/en2/img/s-\$i.jpg; done; python3 $A/preview_web.py $TMP/en2 --pptx $f/messy-deck.pptx --lang en --comments >/dev/null; cat $TMP/en2/index.html"

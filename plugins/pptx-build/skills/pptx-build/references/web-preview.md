@@ -39,7 +39,9 @@ width with a 16 px gutter.
 | Page-number box | Type `37`, press the button, land on p.37 (the URL becomes `#p37`) |
 | Current page | `p.37 / 144` — the slide whose caption is at the top of the screen |
 | `#pN` links | `index.html#p37` opens on p.37; `#s37` also works |
-| Keys (PC) | j or → next slide, k or ← previous, g puts the cursor in the page-number box (Esc leaves it). Ignored while typing in the box or with Ctrl/Cmd/Alt held; the key hint shows on screens 900 px and wider |
+| Keys (PC) | j or → next slide, k or ← previous, g puts the cursor in the page-number box (Esc leaves it), + / − zoom the column, 0 back to 100%. Ignored while typing in the box or with Ctrl/Cmd/Alt held; the key hint shows on screens 900 px and wider |
+| Zoom buttons (− 100% ＋) | Slide size, 34%–200%. Below 100% the slides flow into several columns across the whole window, for an overview of many slides; above it the column widens up to the window. The page stays on the slide being read; the level is remembered per browser (localStorage, if allowed) |
+| Tap a slide | Opens it over the whole window. ‹ › or ← → move to the neighbouring slide, − / ＋ / + / − zoom up to 400%, Ctrl/Cmd + wheel zooms at the pointer, double-click toggles 200%, drag with the mouse (or swipe) to pan, Esc or 閉じる closes it on the slide last shown. The image is the rendered JPEG, so very high zoom shows its pixels: raise `-r` when small text must be read at 300–400% |
 
 Light and dark follow the device's setting; the header respects notches (safe-area insets). The
 images carry their real width and height so the page does not jump while they load.

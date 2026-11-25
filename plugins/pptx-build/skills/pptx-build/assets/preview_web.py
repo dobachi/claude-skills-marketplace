@@ -5,7 +5,8 @@ Reads  OUT_DIR/img/s-*.jpg  (one JPEG per slide, in order; preview_web.sh makes 
 and writes  OUT_DIR/index.html : one column of slides, each with "p.N" and its title,
 a sticky header with section chips, a page-number jump box, the current page, and
 `#pN` links (`index.html#p12` opens slide 12), keys on a PC (j/→ next, k/← previous,
-g the page box), light and dark. Self-contained:
+g the page box, +/- zoom), zoom buttons (below 100% the slides flow into columns), a
+full-window lightbox on tap with its own zoom and pan, light and dark. Self-contained:
 inline CSS/JS, no external requests.
 
 Titles, page labels and sections come from the spec when given (`slides[].title`,
@@ -36,9 +37,13 @@ TITLE_WORDS = ("title slide", "タイトル スライド", "タイトルスラ�
 
 LABELS = {
     "ja": {"cover": "表紙", "go": "移動", "page": "ページ番号", "count": "{n} 枚", "lang": "ja",
-           "keys": "j/→ 次 ・ k/← 前 ・ g ページ番号"},
+           "keys": "j/→ 次 ・ k/← 前 ・ g ページ番号 ・ +/− 拡大縮小",
+           "zin": "拡大", "zout": "縮小", "zreset": "標準の大きさに戻す", "zoom": "表示の大きさ",
+           "lbopen": "大きく表示", "close": "閉じる", "prev": "前", "next": "次"},
     "en": {"cover": "Cover", "go": "Go", "page": "Page number", "count": "{n} slides", "lang": "en",
-           "keys": "j/→ next · k/← previous · g page box"},
+           "keys": "j/→ next · k/← previous · g page box · +/− zoom",
+           "zin": "Zoom in", "zout": "Zoom out", "zreset": "Back to normal size", "zoom": "Slide size",
+           "lbopen": "Open large", "close": "Close", "prev": "Previous", "next": "Next"},
 }
 
 
@@ -172,6 +177,25 @@ figcaption { font-size:13px; color:var(--muted); margin-bottom:6px; }
 figcaption .n { font-variant-numeric:tabular-nums; font-weight:700; color:var(--fg); margin-right:4px; }
 figure.sec figcaption .n { color:var(--accent); }
 img { display:block; width:100%; height:auto; border:1px solid var(--line); background:#fff; }
+main > figure > img { cursor:zoom-in; }
+/* Column zoom: below 100% the slides flow into several columns across the whole window (an
+   overview); above it the column widens up to the window. */
+main { --z:1; grid-template-columns:repeat(auto-fill,minmax(min(100%,calc(1068px * var(--z))),1fr)); }
+main.zs { max-width:none; }
+main.zl { max-width:calc(1100px * var(--z)); }
+#zm { display:flex; gap:2px; align-items:center; flex:none; }
+#zm button { font:inherit; font-size:13px; min-width:30px; padding:3px 6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); cursor:pointer; }
+#zm #zp { min-width:52px; font-variant-numeric:tabular-nums; }
+/* Lightbox: one slide over the whole window, zoomable and pannable. */
+#lb { width:100vw; height:100vh; max-width:none; max-height:none; margin:0; padding:0; border:0; background:rgba(10,12,16,.95); color:#e6eaf0; overflow:hidden; }
+#lb::backdrop { background:rgba(0,0,0,.6); }
+#lbb { position:absolute; inset:0 0 auto; height:44px; display:flex; gap:6px; align-items:center; padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px)); background:rgba(0,0,0,.4); }
+#lbt { flex:1; min-width:0; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#lbb button { font:inherit; font-size:13px; min-width:34px; padding:4px 8px; border:1px solid #4a5462; border-radius:6px; background:#1a212b; color:#e6eaf0; cursor:pointer; }
+#lbb #lbp { min-width:56px; font-variant-numeric:tabular-nums; }
+#lbv { position:absolute; inset:44px 0 0; overflow:auto; display:flex; overscroll-behavior:contain; cursor:grab; }
+#lbv.drag { cursor:grabbing; }
+#lbv img { margin:auto; flex:none; max-width:none; width:auto; border:0; cursor:inherit; user-select:none; -webkit-user-drag:none; }
 """
 
 JS = """
@@ -197,14 +221,72 @@ JS = """
     now=k; cur.textContent='p.'+k+' / '+N; }
   window.addEventListener('scroll',function(){ if(!busy){ busy=true; requestAnimationFrame(mark); } },{passive:true});
   window.addEventListener('resize',mark); mark();
+  window.__pv={go:go, now:function(){ return now; }};
   // Keys on a PC. Ignored while typing in a field and with a modifier held, so the page box,
   // browser shortcuts and screen readers keep their keys.
   document.addEventListener('keydown',function(e){
     if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing) return;
+    if(document.getElementById('lb').open) return;  // the lightbox has its own keys
     var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) return;
     if(e.key==='j'||e.key==='ArrowRight'){ e.preventDefault(); go(now+1); }
     else if(e.key==='k'||e.key==='ArrowLeft'){ e.preventDefault(); go(now-1); }
     else if(e.key==='g'){ e.preventDefault(); var i=document.getElementById('pn'); i.focus(); i.select(); }
+  });
+})();
+"""
+
+
+ZOOM_JS = """
+(function(){
+  // Column zoom (header buttons, + / - / 0 keys); the level is kept per browser when allowed.
+  var Z=[0.34,0.5,0.67,0.8,1,1.25,1.5,2], m=document.querySelector('main'), zp=document.getElementById('zp'), zi=4;
+  function setZ(i,keep){ var p=window.__pv.now(); zi=Math.max(0,Math.min(Z.length-1,i)); var z=Z[zi];
+    m.style.setProperty('--z',z); m.classList.toggle('zs',z<1); m.classList.toggle('zl',z>1);
+    zp.textContent=Math.round(z*100)+'%';
+    try{ localStorage.setItem('pv-zoom',String(z)); }catch(e){}
+    if(keep) window.__pv.go(p); }
+  try{ var v=parseFloat(localStorage.getItem('pv-zoom')); if(Z.indexOf(v)>=0) setZ(Z.indexOf(v),false); }catch(e){}
+  document.getElementById('zm').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
+    setZ(b.id==='zp'?4:zi+parseInt(b.getAttribute('data-d'),10),true); });
+  // Lightbox: tap a slide to open it over the whole window.
+  var lb=document.getElementById('lb'), lv=document.getElementById('lbv'), li=lv.querySelector('img'),
+      lt=document.getElementById('lbt'), lp=document.getElementById('lbp'), L=[1,1.5,2,3,4], li_=0, cur=0;
+  function figs(){ return Array.prototype.filter.call(document.querySelectorAll('main > figure'),function(f){ return !f.hidden; }); }
+  function fit(){ var w=lv.clientWidth, h=lv.clientHeight, r=(li.naturalWidth||16)/(li.naturalHeight||9); return Math.min(w,h*r); }
+  function setL(i,cx,cy){ var old=li.getBoundingClientRect().width||1; li_=Math.max(0,Math.min(L.length-1,i));
+    if(cx==null){ cx=lv.clientWidth/2; cy=lv.clientHeight/2; }
+    var ax=(lv.scrollLeft+cx)/old, ay=(lv.scrollTop+cy)/old, w=fit()*L[li_];
+    li.style.width=w+'px'; lp.textContent=Math.round(L[li_]*100)+'%';
+    lv.scrollLeft=ax*w-cx; lv.scrollTop=ay*w-cy; }
+  function show(n){ var f=document.getElementById('s'+n); if(!f) return; cur=n; var im=f.querySelector('img');
+    li.onload=function(){ setL(0); }; li.src=im.getAttribute('src'); li.alt=im.alt;
+    lt.textContent=f.querySelector('figcaption').textContent; if(li.complete&&li.naturalWidth) setL(0); }
+  function move(d){ var fs=figs(), i=fs.indexOf(document.getElementById('s'+cur)); var f=fs[i+d]; if(f) show(parseInt(f.id.slice(1),10)); }
+  function close(){ lb.close(); }
+  lb.addEventListener('close',function(){ window.__pv.go(cur); });
+  m.addEventListener('click',function(e){ var im=e.target.closest('main > figure > img'); if(!im||!lb.showModal) return;
+    show(parseInt(im.parentNode.id.slice(1),10)); lb.showModal(); });
+  document.getElementById('lbb').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
+    if(b.id==='lbx') close(); else if(b.id==='lbp') setL(0); else if(b.hasAttribute('data-m')) move(parseInt(b.getAttribute('data-m'),10));
+    else setL(li_+parseInt(b.getAttribute('data-d'),10)); });
+  lv.addEventListener('wheel',function(e){ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault();
+    var r=lv.getBoundingClientRect(); setL(li_+(e.deltaY<0?1:-1),e.clientX-r.left,e.clientY-r.top); },{passive:false});
+  lv.addEventListener('dblclick',function(e){ var r=lv.getBoundingClientRect(); setL(li_?0:2,e.clientX-r.left,e.clientY-r.top); });
+  var dr=null;  // drag to pan with a mouse; touch scrolls natively
+  lv.addEventListener('pointerdown',function(e){ if(e.pointerType!=='mouse'||e.button) return; dr={x:e.clientX,y:e.clientY,l:lv.scrollLeft,t:lv.scrollTop}; lv.classList.add('drag'); e.preventDefault(); });
+  window.addEventListener('pointermove',function(e){ if(!dr) return; lv.scrollLeft=dr.l-(e.clientX-dr.x); lv.scrollTop=dr.t-(e.clientY-dr.y); });
+  window.addEventListener('pointerup',function(){ dr=null; lv.classList.remove('drag'); });
+  window.addEventListener('resize',function(){ if(lb.open) setL(li_); });
+  document.addEventListener('keydown',function(e){
+    if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing) return;
+    var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable)) return;
+    var k=e.key, d=(k==='+'||k==='=')?1:(k==='-'||k==='_')?-1:0;
+    if(lb.open){
+      if(d){ e.preventDefault(); setL(li_+d); } else if(k==='0'){ e.preventDefault(); setL(0); }
+      else if(k==='j'||k==='ArrowRight'){ e.preventDefault(); move(1); } else if(k==='k'||k==='ArrowLeft'){ e.preventDefault(); move(-1); }
+      return; }
+    if(document.querySelector('dialog[open]')) return;
+    if(d){ e.preventDefault(); setZ(zi+d,true); } else if(k==='0'){ e.preventDefault(); setZ(4,true); }
   });
 })();
 """
@@ -300,10 +382,12 @@ def main():
 <body>
 <header><div class="bar"><div class="meta"><h1>{html.escape(title)}</h1><p>{html.escape(meta_line)}</p></div>
 <span id="keys">{L['keys']}</span><span id="cur"></span>
+<span id="zm" role="group" aria-label="{L['zoom']}"><button type="button" data-d="-1" aria-label="{L['zout']}" title="{L['zout']}">−</button><button type="button" id="zp" aria-label="{L['zreset']}" title="{L['zreset']}">100%</button><button type="button" data-d="1" aria-label="{L['zin']}" title="{L['zin']}">＋</button></span>
 <form id="go" action="#"><input id="pn" type="number" inputmode="numeric" min="1" max="{n}" placeholder="p." aria-label="{L['page']}"><button type="submit">{L['go']}</button></form></div>
 <nav>{''.join(nav)}</nav>{rv_head}</header>
 <main>{''.join(items)}</main>
-<script>{js}</script>
+<dialog id="lb" aria-label="{L['lbopen']}"><div id="lbb"><span id="lbt"></span><button type="button" data-m="-1" aria-label="{L['prev']}">‹</button><button type="button" data-m="1" aria-label="{L['next']}">›</button><button type="button" data-d="-1" aria-label="{L['zout']}">−</button><button type="button" id="lbp" aria-label="{L['zreset']}">100%</button><button type="button" data-d="1" aria-label="{L['zin']}">＋</button><button type="button" id="lbx">{L['close']}</button></div><div id="lbv"><img alt=""></div></dialog>
+<script>{js}{ZOOM_JS}</script>
 {rv_tail}</body>
 </html>
 """
